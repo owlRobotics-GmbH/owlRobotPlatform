@@ -18,22 +18,38 @@ print('press CTRL+C to exit...')
 while True:
     #print('.')
 
-    if app.button == 'up':
-        robot.motorSpeed(-MAX_SPEED, MAX_SPEED, 0)
+    if app.extraButton == 'triangle':
+        MAX_SPEED = 300.0
+    elif app.extraButton == 'cross':
+        MAX_SPEED = 100.0
 
-    elif app.button == 'down':        
-        robot.motorSpeed(MAX_SPEED, -MAX_SPEED, 0)
+    if app.analogMode:
+        if app.y_value >= 0:
+            speedLeft = (app.y_value + app.x_value*0.3) * MAX_SPEED
+            speedRight = (app.y_value - app.x_value*0.3) * MAX_SPEED
+        else:
+            speedLeft = (app.y_value - app.x_value*0.3) * MAX_SPEED
+            speedRight = (app.y_value + app.x_value*0.3) * MAX_SPEED            
+        robot.motorSpeed(-speedLeft, speedRight, 0)
 
-    elif app.button == 'right':        
-        robot.motorSpeed(-MAX_SPEED, -MAX_SPEED, 0)
+    else:
+        if app.joystickButton == 'up':
+            robot.motorSpeed(-MAX_SPEED, MAX_SPEED, 0)
 
-    elif app.button == 'left':        
-        robot.motorSpeed(MAX_SPEED, MAX_SPEED, 0)
+        elif app.joystickButton == 'down':        
+            robot.motorSpeed(MAX_SPEED, -MAX_SPEED, 0)
 
-    elif app.button == 'released':
-        robot.motorSpeed(0, 0, 0)
+        elif app.joystickButton == 'right':        
+            robot.motorSpeed(-MAX_SPEED, -MAX_SPEED, 0)
 
-    time.sleep(0.2)
+        elif app.joystickButton == 'left':        
+            robot.motorSpeed(MAX_SPEED, MAX_SPEED, 0)
+
+        elif app.joystickButton == 'released':
+            robot.motorSpeed(0, 0, 0)
+
+
+    time.sleep(0.1)
 
 
 

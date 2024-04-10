@@ -85,6 +85,10 @@ class Robot():
         self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
         #notifier = can.Notifier(self.bus, [can.Printer()])
 
+    def __del__(self):
+        print('closing CAN...')
+        self.bus.shutdown()
+
 
     def sendCanData(self, destNodeId, cmd, val, data):        
         cs = CStruct()

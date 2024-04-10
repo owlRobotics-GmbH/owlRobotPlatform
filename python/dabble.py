@@ -14,7 +14,7 @@ import os
 import logging
 import time
 import threading
-
+import math
 
 from bumble.utils import AsyncRunner
 from bumble.device import Device, Connection
@@ -51,7 +51,14 @@ class Listener(Device.Listener, Connection.Listener):
 
 class Dabble():
     def __init__(self, bluetooth_transport = 'hci-socket:0'):
-        self.button = 'released'
+        self.analogMode = False  # analog joystick mode?
+        self.joystickButton = 'released'
+        self.extraButton = 'released'   
+        self.angle = 0   # angle/radius of analog joystick
+        self.radius = 0 
+        self.x_value = 0  # x/y-value of analog joystick
+        self.y_value = 0
+
         self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,), daemon=True)
         self.proc.start()
         
@@ -137,37 +144,53 @@ class Dabble():
         #print(type(value))
         if not isinstance(value, bytes): return
         if len(value) != 8: return
-        # up
-        # b'\xff\x01\x01\x01\x02\x00\x01\x00'
-        # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-        
-        # down
-        # b'\xff\x01\x01\x01\x02\x00\x02\x00'
-        # b'\xff\x01\x01\x01\x02\x00\x00\x00'
+        if value[5] == 0x01:
+            self.extraButton = 'start'
+            print('extra: start')
+        elif value[5] == 0x02:
+            self.extraButton = 'select'
+            print('extra: select')
+        elif value[5] == 0x10:
+            self.extraButton = 'cross'
+            print('extra: cross')
+        elif value[5] == 0x08:
+            self.extraButton = 'circle'
+            print('extra: circle')
+        elif value[5] == 0x04:
+            self.extraButton = 'triangle'
+            print('extra: triangle')
+        elif value[5] == 0x20:
+            self.extraButton = 'rectangle'
+            print('extra: rectangle')
+        elif value[5] == 0x00:
+            self.extraButton = 'released'
+            print('extra: released')
 
-        # left
-        # b'\xff\x01\x01\x01\x02\x00\x04\x00'
-        # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-
-        # right
-        # b'\xff\x01\x01\x01\x02\x00\x08\x00'
-        # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-
-        if value[6] == 0x01:
-            self.button = 'up'
-            print('up')
-        elif value[6] == 0x02:
-            self.button = 'down'
-            print('down')            
-        elif value[6] == 0x04:
-            self.button = 'left'
-            print('left')
-        elif value[6] == 0x08:
-            self.button = 'right'
-            print('right')
-        else:
-            self.button = 'released'
-            print('released')
+        if value[2] == 0x02 or value[2] == 0x03:  # analog joystick / acceleration sensor
+            self.analogMode = True
+            val = value[6]             
+            self.angle=((val >> 3)*15);
+            self.radius= val&0x07;
+            self.x_value= float(self.radius*(float(math.cos(float(self.angle*math.pi/180.0))))) / 6.0;
+            self.y_value= float(self.radius*(float(math.sin(float(self.angle*math.pi/180.0))))) / 6.0;
+            print('x', round(self.x_value,2), 'y', round(self.y_value,2))            
+        elif value[2] == 0x01:  # digital joystick
+            self.analogMode = False
+            if value[6] == 0x01:
+                self.joystickButton = 'up'
+                print('joy: up')
+            elif value[6] == 0x02:
+                self.joystickButton = 'down'
+                print('joy: down')            
+            elif value[6] == 0x04:
+                self.joystickButton = 'left'
+                print('joy: left')
+            elif value[6] == 0x08:
+                self.joystickButton = 'right'
+                print('joy: right')
+            elif value[6] == 0x00:
+                self.joystickButton = 'released'
+                print('joy: released')
 
 
 if __name__ == "__main__":
