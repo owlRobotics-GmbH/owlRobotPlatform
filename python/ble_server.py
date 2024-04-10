@@ -16,8 +16,9 @@ MAX_SPEED = 100.0  # rpm
 print('press CTRL+C to exit...')
 
 while True:
-    #print('.')
-
+    if not dabble.connected: continue    
+    #print('.', end="", flush=True)
+    
     if app.extraButton == 'triangle':
         MAX_SPEED = 300.0
     elif app.extraButton == 'cross':

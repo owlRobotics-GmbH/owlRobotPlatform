@@ -31,17 +31,31 @@ from bumble.gatt import (
 )
 
 
+connected = False 
+
+
 # -----------------------------------------------------------------------------
 class Listener(Device.Listener, Connection.Listener):
     def __init__(self, device):
         self.device = device
 
     def on_connection(self, connection):
+        global connected
+        connected = True
         print(f'=== Connected to {connection}')
         self.connection = connection        
         connection.listener = self
 
+        # TODO: Dabble App may expect some initial notify data: 
+        #   self.device.rx_characteristic.value = bytes(
+        #       [0xFF, 0x00, 0x01, 0x00, 0x00]                                )
+        #   AsyncRunner.spawn(self.device.notify_subscribers(
+        #       self.device.rx_characteristic
+        #   ))
+
     def on_disconnection(self, reason):
+        global connected
+        connected = False
         print(f'### Disconnected, reason={reason}')
         #self.device.disconnect(self.connection, reason)
         #AsyncRunner.spawn(self.device.set_discoverable(True))
