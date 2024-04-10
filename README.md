@@ -23,7 +23,7 @@ cd owlRobotPlatform/python
 sudo ./run_ble_server.sh
 ```
 
-3. Start Dabble App, connect with 'owlRobot', and choose button 'Gamedpad' to steer robot
+3. Start Dabble App, connect with 'owlRobot'and choose button 'Gamedpad' to steer robot (you can switch between digital mode, joystick mode and accelerometer mode)
 
 
 
