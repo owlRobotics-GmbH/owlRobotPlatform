@@ -19,8 +19,12 @@ cd ~
 git clone https://github.com/owlRobotics-GmbH/owlRobotPlatform
 
 ## run bash script ##
+cd owlRobotPlatform/python
 sudo ./run_ble_server.sh
 ```
+
+3. Start Dabble App, connect with 'owlRobot', and choose button 'Gamedpad' to steer robot
+
 
 
 ## ROS interface
