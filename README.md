@@ -6,7 +6,13 @@ owlRobotics robot platform interface code and examples
 
 ## Python interface demo
 
-run in Raspberry PI terminal:
+1. Install Dabble App:  
+```
+# Android: https://play.google.com/store/apps/details?id=io.dabbleapp
+# iOS: https://apps.apple.com/ch/app/dabble-bluetooth-controller/id1472734455
+```
+
+2. Run in Raspberry PI terminal:
 
 ```
 ## checkout repository ##
