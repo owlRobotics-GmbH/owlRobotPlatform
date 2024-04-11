@@ -40,11 +40,13 @@ sudo ./run_ble_server.sh
 
 6. In order to install the demo Python script as a Linux (autostart) service:
 
+```
 sudo ./service.sh
 
 1) Start ble_server service	    3) Start ble_server service		5) List services
 2) Stop ble_server service	    4) Show ble_server service console	6) Quit
 Please enter your choice: 
+```
 
 and choose point 1   ('Start ble_server service')
 
