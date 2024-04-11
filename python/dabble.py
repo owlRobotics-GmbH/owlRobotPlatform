@@ -46,12 +46,6 @@ class Listener(Device.Listener, Connection.Listener):
         self.connection = connection        
         connection.listener = self
 
-        # TODO: Dabble App may expect some initial notify data: 
-        #   self.device.rx_characteristic.value = bytes(
-        #       [0xFF, 0x00, 0x01, 0x00, 0x00]                                )
-        #   AsyncRunner.spawn(self.device.notify_subscribers(
-        #       self.device.rx_characteristic
-        #   ))
 
     def on_disconnection(self, reason):
         global connected
@@ -61,6 +55,20 @@ class Listener(Device.Listener, Connection.Listener):
         #AsyncRunner.spawn(self.device.set_discoverable(True))
         AsyncRunner.spawn(self.device.start_advertising(auto_restart=False))
 
+    def on_characteristic_subscription(
+        self, connection, characteristic, notify_enabled, indicate_enabled
+    ):
+        print(
+            f'$$$ Characteristic subscription for handle {characteristic.handle} '
+            f'from {connection}: '
+            f'notify {"enabled" if notify_enabled else "disabled"}, '
+            f'indicate {"enabled" if indicate_enabled else "disabled"}'
+        )
+        # TODO: Dabble App may expect some initial notify data: 
+        #self.device.characteristic2.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        #AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristic2))
+
+        
 
 
 class Dabble():
@@ -110,21 +118,25 @@ class Dabble():
             device_info_service = Service(
                 GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
             )
+            characteristic1 = Characteristic(
+                        '6E400002-B5A3-F393-E0A9-E50E24DCCA9E',
+                        Characteristic.Properties.WRITE,
+                        Characteristic.WRITEABLE,
+                        CharacteristicValue(write=self.my_custom_write),
+                    )
+            
+            self.device.characteristic2 = Characteristic(
+                        '6E400003-B5A3-F393-E0A9-E50E24DCCA9E',
+                        Characteristic.Properties.NOTIFY,
+                        Characteristic.READABLE,
+                        CharacteristicValue(read=self.my_custom_read),
+                    )
+
             custom_service1 = Service(
                 '6E400001-B5A3-F393-E0A9-E50E24DCCA9E',
                 [
-                    Characteristic(
-                        '6E400002-B5A3-F393-E0A9-E50E24DCCA9E',
-                        Characteristic.Properties.READ | Characteristic.Properties.WRITE,
-                        Characteristic.READABLE | Characteristic.WRITEABLE,
-                        CharacteristicValue(read=self.my_custom_read, write=self.my_custom_write),
-                    ),
-                    Characteristic(
-                        '6E400003-B5A3-F393-E0A9-E50E24DCCA9E',
-                        Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
-                        Characteristic.READABLE,
-                        'hello',
-                    ),
+                    characteristic1,
+                    self.device.characteristic2
                 ],
             )
             self.device.add_services([device_info_service, custom_service1])
@@ -144,8 +156,17 @@ class Dabble():
             #else:
             await self.device.start_advertising(auto_restart=False)
 
-            await self.hci_source.wait_for_termination()
-            print('dabble: hci source terminated - goodbye')
+            while True:
+                #print('sleep')
+                await asyncio.sleep(1.0)
+                #for val in bytes([0xFF, 0x00, 0x01, 0x00, 0x00]):
+                #    await asyncio.sleep(0.02)
+                #    self.device.characteristic2.value = [val] 
+                #    await self.device.notify_subscribers(self.device.characteristic2)
+                #await self.device.indicate_subscribers(characteristic2)
+                
+                
+            #await self.hci_source.wait_for_termination()
 
 
     def my_custom_read(self, connection):
@@ -154,8 +175,8 @@ class Dabble():
 
 
     def my_custom_write(self, connection, value):
-        #print(f'----- WRITE from {connection}: {value}')
-        #print(type(value))
+        print(f'----- WRITE from {connection}: {value}')
+        print(type(value))
         if not isinstance(value, bytes): return
         if len(value) != 8: return
         if value[5] == 0x01:
@@ -211,8 +232,8 @@ if __name__ == "__main__":
     #logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())    
     logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'WARNING').upper())
     
-    app = Dabble('hci-socket:0')
-    #app = Dabble('usb:0')
+    #app = Dabble('hci-socket:0')
+    app = Dabble('usb:0')
     
     while (True):
         time.sleep(1.0)

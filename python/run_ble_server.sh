@@ -1,4 +1,4 @@
-#!/usr/bin/bash 
+#!/bin/bash 
 
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root (sudo):   sudo ./run_ble_server.sh"
