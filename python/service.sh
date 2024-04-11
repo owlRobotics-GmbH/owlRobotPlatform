@@ -48,7 +48,6 @@ fi
 PS3='Please enter your choice: '
 options=("Start ble_server service" 
   "Stop ble_server service" 
-  "Start ble_server service"
   "Show ble_server service console"  
   "List services"   
   "Quit")
