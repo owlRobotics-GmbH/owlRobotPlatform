@@ -34,6 +34,12 @@ from bumble.gatt import (
 connected = False 
 
 
+UUID_SERVICE = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E'  # bluetooth GATT service
+UUID_TX = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can send to this 
+UUID_RX = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can receive from this 
+
+
+
 # -----------------------------------------------------------------------------
 class Listener(Device.Listener, Connection.Listener):
     def __init__(self, device):
@@ -119,21 +125,21 @@ class Dabble():
                 GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
             )
             characteristic1 = Characteristic(
-                        '6E400002-B5A3-F393-E0A9-E50E24DCCA9E',
+                        UUID_TX ,
                         Characteristic.Properties.WRITE,
                         Characteristic.WRITEABLE,
                         CharacteristicValue(write=self.my_custom_write),
                     )
             
             self.device.characteristic2 = Characteristic(
-                        '6E400003-B5A3-F393-E0A9-E50E24DCCA9E',
+                        UUID_RX,
                         Characteristic.Properties.NOTIFY,
                         Characteristic.READABLE,
                         CharacteristicValue(read=self.my_custom_read),
                     )
 
             custom_service1 = Service(
-                '6E400001-B5A3-F393-E0A9-E50E24DCCA9E',
+                UUID_SERVICE,
                 [
                     characteristic1,
                     self.device.characteristic2
