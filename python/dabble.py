@@ -34,10 +34,20 @@ from bumble.gatt import (
 connected = False 
 currConnection = None
 
-UUID_SERVICE = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E'  # bluetooth GATT service
-UUID_TX = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can send to this 
-UUID_RX = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can receive from this 
 
+APP_NAME = 'dabble' 
+#APP_NAME = 'sunray' 
+
+
+if APP_NAME == 'dabble':
+    # Dabble App 
+    UUID_SERVICE = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E'  # bluetooth GATT service
+    UUID_CHAR_TX = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can send to this 
+    UUID_CHAR_RX = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E'  # another device can receive from this 
+elif APP_NAME == 'sunray':
+    # Sunray App
+    UUID_SERVICE     = '0000ffe0-0000-1000-8000-00805f9b34fb'  # bluetooth GATT service
+    UUID_CHAR_TX_RX  = '0000ffe1-0000-1000-8000-00805f9b34fb'  # another device can send to this/receive from this 
 
 
 # -----------------------------------------------------------------------------
@@ -76,8 +86,8 @@ class Listener(Device.Listener, Connection.Listener):
             f'indicate {"enabled" if indicate_enabled else "disabled"}'
         )
         # TODO: Dabble App may expect some initial notify data: 
-        #self.device.characteristic2.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
-        #AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristic2))
+        #self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        #AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
 
         
 
@@ -129,27 +139,42 @@ class Dabble():
             device_info_service = Service(
                 GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
             )
-            characteristic1 = Characteristic(
-                        UUID_TX ,
-                        Characteristic.Properties.WRITE,
-                        Characteristic.WRITEABLE,
-                        CharacteristicValue(write=self.my_custom_write),
+            print('APP_NAME', APP_NAME)
+            if APP_NAME == 'dabble':
+                characteristicWrite = Characteristic(
+                            UUID_CHAR_TX ,
+                            Characteristic.Properties.WRITE,
+                            Characteristic.WRITEABLE,
+                            CharacteristicValue(write=self.my_custom_write),
+                        )
+                
+                self.device.characteristicRead = Characteristic(
+                            UUID_CHAR_RX,
+                            Characteristic.Properties.NOTIFY,
+                            Characteristic.READABLE,
+                            CharacteristicValue(read=self.my_custom_read),
                     )
-            
-            self.device.characteristic2 = Characteristic(
-                        UUID_RX,
-                        Characteristic.Properties.NOTIFY,
-                        Characteristic.READABLE,
-                        CharacteristicValue(read=self.my_custom_read),
-                    )
+                custom_service1 = Service(
+                    UUID_SERVICE,
+                    [
+                        characteristicWrite,
+                        self.device.characteristicRead
+                    ],
+                )
+            elif APP_NAME == 'sunray':
+                self.device.characteristicRead = Characteristic(
+                            UUID_CHAR_TX_RX ,
+                            Characteristic.Properties.WRITE | Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
+                            Characteristic.WRITEABLE | Characteristic.READABLE ,
+                            CharacteristicValue(read=self.my_custom_read, write=self.my_custom_write),
+                        )
+                custom_service1 = Service(
+                    UUID_SERVICE,
+                    [
+                        self.device.characteristicRead
+                    ],
+                )
 
-            custom_service1 = Service(
-                UUID_SERVICE,
-                [
-                    characteristic1,
-                    self.device.characteristic2
-                ],
-            )
             self.device.add_services([device_info_service, custom_service1])
 
             # Debug print
@@ -172,9 +197,9 @@ class Dabble():
                 await asyncio.sleep(1.0)
                 #for val in bytes([0xFF, 0x00, 0x01, 0x00, 0x00]):
                 #    await asyncio.sleep(0.02)
-                #    self.device.characteristic2.value = [val] 
-                #    await self.device.notify_subscribers(self.device.characteristic2)
-                #await self.device.indicate_subscribers(characteristic2)
+                #    self.device.characteristicRead.value = [val] 
+                #    await self.device.notify_subscribers(self.device.characteristicRead)
+                #await self.device.indicate_subscribers(self.device.characteristicRead)
                 
                 
             #await self.hci_source.wait_for_termination()
