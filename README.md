@@ -38,6 +38,18 @@ sudo ./run_ble_server.sh
 5. Verify that the Python script receives commands via Bluetooth when pressing buttons (up, down, left, right) in the Dabble App. Also verify (using 'candump can0') that the Python script triggers CAN packets on the CAN bus:
 ![Screenshot from 2024-04-10 19-16-11](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/6996b1b3-0524-40ae-a002-4195df0f0372)
 
+6. In order to install the demo Python script as a Linux (autostart) service:
+
+```
+sudo ./service.sh
+
+1) Start ble_server service	    3) Start ble_server service		5) List services
+2) Stop ble_server service	    4) Show ble_server service console	6) Quit
+Please enter your choice: 
+```
+
+and choose point 1   ('Start ble_server service')
+
 
 ## ROS interface
 ...
