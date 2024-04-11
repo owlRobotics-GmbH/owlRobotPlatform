@@ -124,21 +124,21 @@ class Dabble():
             self.device.listener = Listener(self.device)
 
             # Add a few entries to the device's GATT server
-            descriptor = Descriptor(
-                GATT_CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR,
-                Descriptor.READABLE,
-                'My Description',
-            )
-            manufacturer_name_characteristic = Characteristic(
-                GATT_MANUFACTURER_NAME_STRING_CHARACTERISTIC,
-                Characteristic.Properties.READ,
-                Characteristic.READABLE,
-                'Fitbit',
-                [descriptor],
-            )
-            device_info_service = Service(
-                GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
-            )
+            #descriptor = Descriptor(
+            #    GATT_CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR,
+            #    Descriptor.READABLE,
+            #    'My Description',
+            #)
+            #manufacturer_name_characteristic = Characteristic(
+            #    GATT_MANUFACTURER_NAME_STRING_CHARACTERISTIC,
+            #    Characteristic.Properties.READ,
+            #    Characteristic.READABLE,
+            #    'Fitbit',
+            #    [descriptor],
+            #)
+            #device_info_service = Service(
+            #    GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
+            #)
             print('APP_NAME', APP_NAME)
             if APP_NAME == 'dabble':
                 characteristicWrite = Characteristic(
@@ -175,11 +175,13 @@ class Dabble():
                     ],
                 )
 
-            self.device.add_services([device_info_service, custom_service1])
+            self.device.add_services([custom_service1])
 
             # Debug print
-            #for attribute in device.gatt_server.attributes:
-            #    print(attribute)
+            print('=========attributes begin=============')
+            for attribute in self.device.gatt_server.attributes:
+                print(attribute)
+            print('=========attributes end=============')
 
             # Get things going
             await self.device.power_on()
@@ -262,6 +264,8 @@ class Dabble():
             elif value[6] == 0x00:
                 self.joystickButton = 'released'
                 print('joy: released')
+
+
 
 
 if __name__ == "__main__":

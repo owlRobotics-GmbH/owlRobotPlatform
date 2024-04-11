@@ -1,18 +1,41 @@
-# test bluetooth (gatt server) with Dabble App
+# BLE GATT client
 
 
-# https://google.github.io/bumble/platforms/linux.html
-# https://github.com/google/bumble
-
-# Raspberry PI (HCI over UART (via a serial port)):
-# 1. stop bluetooth service:   sudo systemctl stop bluetooth.service
-# 2. detach hci socket:        hciconfig hci0 down
-# 3. sudo python testgatt.py device1.json hci-socket:0
+# python test/testgatt.py device1.json usb:0 24:6F:28:25:D8:42/P
 
 
-# PC (Bluetooth USB Dongle):
-# sudo python testgatt.py device1.json usb:0
+#=== Services discovered
+#Service(handle=0x0001, uuid=UUID-16:1801 (Generic Attribute))
+#  Characteristic(handle=0x0003, uuid=UUID-16:2A05 (Service Changed), INDICATE)
+#    Descriptor(handle=0x0004, type=UUID-16:2902 (Client Characteristic Configuration))
+#Service(handle=0x0014, uuid=UUID-16:1800 (Generic Access))
+#  Characteristic(handle=0x0016, uuid=UUID-16:2A00 (Device Name), READ)
+#  Characteristic(handle=0x0018, uuid=UUID-16:2A01 (Appearance), READ)
+#  Characteristic(handle=0x001A, uuid=UUID-16:2AA6 (Central Address Resolution), READ)
+#Service(handle=0x0028, uuid=6E400001-B5A3-F393-E0A9-E50E24DCCA9E)
+#  Characteristic(handle=0x002A, uuid=6E400003-B5A3-F393-E0A9-E50E24DCCA9E, NOTIFY)
+#    Descriptor(handle=0x002B, type=UUID-16:2902 (Client Characteristic Configuration))
+#  Characteristic(handle=0x002D, uuid=6E400002-B5A3-F393-E0A9-E50E24DCCA9E, WRITE)
 
+
+#=== Discovering attributes
+#Attribute(handle=0x0001, type=UUID-16:2800 (Primary Service))
+#Attribute(handle=0x0002, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x0003, type=UUID-16:2A05 (Service Changed))
+#Attribute(handle=0x0004, type=UUID-16:2902 (Client Characteristic Configuration))
+#Attribute(handle=0x0014, type=UUID-16:2800 (Primary Service))
+#Attribute(handle=0x0015, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x0016, type=UUID-16:2A00 (Device Name))
+#Attribute(handle=0x0017, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x0018, type=UUID-16:2A01 (Appearance))
+#Attribute(handle=0x0019, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x001A, type=UUID-16:2AA6 (Central Address Resolution))
+#Attribute(handle=0x0028, type=UUID-16:2800 (Primary Service))
+#Attribute(handle=0x0029, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x002A, type=6E400003-B5A3-F393-E0A9-E50E24DCCA9E)
+#Attribute(handle=0x002B, type=UUID-16:2902 (Client Characteristic Configuration))
+#Attribute(handle=0x002C, type=UUID-16:2803 (Characteristic))
+#Attribute(handle=0x002D, type=6E400002-B5A3-F393-E0A9-E50E24DCCA9E)
 
 
 # -----------------------------------------------------------------------------
@@ -22,151 +45,72 @@ import asyncio
 import sys
 import os
 import logging
+from bumble.colors import color
 
-from bumble.utils import AsyncRunner
-from bumble.device import Device, Connection
+from bumble.core import ProtocolError
+from bumble.device import Device, Peer
+from bumble.gatt import show_services
 from bumble.transport import open_transport_or_link
-from bumble.att import ATT_Error, ATT_INSUFFICIENT_ENCRYPTION_ERROR
-from bumble.gatt import (
-    Service,
-    Characteristic,
-    CharacteristicValue,
-    Descriptor,
-    GATT_CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR,
-    GATT_MANUFACTURER_NAME_STRING_CHARACTERISTIC,
-    GATT_DEVICE_INFORMATION_SERVICE,
-)
+from bumble.utils import AsyncRunner
 
 
 # -----------------------------------------------------------------------------
-class Listener(Device.Listener, Connection.Listener):
+class Listener(Device.Listener):
     def __init__(self, device):
-        self.device = device        
+        self.device = device
 
-    def on_connection(self, connection):
+    @AsyncRunner.run_in_task()
+    # pylint: disable=invalid-overridden-method
+    async def on_connection(self, connection):
         print(f'=== Connected to {connection}')
-        self.connection = connection
-        connection.listener = self
 
-    def on_disconnection(self, reason):
-        print(f'### Disconnected, reason={reason}')
-        #self.device.disconnect(self.connection, reason)
-        #AsyncRunner.spawn(self.device.set_discoverable(True))
-        AsyncRunner.spawn(self.device.start_advertising(auto_restart=False))
+        # Discover all services
+        print('=== Discovering services')
+        peer = Peer(connection)
+        await peer.discover_services()
+        for service in peer.services:
+            await service.discover_characteristics()
+            for characteristic in service.characteristics:
+                await characteristic.discover_descriptors()
 
+        print('=== Services discovered')
+        show_services(peer.services)
 
+        # Discover all attributes
+        print('=== Discovering attributes')
+        attributes = await peer.discover_attributes()
+        for attribute in attributes:
+            print(attribute)
+        print('=== Attributes discovered')
 
-
-def my_custom_read(connection):
-    print('----- READ from', connection)
-    return bytes(f'Hello {connection}', 'ascii')
-
-
-def my_custom_write(connection, value):
-    print(f'----- WRITE from {connection}: {value}')
-    print(type(value))
-    if not isinstance(value, bytes): return
-    if len(value) != 8: return
-    # up
-    # b'\xff\x01\x01\x01\x02\x00\x01\x00'
-    # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-    
-    # down
-    # b'\xff\x01\x01\x01\x02\x00\x02\x00'
-    # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-
-    # left
-    # b'\xff\x01\x01\x01\x02\x00\x04\x00'
-    # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-
-    # right
-    # b'\xff\x01\x01\x01\x02\x00\x08\x00'
-    # b'\xff\x01\x01\x01\x02\x00\x00\x00'
-
-    if value[6] == 0x01:
-        print('up')
-    elif value[6] == 0x02:
-        print('down')
-    elif value[6] == 0x04:
-        print('left')
-    elif value[6] == 0x08:
-        print('right')
-    else:
-        print('released')
-
-
-def my_custom_read_with_error(connection):
-    print('----- READ from', connection, '[returning error]')
-    if connection.is_encrypted:
-        return bytes([123])
-
-    raise ATT_Error(ATT_INSUFFICIENT_ENCRYPTION_ERROR)
-
-
-def my_custom_write_with_error(connection, value):
-    print(f'----- WRITE from {connection}: {value}', '[returning error]')
-    if not connection.is_encrypted:
-        raise ATT_Error(ATT_INSUFFICIENT_ENCRYPTION_ERROR)
+        # Read all attributes
+        for attribute in attributes:
+            try:
+                value = await peer.read_value(attribute)
+                print(color(f'0x{attribute.handle:04X} = {value.hex()}', 'green'))
+            except ProtocolError as error:
+                print(color(f'cannot read {attribute.handle:04X}:', 'red'), error)
+            except TimeoutError:
+                print(color('read timeout'))
 
 
 # -----------------------------------------------------------------------------
 async def main():
     if len(sys.argv) < 3:
         print(
-            'Usage: run_gatt_server.py <device-config> <transport-spec> '
+            'Usage: run_gatt_client.py <device-config> <transport-spec> '
             '[<bluetooth-address>]'
         )
-        print('example: run_gatt_server.py device1.json usb:0 E1:CA:72:48:C4:E8')
+        print('example: run_gatt_client.py device1.json usb:0 E1:CA:72:48:C4:E8')
         return
 
     print('<<< connecting to HCI...')
     async with await open_transport_or_link(sys.argv[2]) as (hci_source, hci_sink):
         print('<<< connected')
 
-        # Create a device to manage the host
+        # Create a device to manage the host, with a custom listener
         device = Device.from_config_file_with_hci(sys.argv[1], hci_source, hci_sink)
         device.listener = Listener(device)
-
-        # Add a few entries to the device's GATT server
-        descriptor = Descriptor(
-            GATT_CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR,
-            Descriptor.READABLE,
-            'My Description',
-        )
-        manufacturer_name_characteristic = Characteristic(
-            GATT_MANUFACTURER_NAME_STRING_CHARACTERISTIC,
-            Characteristic.Properties.READ,
-            Characteristic.READABLE,
-            'Fitbit',
-            [descriptor],
-        )
-        device_info_service = Service(
-            GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
-        )
-        custom_service1 = Service(
-            '6E400001-B5A3-F393-E0A9-E50E24DCCA9E',
-            [
-                Characteristic(
-                    '6E400002-B5A3-F393-E0A9-E50E24DCCA9E',
-                    Characteristic.Properties.READ | Characteristic.Properties.WRITE,
-                    Characteristic.READABLE | Characteristic.WRITEABLE,
-                    CharacteristicValue(read=my_custom_read, write=my_custom_write),
-                ),
-                Characteristic(
-                    '6E400003-B5A3-F393-E0A9-E50E24DCCA9E',
-                    Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
-                    Characteristic.READABLE,
-                    'hello',
-                ),
-            ],
-        )
-        device.add_services([device_info_service, custom_service1])
-
-        # Debug print
-        for attribute in device.gatt_server.attributes:
-            print(attribute)
-
-        # Get things going
         await device.power_on()
 
         # Connect to a peer
@@ -175,11 +119,15 @@ async def main():
             print(f'=== Connecting to {target_address}...')
             await device.connect(target_address)
         else:
-            await device.start_advertising(auto_restart=False)
+            await device.start_advertising()
 
-        await hci_source.wait_for_termination()
+        await asyncio.get_running_loop().create_future()
 
 
 # -----------------------------------------------------------------------------
-logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())
+#logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())
+logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'WARNING').upper())
+
 asyncio.run(main())
+
+
