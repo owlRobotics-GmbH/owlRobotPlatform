@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-# Dabble App joystick interface (Bluetooth Low Energy Server) 
+# Dabble App joystick interface (Bluetooth Low Energy GATT Server) 
 
 # pip install --break-system-packages  bumble
 
