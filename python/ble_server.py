@@ -17,6 +17,7 @@ MAX_SPEED = 100.0  # rpm
 print('press CTRL+C to exit...')
 
 toolMotorSpeed = 0
+circleButtonTime = 0
 
 while True:
     if not dabble.connected: continue    
@@ -27,12 +28,14 @@ while True:
     elif app.extraButton == 'cross':
         MAX_SPEED = 100.0
     elif app.extraButton == 'circle':
-        if toolMotorSpeed < 100:            
-            toolMotorSpeeed = 100
-        elif toolMotorSpeed < 200:
-            toolMotorSpeeed = 200
-        else: toolMotorSpeed = 0
-        print('toolMotorSpeed', toolMotorSpeed)
+        if time.time() > circleButtonTime:
+            circleButtonTime = time.time() + 0.5
+            if toolMotorSpeed == 0:            
+                toolMotorSpeed = 100
+            elif toolMotorSpeed == 100:
+                toolMotorSpeed = 300
+            else: toolMotorSpeed = 0
+            print('toolMotorSpeed', toolMotorSpeed)
 
 
     if app.analogMode:
@@ -58,7 +61,7 @@ while True:
             robot.motorSpeed(MAX_SPEED, MAX_SPEED, toolMotorSpeed)
 
         elif app.joystickButton == 'released':
-            robot.motorSpeed(0, 0, 0)
+            robot.motorSpeed(0, 0, toolMotorSpeed)
 
 
     time.sleep(0.1)
