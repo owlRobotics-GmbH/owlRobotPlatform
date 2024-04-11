@@ -13,7 +13,10 @@ robot = owlrobot.Robot()
 
 MAX_SPEED = 100.0  # rpm
 
+
 print('press CTRL+C to exit...')
+
+toolMotorSpeed = 0
 
 while True:
     if not dabble.connected: continue    
@@ -23,6 +26,14 @@ while True:
         MAX_SPEED = 300.0
     elif app.extraButton == 'cross':
         MAX_SPEED = 100.0
+    elif app.extraButton == 'circle':
+        if toolMotorSpeed < 100:            
+            toolMotorSpeeed = 100
+        elif toolMotorSpeed < 200:
+            toolMotorSpeeed = 200
+        else: toolMotorSpeed = 0
+        print('toolMotorSpeed', toolMotorSpeed)
+
 
     if app.analogMode:
         if app.y_value >= 0:
@@ -31,20 +42,20 @@ while True:
         else:
             speedLeft = (app.y_value - app.x_value*0.3) * MAX_SPEED
             speedRight = (app.y_value + app.x_value*0.3) * MAX_SPEED            
-        robot.motorSpeed(-speedLeft, speedRight, 0)
+        robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
 
     else:
         if app.joystickButton == 'up':
-            robot.motorSpeed(-MAX_SPEED, MAX_SPEED, 0)
+            robot.motorSpeed(-MAX_SPEED, MAX_SPEED, toolMotorSpeed)
 
         elif app.joystickButton == 'down':        
-            robot.motorSpeed(MAX_SPEED, -MAX_SPEED, 0)
+            robot.motorSpeed(MAX_SPEED, -MAX_SPEED, toolMotorSpeed)
 
         elif app.joystickButton == 'right':        
-            robot.motorSpeed(-MAX_SPEED, -MAX_SPEED, 0)
+            robot.motorSpeed(-MAX_SPEED, -MAX_SPEED, toolMotorSpeed)
 
         elif app.joystickButton == 'left':        
-            robot.motorSpeed(MAX_SPEED, MAX_SPEED, 0)
+            robot.motorSpeed(MAX_SPEED, MAX_SPEED, toolMotorSpeed)
 
         elif app.joystickButton == 'released':
             robot.motorSpeed(0, 0, 0)
