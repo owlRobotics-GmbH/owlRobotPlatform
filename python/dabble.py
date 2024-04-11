@@ -28,6 +28,8 @@ from bumble.gatt import (
     GATT_CHARACTERISTIC_USER_DESCRIPTION_DESCRIPTOR,
     GATT_MANUFACTURER_NAME_STRING_CHARACTERISTIC,
     GATT_DEVICE_INFORMATION_SERVICE,
+    GATT_GENERIC_ATTRIBUTE_SERVICE,
+    GATT_SERVICE_CHANGED_CHARACTERISTIC ,
 )
 
 
@@ -86,8 +88,8 @@ class Listener(Device.Listener, Connection.Listener):
             f'indicate {"enabled" if indicate_enabled else "disabled"}'
         )
         # TODO: Dabble App may expect some initial notify data: 
-        #self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
-        #AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
+        self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
 
         
 
@@ -117,7 +119,7 @@ class Dabble():
 
         print('<<< connecting to HCI...')
         async with await open_transport_or_link(bluetooth_transport) as (self.hci_source, self.hci_sink):
-            print('<<< connected')
+            print('<<< connected ')
 
             # Create a device to manage the host
             self.device = Device.from_config_file_with_hci('device1.json', self.hci_source, self.hci_sink)
@@ -139,8 +141,16 @@ class Dabble():
             #device_info_service = Service(
             #    GATT_DEVICE_INFORMATION_SERVICE, [manufacturer_name_characteristic]
             #)
+            generic_attr_characteristic = Characteristic(
+                GATT_SERVICE_CHANGED_CHARACTERISTIC,
+                Characteristic.Properties.INDICATE,
+                Characteristic.WRITEABLE | Characteristic.READABLE,                
+            )
+            generic_attr_service = Service(
+                GATT_GENERIC_ATTRIBUTE_SERVICE, [generic_attr_characteristic]
+            )
             print('APP_NAME', APP_NAME)
-            if APP_NAME == 'dabble':
+            if APP_NAME == 'dabble':                
                 characteristicWrite = Characteristic(
                             UUID_CHAR_TX ,
                             Characteristic.Properties.WRITE,
@@ -175,7 +185,7 @@ class Dabble():
                     ],
                 )
 
-            self.device.add_services([custom_service1])
+            self.device.add_services([generic_attr_service, custom_service1])
 
             # Debug print
             print('=========attributes begin=============')
@@ -194,6 +204,8 @@ class Dabble():
             #else:
             await self.device.start_advertising(auto_restart=False)
 
+            #print('advertising addr: ', self.device.public_address)
+            
             while True:
                 #print('sleep')
                 await asyncio.sleep(1.0)
