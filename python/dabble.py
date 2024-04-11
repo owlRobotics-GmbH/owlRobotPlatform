@@ -145,6 +145,7 @@ class Dabble():
                 GATT_SERVICE_CHANGED_CHARACTERISTIC,
                 Characteristic.Properties.INDICATE,
                 Characteristic.WRITEABLE | Characteristic.READABLE,                
+                CharacteristicValue(read=self.my_custom_read, write=self.my_custom_write),
             )
             generic_attr_service = Service(
                 GATT_GENERIC_ATTRIBUTE_SERVICE, [generic_attr_characteristic]
