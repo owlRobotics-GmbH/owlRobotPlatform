@@ -122,7 +122,7 @@ class Dabble():
             print('<<< connected ')
 
             # Create a device to manage the host
-            self.device = Device.from_config_file_with_hci('device1.json', self.hci_source, self.hci_sink)
+            self.device = Device.from_config_file_with_hci('misc/device1.json', self.hci_source, self.hci_sink)
             self.device.listener = Listener(self.device)
 
             # Add a few entries to the device's GATT server

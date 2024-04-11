@@ -9,7 +9,7 @@ CMD=""
 function start_ble_server_service() {
   # enable ble_server service
   echo "starting ble_server service..."
-  cp /home/home/pi/owlRobotPlatform/python/misc/ble_server.service /etc/systemd/system/ble_server.service
+  cp /home/pi/owlRobotPlatform/python/misc/ble_server.service /etc/systemd/system/ble_server.service
   chmod 644 /etc/systemd/system/ble_server.service
   systemctl daemon-reload
   systemctl enable ble_server
@@ -31,8 +31,14 @@ function list(){
   service --status-all
 }
 
+
+function show_ble_server_console(){
+    journalctl -f -u ble_server
+}
+
+
 if [ "$EUID" -ne 0 ]
-  then echo "Please run as root (sudo)"
+  then echo "Please run as root ('sudo ./service.sh')"
   exit
 fi
 
@@ -42,7 +48,8 @@ fi
 PS3='Please enter your choice: '
 options=("Start ble_server service" 
   "Stop ble_server service" 
-  "Start ble_server service"  
+  "Start ble_server service"
+  "Show ble_server service console"  
   "List services"   
   "Quit")
 select opt in "${options[@]}"
@@ -55,7 +62,11 @@ do
         "Stop ble_server service")
             stop_ble_server_service
             break
-            ;;            
+            ;;
+        "Show ble_server service console")
+            show_ble_server_console
+            break
+            ;;                        
         "List services")
             list
             break
