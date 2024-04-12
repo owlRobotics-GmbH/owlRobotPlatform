@@ -5,6 +5,7 @@
 import owlrobot
 import time
 import dabble
+import os
 
  
 app = dabble.Dabble('hci-socket:0')
@@ -36,6 +37,8 @@ while True:
                 toolMotorSpeed = 300
             else: toolMotorSpeed = 0
             print('toolMotorSpeed', toolMotorSpeed)
+    elif app.extraButton == 'rectangle':
+        os.system('shutdown -s')
 
 
     if app.analogMode:
