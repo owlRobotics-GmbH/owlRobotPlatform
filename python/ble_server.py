@@ -38,7 +38,7 @@ while True:
             else: toolMotorSpeed = 0
             print('toolMotorSpeed', toolMotorSpeed)
     elif app.extraButton == 'rectangle':
-        os.system('shutdown -s')
+        os.system('shutdown now')
 
 
     if app.analogMode:
