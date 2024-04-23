@@ -10,7 +10,7 @@
 #include "config.h"
 #include "pid.h"
 #include "can.h"
-#include "owldrive.h"
+#include "owlcontrol.h"
 
 
 
