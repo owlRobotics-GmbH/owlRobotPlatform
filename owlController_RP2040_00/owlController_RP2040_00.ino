@@ -29,6 +29,8 @@ Arduino libraries to install:
 #include <TCA9548A.h>
 #include "mpu.h"
 #include "mcp2515.h"
+#include "NeoPix.h"
+#include "owldrive.h"
 
 extern "C" {
   #include <hardware/watchdog.h>
@@ -39,18 +41,22 @@ extern "C" {
 int odomTicksLeft,odomTicksMow,odomTicksRight;
 int yxc;
 long unsigned timer_Relais, startTimer, maxTime, endTimer, stateTimer[10];
-
+long unsigned  MotorStatTimer;
 //byte ii;
 Funkt myF;
 //MotorContr myMCtr;
 oledDisp  oled;
 joystick joystk;
 robot robot;
+NeoPix neopix ;
+extern owlDrive owlDrive;
+
 ComParser comParser(&Serial);
 //mpu mpu;
 volatile unsigned long motorLeftTicksTimeout = 0;
 volatile unsigned long motorRightTicksTimeout = 0;
 volatile unsigned long motorMowTicksTimeout = 0;
+
 
 volatile int odometry_left = 0;
 volatile int odometry_ctrl = 0;
@@ -81,6 +87,7 @@ void setup() {
   oled.begin();
   joystk.begin();
   robot.begin();
+  neopix.begin();
   myF.extPieper(1);
   delay (50);
   myF.extPieper(0);
@@ -116,10 +123,9 @@ void loop() {
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
-      if (!myF.IN_Pin[3])  myF.NeoPixel(0,0,150,0,24);
-       else myF.NeoPixel(0,150,00,0,24);
-      if (!myF.IN_Pin[4])  myF.NeoPixel(1,100,0,50,24);
-       else myF.NeoPixel(1,150,150,0,24);  
+      if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);
+      else if (!myF.IN_Pin[3]) neopix.NeoPixel_scene(2,1);
+      else neopix.NeoPixel_scene(neopix.scene_default,neopix.default_brightness);
       myF.refreshIOports(); 
       stateTimer[1]=millis()+100;
    } 
@@ -150,8 +156,41 @@ void loop() {
    //Serial.print ("max Time in uSek.: "); Serial.print (maxTime);
    //Serial.print ("Durchlauf in uSek.: "); Serial.println (endTimer-startTimer);
   watchdog_update();
-}
 
+//NeoPixel example
+  if (millis()> MotorStatTimer){  
+    MotorStatTimer = millis() + 750;
+    Serial.print("left :  ");
+    robot.leftMotor.requestVelocity();
+    delay(7);
+    Serial.println(robot.leftMotor.velocity);
+    Serial.print("right :  ");
+    robot.rightMotor.requestVelocity();
+    delay(7);
+    Serial.println(robot.rightMotor.velocity);
+    
+    if ((-1*robot.rightMotor.velocity)==0 && robot.leftMotor.velocity==0){   //Robot stops
+      neopix.NeoPixel_scene(2,0.1);
+      neopix.scene_default=2;
+    }
+    else if(abs(robot.rightMotor.velocity + robot.leftMotor.velocity)<=10){  // go ahead
+      neopix.NeoPixel_scene(1,0.1);
+      neopix.scene_default=1;
+    }
+    else if (robot.rightMotor.velocity >= -(1*robot.leftMotor.velocity*1.10)){  //Robot left turn
+      neopix.NeoPixel_scene(6,0.1);
+      neopix.scene_default=6;
+    }
+    else if ((-1*robot.leftMotor.velocity)>= robot.rightMotor.velocity*1.10){  //Robot right turn
+      neopix.NeoPixel_scene(7,0.1);
+      neopix.scene_default=7;
+    }    
+    else{
+      neopix.NeoPixel_scene(0,0.1);
+      neopix.scene_default=0;
+    }
+  }
+}
 
 
 

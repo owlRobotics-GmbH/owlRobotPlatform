@@ -23,4 +23,4 @@
 #define oled_I2CMuxChn 0
 
 //RGB LED WS2812 Neopixel
-#define LED_COUNT  60
+#define LED_COUNT  144

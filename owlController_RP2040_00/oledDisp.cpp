@@ -39,7 +39,7 @@ void oledDisp::begin(){
 
 void oledDisp::status(){
   I2CMux.openChannel(oled_I2CMuxChn);
-  float volt= myF.ADC_read(7)/1000*30.0;
+  float volt= myF.ADC_read(7)/1000*34.0;
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.fillRect(0,3,5,5,WHITE); 
