@@ -44,6 +44,7 @@ triangle: high motor speed
 cross: low motor speed
 circle: toggle tool motor speed
 rectangle: shutdown Raspberry PI
+select: camera-based follow-me mode on/off
 ```
 
 6. In order to install the demo Python script as a Linux (autostart) service:
