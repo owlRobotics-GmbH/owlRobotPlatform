@@ -50,7 +50,7 @@ def id_class_name(class_id, classes):
 
 
 
-def detectObject(image, filterObjs):
+def detectObject(image, filterObjs,visible=True):
     image_height, image_width, _ = image.shape
     model.setInput(cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True))
     output = model.forward()
@@ -78,7 +78,7 @@ def detectObject(image, filterObjs):
             cv2.putText(image,class_name + ' ' + str(round(confidence,1)) ,(int(box_x), int(box_y+.1*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.002*image_width),(0, 0, 255), 10)
 
 
-    cv2.imshow('objects', image)
+    if visible: cv2.imshow('objects', image)
     #cv2.waitKey(1)
     return center_x, center_y, top_y
     # cv2.imwrite("image_box_text.jpg",image)		

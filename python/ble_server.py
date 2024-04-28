@@ -13,6 +13,7 @@ app = dabble.Dabble('hci-socket:0')
 #app = dabble.Dabble('usb:0')
 robot = owlrobot.Robot()
 
+VISIBLE = False
 MAX_SPEED = 100.0  # rpm
 
 
@@ -58,7 +59,7 @@ while True:
         while time.time() < stopTime:
             img = detect_object.captureVideoImage()
         if not img is None:
-            cx,cy,y = detect_object.detectObject(img, "person")
+            cx,cy,y = detect_object.detectObject(img, "person", VISIBLE)
             if y > 0 and cx > 0 and cy > 0:
                 if cx > 0.6:
                     # rotate right
