@@ -121,5 +121,5 @@ if __name__ == '__main__':
         img = captureVideoImage()
         #img = cv2.imread('test1.jpg')
         detectObject(img, "person")
-        time.sleep(0.1) 
+        #time.sleep(0.05) 
 

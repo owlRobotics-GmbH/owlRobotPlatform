@@ -54,7 +54,7 @@ while True:
     speedRight = 0
 
     if followMe: 
-        stopTime = time.time() + 0.1
+        stopTime = time.time() + 0.05
         while time.time() < stopTime:
             img = detect_object.captureVideoImage()
         if not img is None:
