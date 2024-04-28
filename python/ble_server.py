@@ -21,11 +21,11 @@ print('press CTRL+C to exit...')
 toolMotorSpeed = 0
 circleButtonTime = 0
 nextCanTime = 0
-followMe = True
+followMe = False
 
 
 while True:
-    #if not dabble.connected: continue    
+    if not dabble.connected: continue    
     #print('.', end="", flush=True)
 
     if app.extraButton == 'select':
@@ -68,7 +68,7 @@ while True:
                     # rotate left
                     speedLeft = -MAX_SPEED/5
                     speedRight = MAX_SPEED/5
-                elif y > 0.2 and y < 0.5:
+                elif y > 0.2 and y < 0.7:
                     # forward
                     speedLeft = -MAX_SPEED
                     speedRight = -MAX_SPEED                
