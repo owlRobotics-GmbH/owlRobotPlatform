@@ -12,8 +12,11 @@ import time
 import numpy as np
 
 
-IMG_W = 1280  # 320, 640, 1280, 1920, 2560
-IMG_H = 720   # 240, 480,  720, 1080,  720
+# v4l2-ctl -d /dev/video0 --list-formats-ext
+
+IMG_W = 640  # 320, 640, 1280, 1920, 2560
+IMG_H = 480   # 240, 480,  720, 1080,  720
+FPS = 30
 
 cam = None 
 model = None
@@ -88,8 +91,10 @@ def captureVideoImage():
         cam = cv2.VideoCapture(0)
         if cam is None: return None
         print('opened video device')
-        cam.set(3, IMG_W)
-        cam.set(4, IMG_H)
+        cam.set(cv2.CAP_PROP_FOURCC ,cv2.VideoWriter_fourcc(*'MJPG') );
+        cam.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
+        cam.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
+        cam.set(cv2.CAP_PROP_FPS, FPS)
 
         #time.sleep(0.5)
         print('starting DNN...')
@@ -106,6 +111,7 @@ def captureVideoImage():
 
     ret, img = cam.read()
     if not ret: return None
+    cv2.waitKey(1)    
     return img   
     
 
@@ -115,5 +121,5 @@ if __name__ == '__main__':
         img = captureVideoImage()
         #img = cv2.imread('test1.jpg')
         detectObject(img, "person")
-        time.sleep(0.2) 
+        time.sleep(0.1) 
 

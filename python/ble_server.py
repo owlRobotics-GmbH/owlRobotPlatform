@@ -20,11 +20,12 @@ print('press CTRL+C to exit...')
 
 toolMotorSpeed = 0
 circleButtonTime = 0
-followMe = False
+nextCanTime = 0
+followMe = True
 
 
 while True:
-    if not dabble.connected: continue    
+    #if not dabble.connected: continue    
     #print('.', end="", flush=True)
 
     if app.extraButton == 'select':
@@ -53,12 +54,24 @@ while True:
     speedRight = 0
 
     if followMe: 
-        img = detect_object.captureVideoImage()
+        stopTime = time.time() + 0.1
+        while time.time() < stopTime:
+            img = detect_object.captureVideoImage()
         if not img is None:
             cx,cy,y = detect_object.detectObject(img, "person")
-            if y > 0.1 and y < 0.5:
-                speedLeft = -MAX_SPEED
-                speedRight = -MAX_SPEED
+            if y > 0 and cx > 0 and cy > 0:
+                if cx > 0.6:
+                    # rotate right
+                    speedLeft = MAX_SPEED/5
+                    speedRight = -MAX_SPEED/5
+                elif cx < 0.4:
+                    # rotate left
+                    speedLeft = -MAX_SPEED/5
+                    speedRight = MAX_SPEED/5
+                elif y > 0.2 and y < 0.5:
+                    # forward
+                    speedLeft = -MAX_SPEED
+                    speedRight = -MAX_SPEED                
 
     else:
 
@@ -92,8 +105,10 @@ while True:
                 speedRight = 0
 
 
-    robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
-    time.sleep(0.1)
+    if time.time() > nextCanTime:
+        nextCanTime = time.time() + 0.05
+        robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
+    
 
 
 
