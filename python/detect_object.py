@@ -90,6 +90,9 @@ def captureVideoImage():
         print('opened video device')
         cam.set(3, IMG_W)
         cam.set(4, IMG_H)
+
+        time.sleep(0.5)
+        print('starting DNN...')
     
         # Loading model
         model = cv2.dnn.readNetFromTensorflow('objdet_models/frozen_inference_graph.pb',
