@@ -91,7 +91,7 @@ def captureVideoImage():
         cam.set(3, IMG_W)
         cam.set(4, IMG_H)
 
-        time.sleep(0.5)
+        #time.sleep(0.5)
         print('starting DNN...')
     
         # Loading model
@@ -101,7 +101,7 @@ def captureVideoImage():
         model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
         model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
         print('detect_object started')
-        time.sleep(0.5)
+        #time.sleep(0.5)
 
 
     ret, img = cam.read()
