@@ -6,6 +6,7 @@ import owlrobot
 import time
 import dabble
 import os
+import detect_object
 
  
 app = dabble.Dabble('hci-socket:0')
@@ -19,12 +20,19 @@ print('press CTRL+C to exit...')
 
 toolMotorSpeed = 0
 circleButtonTime = 0
+followMe = False
+
 
 while True:
     if not dabble.connected: continue    
     #print('.', end="", flush=True)
-    
-    if app.extraButton == 'triangle':
+
+    if app.extraButton == 'select':
+        if time.time() > circleButtonTime:
+            circleButtonTime = time.time() + 0.5
+            followMe = not followMe
+            print('followMe', followMe)
+    elif app.extraButton == 'triangle':
         MAX_SPEED = 300.0
     elif app.extraButton == 'cross':
         MAX_SPEED = 100.0
@@ -41,34 +49,51 @@ while True:
         os.system('shutdown now')
 
 
-    if app.analogMode:
-        if app.y_value >= 0:
-            speedLeft = (app.y_value + app.x_value*0.3) * MAX_SPEED
-            speedRight = (app.y_value - app.x_value*0.3) * MAX_SPEED
-        else:
-            speedLeft = (app.y_value - app.x_value*0.3) * MAX_SPEED
-            speedRight = (app.y_value + app.x_value*0.3) * MAX_SPEED            
-        robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
+    speedLeft = 0
+    speedRight = 0
+
+    if followMe: 
+        img = detect_object.captureVideoImage()
+        if not img is None:
+            cx,cy,y = detect_object.detectObject(img, "person")
+            if y > 0.1 and y < 0.5:
+                speedLeft = -MAX_SPEED
+                speedRight = -MAX_SPEED
 
     else:
-        if app.joystickButton == 'up':
-            robot.motorSpeed(-MAX_SPEED, MAX_SPEED, toolMotorSpeed)
 
-        elif app.joystickButton == 'down':        
-            robot.motorSpeed(MAX_SPEED, -MAX_SPEED, toolMotorSpeed)
+        if app.analogMode:
+            if app.y_value >= 0:
+                speedLeft = (app.y_value + app.x_value*0.3) * MAX_SPEED
+                speedRight = (app.y_value - app.x_value*0.3) * MAX_SPEED
+            else:
+                speedLeft = (app.y_value - app.x_value*0.3) * MAX_SPEED
+                speedRight = (app.y_value + app.x_value*0.3) * MAX_SPEED            
 
-        elif app.joystickButton == 'right':        
-            robot.motorSpeed(-MAX_SPEED, -MAX_SPEED, toolMotorSpeed)
+        else:
+            if app.joystickButton == 'up':
+                speedLeft = MAX_SPEED
+                speedRight = MAX_SPEED
 
-        elif app.joystickButton == 'left':        
-            robot.motorSpeed(MAX_SPEED, MAX_SPEED, toolMotorSpeed)
+            elif app.joystickButton == 'down':        
+                speedLeft = -MAX_SPEED
+                speedRight = -MAX_SPEED
 
-        elif app.joystickButton == 'released':
-            robot.motorSpeed(0, 0, toolMotorSpeed)
+            elif app.joystickButton == 'right':        
+                speedLeft = MAX_SPEED
+                speedRight = -MAX_SPEED
+
+            elif app.joystickButton == 'left':        
+                speedLeft = -MAX_SPEED
+                speedRight = MAX_SPEED
+
+            elif app.joystickButton == 'released':
+                speedLeft = 0
+                speedRight = 0
 
 
     time.sleep(0.1)
-
+    robot.motorSpeed(speedLeft, speedRight, toolMotorSpeed)
 
 
 

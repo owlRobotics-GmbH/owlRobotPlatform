@@ -15,6 +15,7 @@ import numpy as np
 IMG_W = 1280  # 320, 640, 1280, 1920, 2560
 IMG_H = 720   # 240, 480,  720, 1080,  720
 
+cam = None 
 
 # Pretrained classes in the model
 classNames = {0: 'background',
@@ -61,6 +62,7 @@ def detectObject(image, filterObjs):
     # print(output[0,0,:,:].shape)
     center_x = 0
     center_y = 0
+    top_y = 0
 
     for detection in output[0, 0, :, :]:
         confidence = detection[2]
@@ -70,8 +72,9 @@ def detectObject(image, filterObjs):
             if ((filterObjs is not None) and (class_name not in filterObjs)): continue
             center_x = detection[3] + abs(detection[3] - detection[5])/2
             center_y = detection[4] + abs(detection[4] - detection[6])/2
-                
-            print(class_name, str(round(confidence,1)), 'center_x', center_x, 'center_y', center_y)            
+            top_y =  detection[4]
+
+            print(class_name, str(round(confidence,1)), 'center_x', center_x, 'center_y', center_y, 'top_y', top_y)            
             box_x = detection[3] * image_width
             box_y = detection[4] * image_height
             box_width = detection[5] * image_width
@@ -82,21 +85,30 @@ def detectObject(image, filterObjs):
 
     cv2.imshow('objects', image)
     #cv2.waitKey(1)
-    return center_x, center_y
+    return center_x, center_y, top_y
     # cv2.imwrite("image_box_text.jpg",image)		
 
 
-        
-if __name__ == '__main__':
-    cam = cv2.VideoCapture(0)
-    cam.set(3, IMG_W)
-    cam.set(4, IMG_H)
+def captureVideoImage():
+    global cam
+    if cam is None:
+        print('opening video device...')
+        cam = cv2.VideoCapture(0)
+        if cam is None: return None
+        print('opened video device')
+        cam.set(3, IMG_W)
+        cam.set(4, IMG_H)
+    
+    ret, img = cam.read()
+    if not ret: return None
+    return img   
+    
 
+
+if __name__ == '__main__':
     while (cv2.waitKey(1) != 0x1b):
-        ret, img = cam.read()
-        if not ret:
-            break
+        img = captureVideoImage()
         #img = cv2.imread('test1.jpg')
-        detectObject(img, None)
+        detectObject(img, "person")
         time.sleep(0.1) 
 
