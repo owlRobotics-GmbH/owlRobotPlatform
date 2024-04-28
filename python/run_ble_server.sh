@@ -18,6 +18,8 @@ if [[ "$?" -eq 1 ]]; then
     # pip3 install --break-system-packages bumble==4.3.1
     pip3 install --break-system-packages bumble      # tested version: 0.0.190
     pip3 install --break-system-packages python-can  # tested version: 4.3.1
+    pip3 install --break-system-packages opencv-python  
+    pip3 install --break-system-packages opencv-contrib-python  
 fi
 
 #apt install bluetooth pi-bluetooth bluez blueman
