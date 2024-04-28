@@ -101,6 +101,7 @@ def captureVideoImage():
         model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
         model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
         print('detect_object started')
+        time.sleep(0.5)
 
 
     ret, img = cam.read()
@@ -114,5 +115,5 @@ if __name__ == '__main__':
         img = captureVideoImage()
         #img = cv2.imread('test1.jpg')
         detectObject(img, "person")
-        time.sleep(0.1) 
+        time.sleep(0.2) 
 
