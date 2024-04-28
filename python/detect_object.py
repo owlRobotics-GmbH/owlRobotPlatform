@@ -1,5 +1,12 @@
 #!/usr/bin/python3
 
+#
+# install with:
+#   pip3 install opencv-python
+#   pip3 install opencv-contrib-python
+
+
+
 import cv2
 import time
 import numpy as np
