@@ -16,6 +16,8 @@ IMG_W = 1280  # 320, 640, 1280, 1920, 2560
 IMG_H = 720   # 240, 480,  720, 1080,  720
 
 cam = None 
+model = None
+
 
 # Pretrained classes in the model
 classNames = {0: 'background',
@@ -43,16 +45,6 @@ def id_class_name(class_id, classes):
             return value
 
 
-# Loading model
-model = cv2.dnn.readNetFromTensorflow('objdet_models/frozen_inference_graph.pb',
-                                      'objdet_models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
-
-
-model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-
-
-print('detect_object started')
 
 
 def detectObject(image, filterObjs):
@@ -90,7 +82,7 @@ def detectObject(image, filterObjs):
 
 
 def captureVideoImage():
-    global cam
+    global cam, model
     if cam is None:
         print('opening video device...')
         cam = cv2.VideoCapture(0)
@@ -99,6 +91,15 @@ def captureVideoImage():
         cam.set(3, IMG_W)
         cam.set(4, IMG_H)
     
+        # Loading model
+        model = cv2.dnn.readNetFromTensorflow('objdet_models/frozen_inference_graph.pb',
+                                      'objdet_models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
+
+        model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+        print('detect_object started')
+
+
     ret, img = cam.read()
     if not ret: return None
     return img   
