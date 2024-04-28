@@ -92,8 +92,8 @@ while True:
                 speedRight = 0
 
 
+    robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
     time.sleep(0.1)
-    robot.motorSpeed(speedLeft, speedRight, toolMotorSpeed)
 
 
 
