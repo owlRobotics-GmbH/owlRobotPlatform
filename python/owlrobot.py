@@ -17,6 +17,11 @@ LEFT_MOTOR_NODE_ID    = 1
 RIGHT_MOTOR_NODE_ID   = 2
 TOOL_MOTOR_NODE_ID    = 3
 
+LEFT_BACK_MOTOR_NODE_ID   = 1
+RIGHT_BACK_MOTOR_NODE_ID  = 2
+RIGHT_FRONT_MOTOR_NODE_ID = 3
+LEFT_FRONT_MOTOR_NODE_ID  = 4
+
 
 # what action to do...
 can_cmd_info       = 0  # broadcast something
@@ -112,7 +117,8 @@ class Robot():
         self.bus.send(msg, timeout=0.2)
 
 
-    def motorSpeed(self, leftMotorSpeed, rightMotorSpeed, toolMotorSpeed):        
+    # differential drive platform
+    def motorSpeedDifferential(self, leftMotorSpeed, rightMotorSpeed, toolMotorSpeed):        
         self.sendCanData(LEFT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftMotorSpeed))
         self.sendCanData(RIGHT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightMotorSpeed))
         self.sendCanData(TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', toolMotorSpeed))
@@ -122,6 +128,13 @@ class Robot():
         #self.sendCanData(TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', toolMotorSpeed))
 
 
+    # mecanum platform
+    def motorSpeedMecanum(self, leftBackMotorSpeed, rightBackMotorSpeed, rightFrontMotorSpeed, leftFrontMotorSpeed):
+        self.sendCanData(LEFT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftBackMotorSpeed))
+        self.sendCanData(RIGHT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightBackMotorSpeed))
+        self.sendCanData(RIGHT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightFrontMotorSpeed))
+        self.sendCanData(LEFT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftFrontMotorSpeed))
+
 
 
 if __name__ == "__main__":
@@ -130,7 +143,7 @@ if __name__ == "__main__":
 
     while True:
         time.sleep(1.0)
-        robot.motorSpeed(100.0, 100.0, 100.0)
+        robot.motorSpeedDifferential(100.0, 100.0, 100.0)
 
     
 

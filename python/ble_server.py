@@ -125,7 +125,7 @@ while True:
     if time.time() > nextCanTime:
         nextCanTime = time.time() + 0.1
         try:
-            robot.motorSpeed(-speedLeft, speedRight, toolMotorSpeed)
+            robot.motorSpeedDifferential(-speedLeft, speedRight, toolMotorSpeed)
         except:
             print('error sending CAN')
 
