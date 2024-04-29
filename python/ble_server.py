@@ -23,6 +23,9 @@ toolMotorSpeed = 0
 circleButtonTime = 0
 nextCanTime = 0
 followMe = False
+trackTimeout = 0
+oscillateLeft = True
+oscillateTimeout = 0
 
 
 while True:
@@ -65,14 +68,27 @@ while True:
                     # rotate right
                     speedLeft = MAX_SPEED/5
                     speedRight = -MAX_SPEED/5
+                    trackTimeout = time.time() + 2.0
                 elif cx < 0.4:
                     # rotate left
                     speedLeft = -MAX_SPEED/5
                     speedRight = MAX_SPEED/5
+                    trackTimeout = time.time() + 2.0
                 elif y > 0.2 and y < 0.7:
                     # forward
                     speedLeft = -MAX_SPEED
-                    speedRight = -MAX_SPEED                
+                    speedRight = -MAX_SPEED         
+                    trackTimeout = time.time() + 2.0       
+        if time.time() > trackTimeout:
+            # oscillate
+            if time.time() > oscillateTimeout:
+                oscillateTimeout = time.time() + 2.0       
+                oscillateLeft = not oscillateLeft
+            speedLeft = -MAX_SPEED/5
+            speedRight = MAX_SPEED/5
+            if oscillateLeft: 
+                speedLeft *= -1
+                speedRight *= -1
 
     else:
 
