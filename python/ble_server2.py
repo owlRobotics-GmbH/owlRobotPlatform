@@ -87,11 +87,11 @@ while True:
             if y > 0 and cx > 0 and cy > 0:
                 if cx > 0.6:
                     # rotate right
-                    speedAngular = MAX_ANGULAR_SPEED 
+                    speedAngular = -MAX_ANGULAR_SPEED 
                     trackTimeout = time.time() + 2.0
                 elif cx < 0.4:
                     # rotate left
-                    speedAngular = -MAX_ANGULAR_SPEED
+                    speedAngular = MAX_ANGULAR_SPEED
                     trackTimeout = time.time() + 2.0
                 elif y > 0.2 and y < 0.7:
                     # forward
