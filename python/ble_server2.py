@@ -20,6 +20,9 @@ if robot is None: exit()
 # create dabble app interface
 app = config.createDabble(robot)
 
+detect_object.IMG_W = robot.camW
+detect_object.IMG_H = robot.camH
+
 
 VISIBLE = False
 

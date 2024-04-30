@@ -48,6 +48,8 @@ ROBOTS = {
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.4,
         "toolMotor": True,
+        "camW": 640,
+        "camH": 480,
     },
 
     ROBOT_ID_ALEX: { 
@@ -62,6 +64,8 @@ ROBOTS = {
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.4,
         "toolMotor": True,
+        "camW": 640,
+        "camH": 480,
     },
 
     ROBOT_ID_MECANUM: { 
@@ -77,6 +81,8 @@ ROBOTS = {
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.4,  
         "toolMotor": False, 
+        "camW": 1280,
+        "camH": 720,
     },
 
 }
@@ -140,7 +146,10 @@ def createRobot():
     robot.bluetoothUSB = cfg['bluetoothUSB'] 
     robot.bluetoothAddr = cfg['bluetoothAddr']     
 
-
+    # cam config
+    robot.camW = cfg['camW']
+    robot.camH = cfg['camH']
+     
     return robot
 
 

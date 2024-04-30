@@ -84,10 +84,11 @@ def detectObject(image, filterObjs,visible=True):
     # cv2.imwrite("image_box_text.jpg",image)		
 
 
+
 def captureVideoImage():
     global cam, model
     if cam is None:
-        print('opening video device...')
+        print('opening video device... W=', IMG_W, 'H=', IMG_H, 'FPS=', FPS)
         cam = cv2.VideoCapture(0)
         if cam is None: return None
         print('opened video device')
