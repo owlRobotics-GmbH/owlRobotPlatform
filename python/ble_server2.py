@@ -26,6 +26,19 @@ else:
     app = dabble.Dabble('hci-socket:0')
 
 
+# robot body coordinate system:
+# top view (z up):
+#
+#        y
+#        |
+#    mobile base ----> x    (forward driving axis)
+#
+# angles:  counterclock-wise: positive (+) 
+#
+
+
+# define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m) and wheel diameter (m) 
+        
 #robot = diffdrive.DifferentialDriveRobot(0.2, 0.2)   # wheel-center-x,  wheel-dia
 robot = mecanum.MecanumRobot(0.25, 0.25, 0.15)         # wheel-center-x,  wheel-center-y,  wheel-dia
 
