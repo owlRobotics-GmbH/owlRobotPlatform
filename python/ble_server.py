@@ -124,6 +124,8 @@ while True:
                 speedLeft = 0
                 speedRight = 0
 
+        time.sleep(0.01)
+
 
     if time.time() > nextCanTime:
         nextCanTime = time.time() + 0.1
