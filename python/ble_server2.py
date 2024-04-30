@@ -24,8 +24,8 @@ app = config.createDabble(robot)
 VISIBLE = False
 
 # max. robot body speeds (translation / angular)
-MAX_LINEAR_SPEED = 0.3  # m/s
-MAX_ANGULAR_SPEED = 0.1  # rad/s 
+MAX_LINEAR_SPEED = robot.maxSpeedX  # m/s
+MAX_ANGULAR_SPEED = robot.maxSpeedTheta  # rad/s 
 
 
 print('press CTRL+C to exit...')

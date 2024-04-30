@@ -97,6 +97,7 @@ def createRobot():
     print('found config:')
     print(cfg)
 
+    # create robot object
     robot = None
     if cfg['type'] == ROBOT_TYPE_DIFF_DRIVE:
         robot = diffdrive.DifferentialDriveRobot(
@@ -114,6 +115,12 @@ def createRobot():
         print('invalid robot type')
         return None
 
+    # max body velocities
+    robot.maxSpeedX = cfg['maxSpeedX'] 
+    robot.maxSpeedY = cfg['maxSpeedY']     
+    robot.maxSpeedTheta = cfg['maxSpeedTheta']     
+
+    # bluetooth config
     robot.bluetoothUSB = cfg['bluetoothUSB'] 
     robot.bluetoothAddr = cfg['bluetoothAddr']     
     return robot

@@ -143,6 +143,10 @@ class Robot():
         self.wheelToBodyCenterY = 0     # wheel-axis to body center vertical distance (m)
 
         # -------- inverse kinematics (body velocity commands => motor velocities) -------------------------------
+        self.maxSpeedX = 0.2
+        self.maxSpeedY = 0
+        self.maxSpeedTheta = 0.2
+        
         self.cmdVelX = 0                # forward velocity command (m/s)
         self.cmdVelY = 0                # sideways velocity command (m/s)
         self.cmdVelTheta = 0            # rotational velocity command (rad/s) 
