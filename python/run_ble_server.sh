@@ -1,5 +1,6 @@
 #!/bin/bash 
 
+
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root (sudo):   sudo ./run_ble_server.sh"
   exit
@@ -36,5 +37,15 @@ hciconfig hci0 down
 
 
 echo "starting python app..."
-python3 ble_server.py
+
+
+if [ "$#" -eq  "0" ] 
+then
+  # No arguments supplied
+  python3 ble_server.py
+else
+  # python file supplied
+  python3 "$1" 
+fi
+
 
