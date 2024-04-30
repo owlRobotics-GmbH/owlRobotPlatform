@@ -13,7 +13,7 @@
 //MCP342x adc = MCP342x(ADCadr);
  
 TCA9548A I2CMux;
-Adafruit_NeoPixel strip(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
 
  Funkt::Funkt(){}
  void Funkt::begin()
@@ -40,20 +40,20 @@ Adafruit_NeoPixel strip(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
 
     PowerHold(1);
     extPieper(0);   
-    strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-    strip.show();            // Turn OFF all pixels ASAP
-    strip.setPixelColor(0,  strip.Color(0, 75, 0));
+    strip2.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+    strip2.show();            // Turn OFF all pixels ASAP
+    strip2.setPixelColor(0,  strip2.Color(0, 75, 0));
     delay(5);
-    strip.setPixelColor(1,  strip.Color(0, 160, 0));
-    strip.setBrightness(24);
-    strip.show();
+    strip2.setPixelColor(1,  strip2.Color(0, 160, 0));
+    strip2.setBrightness(24);
+    strip2.show();
    }  
 
    
 void Funkt::NeoPixel(int ledNo,int r,int g,int b,int bright){
-    strip.setPixelColor(ledNo,strip.Color(r, g, b));
-    strip.setBrightness(bright);
-    strip.show();  
+    strip2.setPixelColor(ledNo,strip2.Color(r, g, b));
+    strip2.setBrightness(bright);
+    strip2.show();  
 }
 
 

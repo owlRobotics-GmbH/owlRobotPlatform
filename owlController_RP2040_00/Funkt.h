@@ -20,6 +20,9 @@
 
 #define NeoPix_Pin 25
 
+#pragma once
+
+
 class Funkt {
   public:
    Funkt();          // initialized with no parameter

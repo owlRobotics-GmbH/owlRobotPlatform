@@ -30,7 +30,7 @@ Arduino libraries to install:
 #include "mpu.h"
 #include "mcp2515.h"
 #include "NeoPix.h"
-#include "owldrive.h"
+#include "owlcontrol.h"
 
 extern "C" {
   #include <hardware/watchdog.h>

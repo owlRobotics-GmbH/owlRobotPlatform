@@ -1,5 +1,7 @@
 #include "config.h"
 
+#pragma once
+
 #define NeoPix_Pin 25
 
 class NeoPix {
