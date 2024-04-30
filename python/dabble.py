@@ -16,6 +16,7 @@ import time
 import threading
 import math
 
+from bumble.core import AdvertisingData
 from bumble.utils import AsyncRunner
 from bumble.device import Device, Connection
 from bumble.hci import Address
@@ -124,8 +125,17 @@ class Dabble():
 
             # Create a device to manage the host
             #self.device = Device.from_config_file_with_hci('misc/device1.json', self.hci_source, self.hci_sink)
+            print('Device.with_hci name=', name)
             self.device = Device.with_hci(name, Address(address), self.hci_source, self.hci_sink)            
             self.device.listener = Listener(self.device)
+
+
+            self.device.advertising_data = bytes(
+                AdvertisingData(
+                    [(AdvertisingData.COMPLETE_LOCAL_NAME, bytes(name, 'utf-8'))]
+                )
+            )
+
 
             # Add a few entries to the device's GATT server
             #descriptor = Descriptor(
