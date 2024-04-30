@@ -28,7 +28,7 @@ VISIBLE = False
 
 # max. robot body speeds (translation / angular)
 MAX_LINEAR_SPEED = robot.maxSpeedX / 2.0  # m/s
-MAX_ANGULAR_SPEED = robot.maxSpeedTheta    # rad/s 
+MAX_ANGULAR_SPEED = robot.maxSpeedTheta / 2.0   # rad/s 
 
 
 print('press CTRL+C to exit...')
@@ -61,8 +61,10 @@ while True:
             print('sideways', sideways)
     elif app.extraButton == 'triangle':
         MAX_LINEAR_SPEED = robot.maxSpeedX
+        MAX_ANGULAR_SPEED = robot.maxSpeedTheta
     elif app.extraButton == 'cross':
         MAX_LINEAR_SPEED = robot.maxSpeedX / 2.0
+        MAX_ANGULAR_SPEED = robot.maxSpeedTheta / 2.0
     elif app.extraButton == 'circle':
         if time.time() > circleButtonTime:
             circleButtonTime = time.time() + 0.5
