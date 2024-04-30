@@ -135,7 +135,8 @@ while True:
     if time.time() > nextCanTime:
         nextCanTime = time.time() + 0.1
         robot.setRobotSpeed(speedLinearX, speedLinearY, speedAngular)
-        #robot.toolMotor.setSpeed(toolMotorSpeed)
+        if not robot.toolMotor is None:
+            robot.toolMotor.setSpeed(toolMotorSpeed)
         
 
 
