@@ -101,6 +101,7 @@ while True:
                 elif y > 0.2 and y < 0.7:
                     # forward
                     speedLinearX = MAX_LINEAR_SPEED
+                    if not robot.camLookingForward: speedLinearX *= -1.0
                     trackTimeout = time.time() + 2.0       
         if time.time() > trackTimeout:
             # oscillate

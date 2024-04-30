@@ -50,6 +50,7 @@ ROBOTS = {
         "toolMotor": True,
         "camW": 640,
         "camH": 480,
+        "camLookingForward": False,
     },
 
     ROBOT_ID_ALEX: { 
@@ -66,6 +67,7 @@ ROBOTS = {
         "toolMotor": True,
         "camW": 640,
         "camH": 480,
+        "camLookingForward": False,
     },
 
     ROBOT_ID_MECANUM: { 
@@ -83,6 +85,7 @@ ROBOTS = {
         "toolMotor": False, 
         "camW": 1280,
         "camH": 720,
+        "camLookingForward": True,
     },
 
 }
@@ -149,7 +152,8 @@ def createRobot():
     # cam config
     robot.camW = cfg['camW']
     robot.camH = cfg['camH']
-     
+    robot.camLookingForward = cfg['camLookingForward'] 
+
     return robot
 
 
