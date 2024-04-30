@@ -41,6 +41,8 @@ ROBOTS = {
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F5",
         "bluetoothUSB": False,
+        "swapLeftMotor": True,
+        "swapRightMotor": False,        
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
         "gearRatio": 20.0,
@@ -58,6 +60,8 @@ ROBOTS = {
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F4",        
         "bluetoothUSB": True, 
+        "swapLeftMotor": True,
+        "swapRightMotor": False,        
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
         "gearRatio": 20.0,        
@@ -75,6 +79,10 @@ ROBOTS = {
         "type": ROBOT_TYPE_MECANUM,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F3",        
         "bluetoothUSB": False, 
+        "swapLeftBackMotor": True,
+        "swapRightBackMotor": False,
+        "swapLeftFrontMotor": True,
+        "swapRightFrontMotor": False,
         "wheelToBodyCenterX": 0.25,
         "wheelToBodyCenterY": 0.25,
         "wheelDiameter": 0.15,
@@ -121,7 +129,9 @@ def createRobot():
             cfg['name'],
             cfg['wheelToBodyCenterY'], 
             cfg['wheelDiameter'],
-            cfg['gearRatio'])   # wheel-center-y,  wheel-dia
+            cfg['gearRatio'],
+            cfg['swapLeftMotor'],
+            cfg['swapRightMotor'])   # wheel-center-y,  wheel-dia
 
         # tool motor
         if cfg['toolMotor']:        
@@ -135,7 +145,11 @@ def createRobot():
             cfg['wheelToBodyCenterX'],
             cfg['wheelToBodyCenterY'],
             cfg['wheelDiameter'],
-            cfg['gearRatio'])         # wheel-center-x,  wheel-center-y,  wheel-dia
+            cfg['gearRatio'],
+            cfg['swapLeftBackMotor'],
+            cfg['swapRighBacktMotor'],
+            cfg['swapLeftFrontMotor'],
+            cfg['swapRightFrontMotor'])         # wheel-center-x,  wheel-center-y,  wheel-dia
     else:
         print('invalid robot type')
         return None

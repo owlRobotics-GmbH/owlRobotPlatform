@@ -10,15 +10,15 @@ import owlrobot as owl
 
 
 class DifferentialDriveRobot(owl.Robot):
-    def __init__(self, aName, aWheelToBodyCenterY, aWheelDiameter, aGearRatio):        
+    def __init__(self, aName, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, aSwapLeftMotor, aSwapRightMotor):        
         super().__init__(aName)
         # wheel diameter (m)
         self.wheelDiameter = aWheelDiameter
         self.wheelToBodyCenterX = 0
         self.wheelToBodyCenterY = aWheelToBodyCenterY 
 
-        self.leftMotor = owl.Motor(self, owl.LEFT_MOTOR_NODE_ID, 'leftMotor', True, aGearRatio)  
-        self.rightMotor = owl.Motor(self, owl.RIGHT_MOTOR_NODE_ID, 'rightMotor', False, aGearRatio)   
+        self.leftMotor = owl.Motor(self, owl.LEFT_MOTOR_NODE_ID, 'leftMotor', aSwapLeftMotor, aGearRatio)  
+        self.rightMotor = owl.Motor(self, owl.RIGHT_MOTOR_NODE_ID, 'rightMotor', aSwapRightMotor, aGearRatio)   
     
       
     # compute forward kinematics based on motor sensors
@@ -85,7 +85,7 @@ class DifferentialDriveRobot(owl.Robot):
 
 if __name__ == "__main__":
 
-    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0)   # wheel-center-x,  wheel-dia, gear-ratio
+    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False)   # wheel-center-x,  wheel-dia, gear-ratio, swap-left, swap-right
 
     while True:
         time.sleep(1.0)

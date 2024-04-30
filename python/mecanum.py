@@ -9,17 +9,18 @@ import owlrobot as owl
 
 
 class MecanumRobot(owl.Robot):
-    def __init__(self, aName, aWheelToBodyCenterX, aWheelToBodyCenterY, aWheelDiameter, aGearRatio):        
+    def __init__(self, aName, aWheelToBodyCenterX, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, 
+                 aSwapLeftBackMotor, aSwapRightBackMotor, aSwapLeftFrontMotor, aSwapRightFrontMotor):        
         super().__init__(aName)
         # wheel diameter (m)
         self.wheelDiameter = aWheelDiameter
         self.wheelToBodyCenterX = aWheelToBodyCenterX;
         self.wheelToBodyCenterY = aWheelToBodyCenterY; 
 
-        self.leftBackMotor = owl.Motor(self, owl.LEFT_BACK_MOTOR_NODE_ID, 'leftBackMotor', True, aGearRatio)  
-        self.rightBackMotor = owl.Motor(self, owl.RIGHT_BACK_MOTOR_NODE_ID, 'rightBackMotor', False, aGearRatio)
-        self.leftFrontMotor = owl.Motor(self, owl.LEFT_FRONT_MOTOR_NODE_ID, 'leftFrontMotor', True, aGearRatio)  
-        self.rightFrontMotor = owl.Motor(self, owl.RIGHT_FRONT_MOTOR_NODE_ID, 'rightFrontMotor', False, aGearRatio)
+        self.leftBackMotor = owl.Motor(self, owl.LEFT_BACK_MOTOR_NODE_ID, 'leftBackMotor', aSwapLeftBackMotor, aGearRatio)  
+        self.rightBackMotor = owl.Motor(self, owl.RIGHT_BACK_MOTOR_NODE_ID, 'rightBackMotor', aSwapRightBackMotor, aGearRatio)
+        self.leftFrontMotor = owl.Motor(self, owl.LEFT_FRONT_MOTOR_NODE_ID, 'leftFrontMotor', aSwapLeftFrontMotor, aGearRatio)  
+        self.rightFrontMotor = owl.Motor(self, owl.RIGHT_FRONT_MOTOR_NODE_ID, 'rightFrontMotor', aSwapRightFrontMotor, aGearRatio)
 
       
     # compute forward kinematics based on motor sensors
@@ -89,7 +90,7 @@ class MecanumRobot(owl.Robot):
 
 if __name__ == "__main__":
 
-    robot = MecanumRobot('test', 0.25, 0.25, 0.15, 20.0) # wheel-center-x,  wheel-center-y,  wheel-dia, gear-ratio
+    robot = MecanumRobot('test', 0.25, 0.25, 0.15, 20.0, True, False, True, False) # wheel-center-x,  wheel-center-y,  wheel-dia, gear-ratio, swap...
 
     while True:
         time.sleep(1.0)
