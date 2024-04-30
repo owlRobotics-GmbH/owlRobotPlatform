@@ -72,6 +72,7 @@ ROBOTS = {
 }
 
 
+# -----------------------------------------------------------------------------------
 
 # create robot object based on machine id found in config
 def createRobot():
