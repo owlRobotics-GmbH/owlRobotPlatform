@@ -49,7 +49,7 @@ class MecanumRobot(owl.Robot):
 
 
 
-    #  transfers body velocities into motor velocities
+    #  transfers body velocities into motor velocities and apply velocities
     #    set inverse kinematics (body velocities => motor velocities)
     #    x: forward velocity (m/s)
     #    y: sideways velocity (m/s)
