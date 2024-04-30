@@ -6,6 +6,7 @@ import ctypes
 import struct
 import os
 import time
+import math
 import can   # pip install --break-system-packages  python-can
 
 
@@ -82,20 +83,95 @@ class CStruct(ctypes.LittleEndianStructure):
     ]
 
 
+# single robot motor class
+
+class Motor():
+    def __init__(self, aRobot, aNodeId, aName):
+        self.nodeId = aNodeId
+        self.robot = aRobot
+        self.name = aName
+        self.speed = 0.0
+        print(self.name, ': motor object with nodeId', aNodeId)
+
+    # rad/s
+    def setSpeed(self, aSpeed):
+        #print(self.name, ': speed', speed)
+        self.speed = aSpeed
+        self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_velocity, struct.pack('<f', aSpeed))
+
+    def getSpeed(self):
+        return self.speed
+    
+    
+
+# abstract robot class with forward and backward kinematics
+# forward kinematics: obtains position and velocity of end effector (here: robot body), given the known joint angles 
+# and angular velocities (here: motors).
+# example:  motor velocities => body position and body velocity 
+
+# inverse kinematics:  gives the joint velocities q' (here: motors) for a desired end-effector velocity X' (here: robot body)  
+# example:  body velocity => motor velocities
+
+# abstract drive system (differential wheel, mecanum wheel etc.)
+#
+# we use ROS coordinate axis (x is forward, y is left, z is up, CCW is positive):
+# https://www.ros.org/reps/rep-0105.html
+#
+# top view (z up):
+#
+#        y
+#        |
+#    mobile base ----> x    (forward driving axis)
+#
+# angles:  counterclock-wise: positive (+) 
 
 
 class Robot():
     def __init__(self, aname = "owlRobot"):
+        print(aname, ': init')
         self.name = aname
-        self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
-        #notifier = can.Notifier(self.bus, [can.Printer()])
+        try:
+            self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
+            #notifier = can.Notifier(self.bus, [can.Printer()])
+        except:
+            self.bus = None
+            print('error opening CAN bus')
+            pass
+
+        # default wheel dimensions        
+        self.wheelDiameter = 0          # wheel diameter (m) 
+        self.wheelToBodyCenterX = 0     # wheel-axis to body center horizontal distance (m)
+        self.wheelToBodyCenterY = 0     # wheel-axis to body center vertical distance (m)
+
+        # -------- inverse kinematics (body velocity commands => motor velocities) -------------------------------
+        self.cmdVelX = 0                # forward velocity command (m/s)
+        self.cmdVelY = 0                # sideways velocity command (m/s)
+        self.cmdVelTheta = 0            # rotational velocity command (rad/s) 
+
+        # -------- forward kinematics (measured motor velocitities => body velocities) ----------------------------
+        self.odoVelX = 0               # measured forward velocity (m/s)
+        self.odoVelY = 0               # measured sideways velocity (m/s)
+        self.odoVelTheta = 0           # measured rotational velocity (rad/s)
+        self.odoX = 0                  # measured forward position (m)
+        self.odoY = 0                  # measured sideways position (m)
+        self.odoTheta = 0              # measured rotational position (rad)
+
+        # --------- motor ----------------------------------------------------------------------------------------
+        self.toolMotor = Motor(self, TOOL_MOTOR_NODE_ID, 'toolMotor') 
+
+        self.lastDriveTime = time.time()
+
+    def print(self):
+        print('odoX', round(self.odoX, 2), 'odoY', round(self.odoY, 2), 'odoTheta', round(self.odoTheta / math.pi * 180.0))
 
     def __del__(self):
-        print('closing CAN...')
+        if self.bus is None: return
+        print('closing CAN...')        
         self.bus.shutdown()
 
 
     def sendCanData(self, destNodeId, cmd, val, data):        
+        if self.bus is None: return
         cs = CStruct()
         cs.sourceId = MY_NODE_ID
         cs.destId = destNodeId
@@ -134,6 +210,15 @@ class Robot():
         self.sendCanData(RIGHT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightBackMotorSpeed))
         self.sendCanData(RIGHT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightFrontMotorSpeed))
         self.sendCanData(LEFT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftFrontMotorSpeed))
+    
+
+    #    set inverse kinematics (body velocities => motor velocities)
+    #    x: forward velocity (m/s)
+    #    y: sideways velocity (m/s)
+    #    theta: rotational veloctiy (rad/s)
+    def setRobotSpeed(vx, vy, oz):
+        pass
+
 
 
 
@@ -144,7 +229,7 @@ if __name__ == "__main__":
     while True:
         time.sleep(1.0)
         robot.motorSpeedDifferential(100.0, 100.0, 100.0)
-
+        
     
 
 
