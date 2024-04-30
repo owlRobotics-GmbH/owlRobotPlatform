@@ -24,8 +24,8 @@ app = config.createDabble(robot)
 VISIBLE = False
 
 # max. robot body speeds (translation / angular)
-MAX_LINEAR_SPEED = robot.maxSpeedX  # m/s
-MAX_ANGULAR_SPEED = robot.maxSpeedTheta  # rad/s 
+MAX_LINEAR_SPEED = robot.maxSpeedX / 2.0  # m/s
+MAX_ANGULAR_SPEED = robot.maxSpeedTheta    # rad/s 
 
 
 print('press CTRL+C to exit...')
@@ -57,9 +57,9 @@ while True:
             sideways = not sideways
             print('sideways', sideways)
     elif app.extraButton == 'triangle':
-        MAX_LINEAR_SPEED = 0.3
+        MAX_LINEAR_SPEED = robot.maxSpeedX
     elif app.extraButton == 'cross':
-        MAX_LINEAR_SPEED = 0.5
+        MAX_LINEAR_SPEED = robot.maxSpeedX / 2.0
     elif app.extraButton == 'circle':
         if time.time() > circleButtonTime:
             circleButtonTime = time.time() + 0.5
@@ -110,11 +110,16 @@ while True:
     else:
 
         if app.analogMode:
-            speedLinearX = app.y_value
-            if sideways:
-                speedLinearY = app.x_value 
+            #print(app.y_value, app.x_value)
+            speedLinearX = app.y_value * MAX_LINEAR_SPEED            
+            if app.y_value >= 0:
+                sign = -1
             else:
-                speedAngular = app.x_value
+                sign = 1 
+            if sideways:
+                speedLinearY = sign * app.x_value * MAX_LINEAR_SPEED
+            else:
+                speedAngular = sign * app.x_value * MAX_ANGULAR_SPEED
 
         else:
             if app.joystickButton == 'up':
@@ -124,10 +129,16 @@ while True:
                 speedLinearX = -MAX_LINEAR_SPEED
 
             elif app.joystickButton == 'right':        
-                speedAngular = -MAX_ANGULAR_SPEED
+                if sideways:
+                    speedLinearY = -MAX_LINEAR_SPEED
+                else:
+                    speedAngular = -MAX_ANGULAR_SPEED
 
             elif app.joystickButton == 'left':        
-                speedAngular = MAX_ANGULAR_SPEED
+                if sideways:
+                    speedLinearY = MAX_LINEAR_SPEED                
+                else:
+                    speedAngular = MAX_ANGULAR_SPEED
 
             elif app.joystickButton == 'released':
                 pass

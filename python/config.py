@@ -46,7 +46,7 @@ ROBOTS = {
         "gearRatio": 20.0,
         "maxSpeedX": 0.4,
         "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.2,
+        "maxSpeedTheta": 0.4,
         "toolMotor": True,
     },
 
@@ -60,7 +60,7 @@ ROBOTS = {
         "gearRatio": 20.0,        
         "maxSpeedX": 0.4,        
         "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.2,
+        "maxSpeedTheta": 0.4,
         "toolMotor": True,
     },
 
@@ -75,7 +75,7 @@ ROBOTS = {
         "gearRatio": 20.0,        
         "maxSpeedX": 0.4,      
         "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.2,  
+        "maxSpeedTheta": 0.4,  
         "toolMotor": False, 
     },
 

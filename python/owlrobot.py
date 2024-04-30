@@ -96,7 +96,7 @@ class Motor():
 
     # rad/s
     def setSpeed(self, aSpeed):
-        print(self.name, ': speed', aSpeed)
+        #print(self.name, ': speed', aSpeed)
         self.speed = aSpeed
         # swap direction sent to motor driver
         if self.swapDirection: aSpeed *= -1.0
