@@ -10,7 +10,7 @@ import platform
 import dabble
 
 
-# robot IDs (WiFi Mac address):
+# robot IDs (WiFi MAC address):
 ROBOT_ID_DIFF_DRIVE    = 0x1c1bb5d748c1
 ROBOT_ID_MECANUM       = 0x1c1bb5d748c2 
 ROBOT_ID_ALEX          = 0x1c1bb5d748c6
@@ -74,7 +74,7 @@ ROBOTS = {
 
 # -----------------------------------------------------------------------------------
 
-# create robot object based on machine id found in config
+# create robot object based on machine id (WiFi MAC) found in config
 def createRobot():
     machine = platform.machine()  # x86_64  etc.
     print('machine:', machine)
