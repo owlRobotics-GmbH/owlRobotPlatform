@@ -9,8 +9,8 @@ import owlrobot as owl
 
 
 class MecanumRobot(owl.Robot):
-    def __init__(self, aWheelToBodyCenterX, aWheelToBodyCenterY, aWheelDiameter):        
-        super().__init__('MecanumRobot')
+    def __init__(self, aName, aWheelToBodyCenterX, aWheelToBodyCenterY, aWheelDiameter):        
+        super().__init__(aName)
         # wheel diameter (m)
         self.wheelDiameter = aWheelDiameter
         self.wheelToBodyCenterX = aWheelToBodyCenterX;
@@ -89,7 +89,7 @@ class MecanumRobot(owl.Robot):
 
 if __name__ == "__main__":
 
-    robot = MecanumRobot(0.4, 0.2, 0.1) # wheel-center-x,  wheel-center-y,  wheel-dia
+    robot = MecanumRobot('test', 0.4, 0.2, 0.1) # wheel-center-x,  wheel-center-y,  wheel-dia
 
     while True:
         time.sleep(1.0)

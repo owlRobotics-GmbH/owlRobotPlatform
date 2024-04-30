@@ -2,45 +2,23 @@
 
 # owlRobotics robot platform example code:   Bluetooth Low Energy Server (use Dabble App joystick to control motors)
 
-# this demo uses body velocities  (instead of motor velocities)
+# this demo uses robot database and body velocities  (instead of motor velocities)
 
 
 import owlrobot as owl
-import mecanum
-import diffdrive
 import time
 import dabble
 import os
-import platform
+import config
 import detect_object
 
 
-machine = platform.machine()
-print('machine:', machine)
+# create robot from database
+robot = config.createRobot()
+if robot is None: exit()
 
-if (machine == 'x86_64'):
-    # Linux PC
-    app = dabble.Dabble('usb:0')
-else:
-    # Raspberry
-    app = dabble.Dabble('hci-socket:0')
-
-
-# robot body coordinate system:
-# top view (z up):
-#
-#        y
-#        |
-#    mobile base ----> x    (forward driving axis)
-#
-# angles:  counterclock-wise: positive (+) 
-#
-
-
-# define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m) and wheel diameter (m) 
-        
-#robot = diffdrive.DifferentialDriveRobot(0.2, 0.2)   # wheel-center-x,  wheel-dia
-robot = mecanum.MecanumRobot(0.25, 0.25, 0.15)         # wheel-center-x,  wheel-center-y,  wheel-dia
+# create dabble app interface
+app = config.createDabble(robot)
 
 
 VISIBLE = False

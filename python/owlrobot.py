@@ -10,7 +10,6 @@ import math
 import can   # pip install --break-system-packages  python-can
 
 
-
 OWL_DRIVE_MSG_ID      = 300
 MY_NODE_ID            = 60 
 
@@ -128,8 +127,8 @@ class Motor():
 
 class Robot():
     def __init__(self, aname = "owlRobot"):
-        print(aname, ': init')
-        self.name = aname
+        self.name = aname        
+        print(self.name, ': init')
         try:
             self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
             #notifier = can.Notifier(self.bus, [can.Printer()])
@@ -156,6 +155,9 @@ class Robot():
         self.odoY = 0                  # measured sideways position (m)
         self.odoTheta = 0              # measured rotational position (rad)
 
+        # bluetooth config
+        self.blueoothUSB = False
+        
         # --------- motor ----------------------------------------------------------------------------------------
         self.toolMotor = Motor(self, TOOL_MOTOR_NODE_ID, 'toolMotor') 
 
