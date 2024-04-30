@@ -8,6 +8,7 @@ import mecanum
 import uuid
 import platform
 import dabble
+import owlrobot as owl
 
 
 # robot IDs (WiFi MAC address):
@@ -45,6 +46,7 @@ ROBOTS = {
         "maxSpeedX": 0.4,
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.2,
+        "toolMotor": True,
     },
 
     ROBOT_ID_ALEX: { 
@@ -57,6 +59,7 @@ ROBOTS = {
         "maxSpeedX": 0.4,        
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.2,
+        "toolMotor": True,
     },
 
     ROBOT_ID_MECANUM: { 
@@ -69,7 +72,8 @@ ROBOTS = {
         "wheelDiameter": 0.15,
         "maxSpeedX": 0.4,      
         "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.2,   
+        "maxSpeedTheta": 0.2,  
+        "toolMotor": False, 
     },
 
 }
@@ -100,12 +104,19 @@ def createRobot():
     # create robot object
     robot = None
     if cfg['type'] == ROBOT_TYPE_DIFF_DRIVE:
+        print('creating diff drive robot...')
         robot = diffdrive.DifferentialDriveRobot(
             cfg['name'],
             cfg['wheelToBodyCenterY'], 
             cfg['wheelDiameter'])   # wheel-center-y,  wheel-dia
 
+        # tool motor
+        if cfg['toolMotor']:        
+            print('adding tool motor...')
+            robot.toolMotor = owl.Motor(robot, owl.TOOL_MOTOR_NODE_ID, 'toolMotor') 
+
     elif cfg['type'] == ROBOT_TYPE_MECANUM:
+        print('creating mecanum robot...')
         robot = mecanum.MecanumRobot(
             cfg['name'],
             cfg['wheelToBodyCenterX'],
@@ -123,6 +134,8 @@ def createRobot():
     # bluetooth config
     robot.bluetoothUSB = cfg['bluetoothUSB'] 
     robot.bluetoothAddr = cfg['bluetoothAddr']     
+
+
     return robot
 
 

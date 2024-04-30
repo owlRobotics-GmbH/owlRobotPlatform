@@ -164,8 +164,7 @@ class Robot():
         self.bluetoothUSB = False
         
         # --------- motor ----------------------------------------------------------------------------------------
-        self.toolMotor = Motor(self, TOOL_MOTOR_NODE_ID, 'toolMotor') 
-
+        
         self.lastDriveTime = time.time()
 
     def print(self):
