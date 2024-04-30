@@ -37,7 +37,8 @@ ROBOT_TYPE_MECANUM    = 1
 ROBOTS = {
     ROBOT_ID_DIFF_DRIVE: { 
         "name": "owlRobot (DiffDrive)",
-        "type": ROBOT_TYPE_DIFF_DRIVE, 
+        "type": ROBOT_TYPE_DIFF_DRIVE,
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F5",
         "bluetoothUSB": False,
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
@@ -49,6 +50,7 @@ ROBOTS = {
     ROBOT_ID_ALEX: { 
         "name": "owlRobot (Alex)",
         "type": ROBOT_TYPE_DIFF_DRIVE,
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F4",        
         "bluetoothUSB": True, 
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
@@ -60,6 +62,7 @@ ROBOTS = {
     ROBOT_ID_MECANUM: { 
         "name": "owlRobot (Mecanum)",
         "type": ROBOT_TYPE_MECANUM,
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F3",        
         "bluetoothUSB": False, 
         "wheelToBodyCenterX": 0.25,
         "wheelToBodyCenterY": 0.25,
@@ -100,7 +103,6 @@ def createRobot():
             cfg['name'],
             cfg['wheelToBodyCenterY'], 
             cfg['wheelDiameter'])   # wheel-center-y,  wheel-dia
-        robot.bluetoothUSB = cfg['bluetoothUSB']
 
     elif cfg['type'] == ROBOT_TYPE_MECANUM:
         robot = mecanum.MecanumRobot(
@@ -108,10 +110,12 @@ def createRobot():
             cfg['wheelToBodyCenterX'],
             cfg['wheelToBodyCenterY'],
             cfg['wheelDiameter'])         # wheel-center-x,  wheel-center-y,  wheel-dia
-        robot.bluetoothUSB = cfg['bluetoothUSB'] 
     else:
         print('invalid robot type')
-    
+        return None
+
+    robot.bluetoothUSB = cfg['bluetoothUSB'] 
+    robot.bluetoothAddr = cfg['bluetoothAddr']     
     return robot
 
 
@@ -121,9 +125,11 @@ def createDabble(aRobot):
     useUSB = aRobot.bluetoothUSB
     print('bluetoothUSB', useUSB)
     if useUSB:            
-        app = dabble.Dabble('usb:0')
+        socket = 'usb:0'
     else:
-        app = dabble.Dabble('hci-socket:0')
+        socket = 'hci-socket:0'
+
+    app = dabble.Dabble(socket, aRobot.name, aRobot.bluetoothAddr)
     return app
 
 

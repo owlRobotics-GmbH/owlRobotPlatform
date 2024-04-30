@@ -18,6 +18,7 @@ import math
 
 from bumble.utils import AsyncRunner
 from bumble.device import Device, Connection
+from bumble.hci import Address
 from bumble.transport import open_transport_or_link
 from bumble.att import ATT_Error, ATT_INSUFFICIENT_ENCRYPTION_ERROR
 from bumble.gatt import (
@@ -95,7 +96,7 @@ class Listener(Device.Listener, Connection.Listener):
 
 
 class Dabble():
-    def __init__(self, bluetooth_transport = 'hci-socket:0'):
+    def __init__(self, bluetooth_transport = 'hci-socket:0', name = 'owlRobot', address = "F0:F1:F2:F3:F4:F5"):
         self.analogMode = False  # analog joystick mode?
         self.joystickButton = 'released'
         self.extraButton = 'released'   
@@ -104,25 +105,26 @@ class Dabble():
         self.x_value = 0  # x/y-value of analog joystick
         self.y_value = 0
 
-        self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,), daemon=True)
+        self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,name,address), daemon=True)
         self.proc.start()
         
         #asyncio.run(self.start(bluetooth_transport))    
 
-    def startAsync(self, bluetooth_transport):
+    def startAsync(self, bluetooth_transport, name, address):
         print('startAsync')
-        asyncio.run(self.start(bluetooth_transport))
+        asyncio.run(self.start(bluetooth_transport, name, address))
 
 
-    async def start(self, bluetooth_transport = 'hci-socket:0'):
-        print('starting dabble app interface...', bluetooth_transport)
+    async def start(self, bluetooth_transport, name, address):
+        print('starting dabble app interface:=', bluetooth_transport, 'name=', name, 'address=', address)
 
         print('<<< connecting to HCI...')
         async with await open_transport_or_link(bluetooth_transport) as (self.hci_source, self.hci_sink):
             print('<<< connected ')
 
             # Create a device to manage the host
-            self.device = Device.from_config_file_with_hci('misc/device1.json', self.hci_source, self.hci_sink)
+            #self.device = Device.from_config_file_with_hci('misc/device1.json', self.hci_source, self.hci_sink)
+            self.device = Device.with_hci(name, Address(address), self.hci_source, self.hci_sink)            
             self.device.listener = Listener(self.device)
 
             # Add a few entries to the device's GATT server

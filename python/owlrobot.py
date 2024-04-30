@@ -156,7 +156,8 @@ class Robot():
         self.odoTheta = 0              # measured rotational position (rad)
 
         # bluetooth config
-        self.blueoothUSB = False
+        self.bluetoothAddr = "F0:F1:F2:F3:F4:F5"
+        self.bluetoothUSB = False
         
         # --------- motor ----------------------------------------------------------------------------------------
         self.toolMotor = Motor(self, TOOL_MOTOR_NODE_ID, 'toolMotor') 
