@@ -212,6 +212,7 @@ class Robot():
         self.sendCanData(LEFT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftFrontMotorSpeed))
     
 
+    #  transfers body velocities into motor velocities
     #    set inverse kinematics (body velocities => motor velocities)
     #    x: forward velocity (m/s)
     #    y: sideways velocity (m/s)

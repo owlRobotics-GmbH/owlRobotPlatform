@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 # owlRobotics robot platform  - differential drive robot  
+# transfers body velocities into motor velocities and vice-versa
+
 
 import math
 import time
@@ -49,6 +51,7 @@ class DifferentialDriveRobot(owl.Robot):
 
 
 
+    #  transfers body velocities into motor velocities
     #    set inverse kinematics (body velocities => motor velocities)
     #    x: forward velocity (m/s)
     #    y: sideways velocity (m/s)

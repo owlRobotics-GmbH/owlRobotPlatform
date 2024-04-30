@@ -2,6 +2,9 @@
 
 # owlRobotics robot platform example code:   Bluetooth Low Energy Server (use Dabble App joystick to control motors)
 
+# this demo uses body velocities  (instead of motor velocities)
+
+
 import owlrobot as owl
 import mecanum
 import diffdrive
