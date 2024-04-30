@@ -13,7 +13,7 @@ import owlrobot as owl
 
 # robot IDs (WiFi MAC address):
 ROBOT_ID_DIFF_DRIVE    = 0x1c1bb5d748c1
-ROBOT_ID_MECANUM       = 0x1c1bb5d748c2 
+ROBOT_ID_MECANUM       = 0x2ccf672733ba 
 ROBOT_ID_ALEX          = 0x1c1bb5d748c6
 
 # owlRobot types
@@ -83,7 +83,7 @@ ROBOTS = {
 
 # create robot object based on machine id (WiFi MAC) found in config
 def createRobot():
-    machine = platform.machine()  # x86_64  etc.
+    machine = platform.machine()  # x86_64,  aarch64   etc.
     print('machine:', machine)
     
     mid = uuid.getnode()
