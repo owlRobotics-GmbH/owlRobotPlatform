@@ -147,7 +147,7 @@ def createRobot():
             cfg['wheelDiameter'],
             cfg['gearRatio'],
             cfg['swapLeftBackMotor'],
-            cfg['swapRighBacktMotor'],
+            cfg['swapRightBackMotor'],
             cfg['swapLeftFrontMotor'],
             cfg['swapRightFrontMotor'])         # wheel-center-x,  wheel-center-y,  wheel-dia
     else:
