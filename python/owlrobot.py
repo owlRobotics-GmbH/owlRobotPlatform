@@ -85,17 +85,23 @@ class CStruct(ctypes.LittleEndianStructure):
 # single robot motor class
 
 class Motor():
-    def __init__(self, aRobot, aNodeId, aName):
+    def __init__(self, aRobot, aNodeId, aName, aSwapDirection = False, aGearRatio = 1.0):
         self.nodeId = aNodeId
         self.robot = aRobot
         self.name = aName
         self.speed = 0.0
+        self.swapDirection = aSwapDirection
+        self.gearRatio = aGearRatio
         print(self.name, ': motor object with nodeId', aNodeId)
 
     # rad/s
     def setSpeed(self, aSpeed):
-        #print(self.name, ': speed', speed)
+        print(self.name, ': speed', aSpeed)
         self.speed = aSpeed
+        # swap direction sent to motor driver
+        if self.swapDirection: aSpeed *= -1.0
+        # apply gear ratio
+        aSpeed *= self.gearRatio
         self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_velocity, struct.pack('<f', aSpeed))
 
     def getSpeed(self):

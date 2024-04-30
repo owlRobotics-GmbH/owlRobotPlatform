@@ -43,6 +43,7 @@ ROBOTS = {
         "bluetoothUSB": False,
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
+        "gearRatio": 20.0,
         "maxSpeedX": 0.4,
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.2,
@@ -56,6 +57,7 @@ ROBOTS = {
         "bluetoothUSB": True, 
         "wheelToBodyCenterY": 0.2,
         "wheelDiameter": 0.15,
+        "gearRatio": 20.0,        
         "maxSpeedX": 0.4,        
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.2,
@@ -70,6 +72,7 @@ ROBOTS = {
         "wheelToBodyCenterX": 0.25,
         "wheelToBodyCenterY": 0.25,
         "wheelDiameter": 0.15,
+        "gearRatio": 20.0,        
         "maxSpeedX": 0.4,      
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.2,  
@@ -108,7 +111,8 @@ def createRobot():
         robot = diffdrive.DifferentialDriveRobot(
             cfg['name'],
             cfg['wheelToBodyCenterY'], 
-            cfg['wheelDiameter'])   # wheel-center-y,  wheel-dia
+            cfg['wheelDiameter'],
+            cfg['gearRatio'])   # wheel-center-y,  wheel-dia
 
         # tool motor
         if cfg['toolMotor']:        
@@ -121,7 +125,8 @@ def createRobot():
             cfg['name'],
             cfg['wheelToBodyCenterX'],
             cfg['wheelToBodyCenterY'],
-            cfg['wheelDiameter'])         # wheel-center-x,  wheel-center-y,  wheel-dia
+            cfg['wheelDiameter'],
+            cfg['gearRatio'])         # wheel-center-x,  wheel-center-y,  wheel-dia
     else:
         print('invalid robot type')
         return None
