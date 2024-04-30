@@ -41,6 +41,8 @@ sideways = False
 
 
 while True:
+    time.sleep(0.01)
+
     if not dabble.connected: continue    
     #print('.', end="", flush=True)
 
@@ -129,7 +131,6 @@ while True:
 
             elif app.joystickButton == 'released':
                 pass
-        time.sleep(0.01)
 
 
     if time.time() > nextCanTime:

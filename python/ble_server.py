@@ -32,6 +32,8 @@ oscillateTimeout = 0
 
 
 while True:
+    time.sleep(0.01)
+
     if not dabble.connected: continue    
     #print('.', end="", flush=True)
 
@@ -124,7 +126,6 @@ while True:
                 speedLeft = 0
                 speedRight = 0
 
-        time.sleep(0.01)
 
 
     if time.time() > nextCanTime:
