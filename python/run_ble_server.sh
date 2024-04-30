@@ -42,7 +42,7 @@ echo "starting python app..."
 if [ "$#" -eq  "0" ] 
 then
   # No arguments supplied
-  python3 ble_server2.py
+  python3 ble_server.py
 else
   # python file supplied
   python3 "$1" 
