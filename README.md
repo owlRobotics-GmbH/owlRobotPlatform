@@ -7,14 +7,14 @@ supported/tested platforms:
 
 1. Differential drive platform (2 wheel motors)
 
-
-
 2. Mecanum platform (4 wheel motors)
+
+3. Your custom robot platform (up to 63 motors)
+
    
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
 
 
-3. Your custom robot platform (up to 63 motors)
 
 
 ## Python interface demo
