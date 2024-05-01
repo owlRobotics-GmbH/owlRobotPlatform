@@ -5,16 +5,15 @@
 
 import diffdrive
 import mecanum
-import uuid
-import platform
 import dabble
 import owlrobot as owl
+import psutil
 
 
 # robot IDs (WiFi MAC address):
-ROBOT_ID_DIFF_DRIVE    = 0x1c1bb5d748c1
-ROBOT_ID_MECANUM       = 0x2ccf672733ba 
-ROBOT_ID_ALEX          = 0x1c1bb5d748c6
+ROBOT_ID_DIFF_DRIVE    = 'ff:ff:ff:ff:ff:ff'
+ROBOT_ID_MECANUM       = '2c:cf:67:27:33:b9' 
+ROBOT_ID_ALEX          = '00:d8:61:05:af:39'
 
 # owlRobot types
 ROBOT_TYPE_DIFF_DRIVE = 0
@@ -101,18 +100,29 @@ ROBOTS = {
 
 # -----------------------------------------------------------------------------------
 
+def get_mac_addresses(family):
+    for interface, snics in psutil.net_if_addrs().items():
+        for snic in snics:
+            if snic.family == family:
+                yield (interface, (snic.address))
+
+
+
+
 # create robot object based on machine id (WiFi MAC) found in config
 def createRobot():
-    machine = platform.machine()  # x86_64,  aarch64   etc.
-    print('machine:', machine)
-    
-    mid = uuid.getnode()
-    print ('machine UUID:', hex(mid))
 
+    macs = dict(get_mac_addresses(psutil.AF_LINK))
+    print('found MAC addresses:')
+    print(macs)
+
+    # find any matching MAC...
     cfg = None
-    for aid in ROBOTS:
-        if aid == mid:
-            cfg = ROBOTS[aid]
+    for key, value in macs.items():
+        #print('looking for:', value)
+        for aid in ROBOTS:
+            if aid == value:
+                cfg = ROBOTS[aid]
 
     if cfg is None:
         print('error finding robot in database!')
