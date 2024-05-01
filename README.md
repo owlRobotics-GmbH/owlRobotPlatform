@@ -10,6 +10,7 @@ supported/tested platforms:
 
 
 2. Mecanum platform (4 wheel motors)
+   
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
 
 
