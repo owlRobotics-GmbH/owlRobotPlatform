@@ -3,7 +3,7 @@ owlRobotics robot platform interface code and examples
 
 ![owlplatform](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/f4a7ead1-3a4a-428f-946e-b021bfd83857)
 
-supported/tested platforms:
+Supported/tested platforms:
 
 1. Differential drive platform (2 wheel motors)
 
@@ -14,6 +14,11 @@ supported/tested platforms:
    
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
 
+
+Supported/tested hardware:
+1. owlRobotics motor drivers, RP2040 controller, Raspberry PI etc. connected via CAN bus:
+   
+https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smart-brushless-driver
 
 
 
