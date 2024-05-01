@@ -21,7 +21,7 @@ if [[ "$?" -eq 1 ]]; then
     pip3 install --break-system-packages python-can  # tested version: 4.3.1
     pip3 install --break-system-packages opencv-python  
     pip3 install --break-system-packages opencv-contrib-python  
-    pip3 install --break-system-packages netifaces
+    pip3 install --break-system-packages psutil
 fi
 
 #apt install bluetooth pi-bluetooth bluez blueman
