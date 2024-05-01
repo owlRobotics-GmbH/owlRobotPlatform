@@ -24,6 +24,12 @@ https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smar
 
 ## Python interface demo
 
+Used Python libraries:
+* CAN bus communication: https://github.com/hardbyte/python-can
+* Bluetooth Low Energery communication (Dabble App): https://github.com/google/bumble
+* Camera person detection (follow-me): https://github.com/opencv/opencv-python
+
+
 1. On your Raspberry PI, verify that the CAN driver is installed:
 ```
 ## edit boot config ##
