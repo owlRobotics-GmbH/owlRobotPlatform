@@ -3,6 +3,11 @@ owlRobotics robot platform interface code and examples
 
 ![owlplatform](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/f4a7ead1-3a4a-428f-946e-b021bfd83857)
 
+supported/tested platforms:
+
+1. Differential drive platform (2 wheel motors)
+2. Mecanum platform (4 wheel motors)
+
 
 ## Python interface demo
 
@@ -45,6 +50,7 @@ cross: low motor speed
 circle: toggle tool motor speed
 rectangle: shutdown Raspberry PI
 select: camera-based follow-me mode on/off
+start: toggle between sideways motion and rotation (only Mecanum platform)
 ```
 
 6. In order to install the demo Python script as a Linux (autostart) service:
