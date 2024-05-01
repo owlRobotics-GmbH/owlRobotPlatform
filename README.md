@@ -44,7 +44,7 @@ dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=6
 * [Android](https://play.google.com/store/apps/details?id=io.dabbleapp)
 * [iOS](https://apps.apple.com/ch/app/dabble-bluetooth-controller/id1472734455)
 
-3. Run in Raspberry PI terminal:
+3. Run in Raspberry PI terminal (will install all required Python libs etc.):
 
 ```
 ## checkout repository ##
