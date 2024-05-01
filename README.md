@@ -6,7 +6,12 @@ owlRobotics robot platform interface code and examples
 supported/tested platforms:
 
 1. Differential drive platform (2 wheel motors)
+
+
+
 2. Mecanum platform (4 wheel motors)
+![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/65eefe29-7e25-47fa-a48d-34e4a0137b71)
+
 
 
 ## Python interface demo
