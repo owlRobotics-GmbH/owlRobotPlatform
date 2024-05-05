@@ -90,8 +90,8 @@ class Listener(Device.Listener, Connection.Listener):
             f'indicate {"enabled" if indicate_enabled else "disabled"}'
         )
         # TODO: Dabble App may expect some initial notify data: 
-        self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
-        AsyncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
+        # self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        # syncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
 
         
 
@@ -166,16 +166,16 @@ class Dabble():
             if APP_NAME == 'dabble':                
                 characteristicWrite = Characteristic(
                             UUID_CHAR_TX ,
-                            Characteristic.Properties.WRITE,
-                            Characteristic.WRITEABLE,
-                            CharacteristicValue(write=self.my_custom_write),
+                            Characteristic.Properties.WRITE | Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
+                            Characteristic.WRITEABLE | Characteristic.READABLE,
+                            CharacteristicValue(read=self.my_custom_read, write=self.my_custom_write),
                         )
                 
                 self.device.characteristicRead = Characteristic(
                             UUID_CHAR_RX,
-                            Characteristic.Properties.NOTIFY,
-                            Characteristic.READABLE,
-                            CharacteristicValue(read=self.my_custom_read),
+                            Characteristic.Properties.WRITE | Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
+                            Characteristic.WRITEABLE | Characteristic.READABLE,
+                            CharacteristicValue(read=self.my_custom_read, write=self.my_custom_write),
                     )
                 custom_service1 = Service(
                     UUID_SERVICE,
