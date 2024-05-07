@@ -74,7 +74,7 @@ class DifferentialDriveRobot(owl.Robot):
         #      V     = (VR + VL) / 2       =>  VR = V + omega * L/2
         #      omega = (VR - VL) / L       =>  VL = V - omega * L/2
 
-        L = self.wheelToBodyCenterX * 2.0
+        L = self.wheelToBodyCenterY * 2.0
         VR = vx + oz * L/2
         VL = vx - oz * L/2
 

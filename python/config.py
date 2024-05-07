@@ -11,7 +11,7 @@ import psutil
 
 
 # robot IDs (WiFi MAC address):
-ROBOT_ID_DIFF_DRIVE    = 'ff:ff:ff:ff:ff:ff'
+ROBOT_ID_DIFF_DRIVE    = '2c:cf:67:27:32:cb'
 ROBOT_ID_MECANUM       = '2c:cf:67:27:33:b9' 
 ROBOT_ID_ALEX          = '00:d8:61:05:af:39'
 
@@ -42,16 +42,16 @@ ROBOTS = {
         "bluetoothUSB": False,
         "swapLeftMotor": True,
         "swapRightMotor": False,        
-        "wheelToBodyCenterY": 0.2,
-        "wheelDiameter": 0.15,
-        "gearRatio": 20.0,
-        "maxSpeedX": 0.4,
+        "wheelToBodyCenterY": 0.22,
+        "wheelDiameter": 0.30,
+        "gearRatio": 100.0,
+        "maxSpeedX": 1.0,
         "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.5,
+        "maxSpeedTheta": 2.5,
         "toolMotor": True,
         "camW": 640,
         "camH": 480,
-        "camLookingForward": False,
+        "camLookingForward": True,
     },
 
     ROBOT_ID_ALEX: { 
