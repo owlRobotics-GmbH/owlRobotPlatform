@@ -297,8 +297,8 @@ if __name__ == "__main__":
     #logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())    
     logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'WARNING').upper())
     
-    #app = Dabble('hci-socket:0')
-    app = Dabble('usb:0')
+    app = Dabble('hci-socket:0')
+    #app = Dabble('usb:0')
     
     while (True):
         time.sleep(1.0)

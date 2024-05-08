@@ -17,8 +17,8 @@ if [[ "$?" -eq 1 ]]; then
     echo "installing python3 packages..."    
     # pip3 install --break-system-packages bumble==0.0.190
     # pip3 install --break-system-packages bumble==4.3.1
-    pip3 install --break-system-packages bumble      # tested version: 0.0.190
-    pip3 install --break-system-packages python-can  # tested version: 4.3.1
+    pip3 install --break-system-packages bumble==0.0.190      # tested version: 0.0.190
+    pip3 install --break-system-packages python-can==4.3.1    # tested version: 4.3.1
     pip3 install --break-system-packages opencv-python  
     pip3 install --break-system-packages opencv-contrib-python  
     pip3 install --break-system-packages psutil
