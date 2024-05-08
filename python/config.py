@@ -38,7 +38,7 @@ ROBOTS = {
         "bluetoothUSB": False,                    # Bluetooth USB interface? 
         "swapLeftMotor": True,                    # swap left motor?
         "swapRightMotor": False,                  # swap right motor?
-        "wheelToBodyCenterY": 0.22,               # wheel-to-body-center Y axis (m)
+        "wheelToBodyCenterY": 0.22,               # wheel-to-axle-center Y axis (m)
         "wheelDiameter": 0.30,                    # wheel diameter (m)
         "gearRatio": 100.0,                       # gear ratio  (1.0 = no gears)
         "maxSpeedX": 1.0,                         # max speed in X axis (m/s)        
@@ -101,8 +101,8 @@ ROBOTS = {
         "swapRightBackMotor": False,
         "swapLeftFrontMotor": True,
         "swapRightFrontMotor": False,
-        "wheelToBodyCenterX": 0.27,
-        "wheelToBodyCenterY": 0.26,
+        "wheelToBodyCenterX": 0.27,         # wheel-to-front/back-axle-center in X axis (m)
+        "wheelToBodyCenterY": 0.26,         # wheel-to-left/right-axle-center in Y axis (m)
         "wheelDiameter": 0.16,
         "gearRatio": 1.0,        
         "maxSpeedX": 0.4,      
