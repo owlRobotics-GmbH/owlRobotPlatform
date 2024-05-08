@@ -50,6 +50,7 @@ dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=6
 ## checkout repository ##
 cd ~
 git clone https://github.com/owlRobotics-GmbH/owlRobotPlatform
+##  (optionally, as developer):  git clone git@github.com:owlRobotics-GmbH/owlRobotPlatform
 
 ## run bash script ##
 cd owlRobotPlatform/python
