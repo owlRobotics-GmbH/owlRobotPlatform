@@ -10,12 +10,6 @@ import owlrobot as owl
 import psutil
 
 
-# robot IDs (WiFi MAC address):
-ROBOT_ID_DIFF_DRIVE_BERND    = '2c:cf:67:27:32:cb'
-ROBOT_ID_LAPTOP_ALEX         = '00:d8:61:05:af:39'
-ROBOT_ID_MECANUM             = '2c:cf:67:27:33:b9' 
-ROBOT_ID_4WD_ALEX            = '2c:cf:67:27:34:16'
-
 
 # owlRobot types
 ROBOT_TYPE_DIFF_DRIVE = 0
@@ -37,26 +31,26 @@ ROBOT_TYPE_MECANUM    = 1
 # define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m), wheel diameter (m), max speed (m/s) 
         
 ROBOTS = {
-    ROBOT_ID_DIFF_DRIVE_BERND: { 
-        "name": "owlRobot (DiffDrive, Bernd)",
-        "type": ROBOT_TYPE_DIFF_DRIVE,
-        "bluetoothAddr": "F0:F1:F2:F3:F4:F5",
-        "bluetoothUSB": False,
-        "swapLeftMotor": True,
-        "swapRightMotor": False,        
-        "wheelToBodyCenterY": 0.22,
-        "wheelDiameter": 0.30,
-        "gearRatio": 100.0,
-        "maxSpeedX": 1.0,
-        "maxSpeedY": 0.4,
-        "maxSpeedTheta": 2.5,
-        "toolMotor": True,
-        "camW": 640,
-        "camH": 480,
-        "camLookingForward": True,
+    '2c:cf:67:27:32:cb': {                        # robot ID (MAC address)
+        "name": "owlRobot (DiffDrive, Bernd)",    # Bluetooth name
+        "type": ROBOT_TYPE_DIFF_DRIVE,            # robot type
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F5",     # Bluetooth address
+        "bluetoothUSB": False,                    # Bluetooth USB interface? 
+        "swapLeftMotor": True,                    # swap left motor?
+        "swapRightMotor": False,                  # swap right motor?
+        "wheelToBodyCenterY": 0.22,               # wheel-to-body-center Y axis (m)
+        "wheelDiameter": 0.30,                    # wheel diameter (m)
+        "gearRatio": 100.0,                       # gear ratio  (1.0 = no gears)
+        "maxSpeedX": 1.0,                         # max speed in X axis (m/s)        
+        "maxSpeedY": 0.4,                         # max speed in Y axis (m/s)
+        "maxSpeedTheta": 2.5,                     # max angular speed (rad/s) 
+        "toolMotor": True,                        # has tool motor?
+        "camW": 640,                              # camera with resolution (pixels)
+        "camH": 480,                              # camera height resolution (pixels)
+        "camLookingForward": True,                # camera is looking forward?
     },
 
-    ROBOT_ID_LAPTOP_ALEX: { 
+    '00:d8:61:05:af:39': { 
         "name": "owlRobot (Laptop, Alex)",
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F4",        
@@ -75,7 +69,7 @@ ROBOTS = {
         "camLookingForward": False,
     },
 
-    ROBOT_ID_MECANUM: { 
+    '2c:cf:67:27:33:b9': { 
         "name": "owlRobot (Mecanum)",
         "type": ROBOT_TYPE_MECANUM,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F3",        
@@ -98,7 +92,7 @@ ROBOTS = {
     },
 
 
-    ROBOT_ID_4WD_ALEX: { 
+    '2c:cf:67:27:34:16': { 
         "name": "owlRobot (4WD, Alex)",
         "type": ROBOT_TYPE_MECANUM,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
