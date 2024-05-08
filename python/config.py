@@ -11,9 +11,11 @@ import psutil
 
 
 # robot IDs (WiFi MAC address):
-ROBOT_ID_DIFF_DRIVE    = '2c:cf:67:27:32:cb'
-ROBOT_ID_MECANUM       = '2c:cf:67:27:33:b9' 
-ROBOT_ID_ALEX          = '00:d8:61:05:af:39'
+ROBOT_ID_DIFF_DRIVE_BERND    = '2c:cf:67:27:32:cb'
+ROBOT_ID_LAPTOP_ALEX         = '00:d8:61:05:af:39'
+ROBOT_ID_MECANUM             = '2c:cf:67:27:33:b9' 
+ROBOT_ID_4WD_ALEX            = '2c:cf:67:27:34:16'
+
 
 # owlRobot types
 ROBOT_TYPE_DIFF_DRIVE = 0
@@ -35,8 +37,8 @@ ROBOT_TYPE_MECANUM    = 1
 # define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m), wheel diameter (m), max speed (m/s) 
         
 ROBOTS = {
-    ROBOT_ID_DIFF_DRIVE: { 
-        "name": "owlRobot (DiffDrive)",
+    ROBOT_ID_DIFF_DRIVE_BERND: { 
+        "name": "owlRobot (DiffDrive, Bernd)",
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F5",
         "bluetoothUSB": False,
@@ -54,8 +56,8 @@ ROBOTS = {
         "camLookingForward": True,
     },
 
-    ROBOT_ID_ALEX: { 
-        "name": "owlRobot (Alex)",
+    ROBOT_ID_LAPTOP_ALEX: { 
+        "name": "owlRobot (Laptop, Alex)",
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F4",        
         "bluetoothUSB": True, 
@@ -95,6 +97,30 @@ ROBOTS = {
         "camLookingForward": True,
     },
 
+
+    ROBOT_ID_4WD_ALEX: { 
+        "name": "owlRobot (4WD, Alex)",
+        "type": ROBOT_TYPE_MECANUM,
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
+        "bluetoothUSB": False, 
+        "swapLeftBackMotor": True,
+        "swapRightBackMotor": False,
+        "swapLeftFrontMotor": True,
+        "swapRightFrontMotor": False,
+        "wheelToBodyCenterX": 0.27,
+        "wheelToBodyCenterY": 0.26,
+        "wheelDiameter": 0.16,
+        "gearRatio": 1.0,        
+        "maxSpeedX": 0.4,      
+        "maxSpeedY": 0.4,
+        "maxSpeedTheta": 0.8,  
+        "toolMotor": False, 
+        "camW": 1280,
+        "camH": 720,
+        "camLookingForward": True,
+    },
+
+    
 }
 
 
