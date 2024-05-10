@@ -38,6 +38,7 @@ hciconfig hci0 down
 
 
 echo "starting python app..."
+echo "NOTE: to test Bluetooth communication only and redirect output to a log file use: sudo ./run_ble_server.sh dabble.py &> log.txt" 
 
 
 if [ "$#" -eq  "0" ] 
