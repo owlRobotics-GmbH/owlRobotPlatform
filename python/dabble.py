@@ -33,7 +33,7 @@ from bumble.gatt import (
     GATT_GENERIC_ATTRIBUTE_SERVICE,
     GATT_SERVICE_CHANGED_CHARACTERISTIC ,
 )
-
+from bumble.snoop import BtSnooper
 
 connected = False 
 currConnection = None
@@ -97,7 +97,7 @@ class Listener(Device.Listener, Connection.Listener):
 
 
 class Dabble():
-    def __init__(self, bluetooth_transport = 'hci-socket:0', name = 'owlRobot', address = "F0:F1:F2:F3:F4:F5"):
+    def __init__(self, bluetooth_transport = 'hci-socket:0', name = 'owlRobot', address = "F0:F1:F2:F3:F4:F5", snoop_file=None):
         self.analogMode = False  # analog joystick mode?
         self.joystickButton = 'released'
         self.extraButton = 'released'   
@@ -106,17 +106,17 @@ class Dabble():
         self.x_value = 0  # x/y-value of analog joystick
         self.y_value = 0
 
-        self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,name,address), daemon=True)
+        self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,name,address, snoop_file), daemon=True)
         self.proc.start()
         
         #asyncio.run(self.start(bluetooth_transport))    
 
-    def startAsync(self, bluetooth_transport, name, address):
+    def startAsync(self, bluetooth_transport, name, address, snoop_file):
         print('startAsync')
-        asyncio.run(self.start(bluetooth_transport, name, address))
+        asyncio.run(self.start(bluetooth_transport, name, address, snoop_file))
 
 
-    async def start(self, bluetooth_transport, name, address):
+    async def start(self, bluetooth_transport, name, address, snoop_file):
         print('starting dabble app interface:=', bluetooth_transport, 'name=', name, 'address=', address)
 
         print('<<< connecting to HCI...')
@@ -219,6 +219,9 @@ class Dabble():
 
             #print('advertising addr: ', self.device.public_address)
             
+            if not snoop_file is None:
+                self.device.host.snooper = BtSnooper(snoop_file)
+
             while True:
                 #print('sleep')
                 await asyncio.sleep(1.0)
@@ -297,11 +300,13 @@ if __name__ == "__main__":
     #logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())    
     logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'WARNING').upper())
     
-    app = Dabble('hci-socket:0')
-    #app = Dabble('usb:0')
-    
-    while (True):
-        time.sleep(1.0)
-        #print('.')
+    with open('btsnoop.log', "wb") as snoop_file:
+        
+        app = Dabble(bluetooth_transport='hci-socket:0', snoop_file=snoop_file)
+        #app = Dabble(bluetooth_transport='usb:0')
+        
+        while (True):
+            time.sleep(1.0)
+            #print('.')
     
 
