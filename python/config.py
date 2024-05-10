@@ -92,7 +92,7 @@ ROBOTS = {
     },
 
 
-    '2c:cf:67:27:34:16': { 
+    'd8:3a:dd:c5:4e:2e': { 
         "name": "owlRobot (4WD, Alex)",
         "type": ROBOT_TYPE_MECANUM,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
