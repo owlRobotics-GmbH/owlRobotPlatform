@@ -105,9 +105,9 @@ ROBOTS = {
         "wheelToBodyCenterY": 0.26,         # wheel-to-left/right-axle-center in Y axis (m)
         "wheelDiameter": 0.16,
         "gearRatio": 1.0,        
-        "maxSpeedX": 0.4,      
-        "maxSpeedY": 0.4,
-        "maxSpeedTheta": 0.8,  
+        "maxSpeedX": 0.2,      
+        "maxSpeedY": 0.2,
+        "maxSpeedTheta": 0.2,  
         "toolMotor": False, 
         "camW": 1280,
         "camH": 720,
