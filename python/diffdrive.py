@@ -83,17 +83,25 @@ class DifferentialDriveRobot(owl.Robot):
         self.rightMotor.setSpeed(VR); 
 
 
+    def enableMotors(self, flag):
+        self.leftMotor.enable(flag)
+        self.rightMotor.enable(flag) 
+
+
 
 if __name__ == "__main__":
 
     robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False)   # wheel-center-x,  wheel-dia, gear-ratio, swap-left, swap-right
 
-    while True:
-        time.sleep(1.0)
-        print('----')
-        robot.setRobotSpeed(0.1, 0, 0.02)  # vx, vy, oz
-        robot.forwardKinematics()
-        robot.log()
+    try:
+        while True:
+            time.sleep(1.0)
+            print('----')
+            robot.setRobotSpeed(0.1, 0, 0.02)  # vx, vy, oz
+            robot.forwardKinematics()
+            robot.log()
+    finally:
+        robot.enableMotors(False)
 
     
 

@@ -85,21 +85,29 @@ class MecanumRobot(owl.Robot):
         self.rightBackMotor.setSpeed(o4) # M_br
 
     
+    def enableMotors(self, flag):
+        self.leftFrontMotor.enable(flag)
+        self.rightFrontMotor.enable(flag) 
+        self.leftBackMotor.enable(flag) 
+        self.rightBackMotor.enable(flag) 
+
 
     
 
 
 if __name__ == "__main__":
 
-    robot = MecanumRobot('test', 0.25, 0.25, 0.15, 20.0, True, False, True, False) # wheel-center-x,  wheel-center-y,  wheel-dia, gear-ratio, swap...
+    robot = MecanumRobot('test', 0.25, 0.25, 0.15, 1.0, True, False, True, False) # wheel-center-x,  wheel-center-y,  wheel-dia, gear-ratio, swap...
 
-    while True:
-        time.sleep(1.0)
-        print('----')
-        robot.setRobotSpeed(0, 0.1, 0)   # vx, vy, oz
-        robot.forwardKinematics()    
-        robot.log()
-
+    try:
+        while True:
+            time.sleep(1.0)
+            print('----')
+            robot.setRobotSpeed(0.1, 0, 0)   # vx, vy, oz
+            robot.forwardKinematics()    
+            robot.log()
+    finally:
+        robot.enableMotors(False)
 
 
     

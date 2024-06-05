@@ -102,11 +102,14 @@ class Motor():
         if self.swapDirection: aSpeed *= -1.0
         # apply gear ratio
         aSpeed *= self.gearRatio
+        #print(self.nodeId, 'speed', aSpeed)
         self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_velocity, struct.pack('<f', aSpeed))
 
     def getSpeed(self):
         return self.speed
-    
+
+    def enable(self, flag):
+        self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_motor_enable, struct.pack('B', flag))
     
 
 # abstract robot class with forward and backward kinematics
@@ -229,10 +232,11 @@ class Robot():
     #    x: forward velocity (m/s)
     #    y: sideways velocity (m/s)
     #    theta: rotational veloctiy (rad/s)
-    def setRobotSpeed(vx, vy, oz):
+    def setRobotSpeed(self, vx, vy, oz):
         pass
 
-
+    def enableMotors(self, flag):
+        pass
 
 
 if __name__ == "__main__":
@@ -241,9 +245,9 @@ if __name__ == "__main__":
 
     while True:
         time.sleep(1.0)
-        robot.motorSpeedDifferential(100.0, 100.0, 100.0)
+        #robot.motorSpeedDifferential(100.0, 100.0, 100.0)
+        robot.motorSpeedDifferential(30.0, 30.0, 30.0)
         
-    
 
 
 
