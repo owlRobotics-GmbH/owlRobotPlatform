@@ -87,4 +87,43 @@ and choose point 1   ('Start ble_server service')
 
 
 ## ROS interface
-...
+
+The ROS node driver uses the Python library to drive the motors. How to try out the ROS node driver:
+
+1. Go into ROS node driver folder:
+
+```
+cd ros
+```
+
+2. Run ROS 'catkin_make':
+```
+catkin_make
+```
+
+3. 'Source' ROS files:
+```
+source devel/setup.bash
+```
+ 
+4. In a new terminal, run 'roscore':
+```
+roscore
+```
+
+5. Run ROS node driver:
+```
+roslaunch owlrobot_node bringup.launch
+```
+
+6. In a new terminal, send velocity command (x axis) to node driver:
+```
+rostopic pub /cmd_vel geometry_msgs/Twist -r 3 -- '[0.1,0.0,0.0]' '[0.0, 0.0, 0.0]'
+```
+The motors should rotate forward (0.1 m/s).
+
+
+
+
+
+
