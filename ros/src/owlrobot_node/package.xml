@@ -1,0 +1,19 @@
+<package>
+  <name>owlrobot_node</name>
+  <version>1.0.0</version>
+  <description>
+    A node wrapper for the owlrobot package
+  </description>
+  <author>ROS</author>
+  <maintainer email="ros@owlrobotics.de">ROS</maintainer>
+  <license>Apache License</license>
+  <url>https://github.com/owlRobotics-GmbH/owlRobotPlatform</url>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>tf</run_depend>
+</package>
