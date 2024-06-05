@@ -173,7 +173,7 @@ class Robot():
         self.toolMotor = None        
         self.lastDriveTime = time.time()
 
-    def print(self):
+    def log(self):
         print('odoX', round(self.odoX, 2), 'odoY', round(self.odoY, 2), 'odoTheta', round(self.odoTheta / math.pi * 180.0))
 
     def __del__(self):

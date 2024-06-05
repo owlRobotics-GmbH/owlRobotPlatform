@@ -11,7 +11,8 @@ import owlrobot as owl
 class MecanumRobot(owl.Robot):
     def __init__(self, aName, aWheelToBodyCenterX, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, 
                  aSwapLeftBackMotor, aSwapRightBackMotor, aSwapLeftFrontMotor, aSwapRightFrontMotor):        
-        super().__init__(aName)
+        owl.Robot.__init__(self, aName)
+    
         # wheel diameter (m)
         self.wheelDiameter = aWheelDiameter
         self.wheelToBodyCenterX = aWheelToBodyCenterX;
@@ -97,7 +98,7 @@ if __name__ == "__main__":
         print('----')
         robot.setRobotSpeed(0, 0.1, 0)   # vx, vy, oz
         robot.forwardKinematics()    
-        robot.print()
+        robot.log()
 
 
 

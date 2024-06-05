@@ -5,7 +5,6 @@
 
 import diffdrive
 import mecanum
-import dabble
 import owlrobot as owl
 import psutil
 
@@ -224,6 +223,8 @@ def createRobot():
 
 # create dabble object 
 def createDabble(aRobot):
+    import dabble
+
     useUSB = aRobot.bluetoothUSB
     print('bluetoothUSB', useUSB)
     if useUSB:            

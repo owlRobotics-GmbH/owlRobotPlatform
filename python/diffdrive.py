@@ -3,7 +3,7 @@
 # owlRobotics robot platform  - differential drive robot  
 # transfers body velocities into motor velocities and vice-versa
 
-
+import sys
 import math
 import time
 import owlrobot as owl
@@ -11,7 +11,8 @@ import owlrobot as owl
 
 class DifferentialDriveRobot(owl.Robot):
     def __init__(self, aName, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, aSwapLeftMotor, aSwapRightMotor):        
-        super().__init__(aName)
+        owl.Robot.__init__(self, aName)
+        
         # wheel diameter (m)
         self.wheelDiameter = aWheelDiameter
         self.wheelToBodyCenterX = 0
@@ -92,10 +93,7 @@ if __name__ == "__main__":
         print('----')
         robot.setRobotSpeed(0.1, 0, 0.02)  # vx, vy, oz
         robot.forwardKinematics()
-        robot.print()
-
-
-
+        robot.log()
 
     
 
