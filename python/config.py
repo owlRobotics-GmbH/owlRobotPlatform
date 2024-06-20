@@ -98,9 +98,9 @@ ROBOTS = {
         "bluetoothUSB": False, 
         "swapLeftMotor": True,                    # swap left motor?
         "swapRightMotor": False,                  # swap right motor?
-        "wheelToBodyCenterY": 0.22,               # wheel-to-axle-center Y axis (m)
+        "wheelToBodyCenterY": 0.19,               # wheel-to-axle-center Y axis (m)
         "wheelDiameter": 0.30,                    # wheel diameter (m)
-        "gearRatio": 300.0,                       # gear ratio  (1.0 = no gears)
+        "gearRatio": 500.0,                       # gear ratio  (1.0 = no gears)
         "maxSpeedX": 0.4,                         # max speed in X axis (m/s)        
         "maxSpeedY": 0.4,                         # max speed in Y axis (m/s)
         "maxSpeedTheta": 2.5,                     # max angular speed (rad/s) 
