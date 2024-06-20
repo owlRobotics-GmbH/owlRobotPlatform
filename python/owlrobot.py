@@ -74,7 +74,10 @@ err_overcurrent  = 5  # overcurrent triggered
 err_overtemp     = 6  # over-temperature triggered    
 
 
-class CStruct(ctypes.LittleEndianStructure):
+class CStruct(ctypes.LittleEndianStructure):    
+    # Tell ctypes that this structure is "packed",
+    # i.e. no padding is inserted between fields for alignment
+    _pack_ = 1
     _fields_ = [
         ("sourceId", ctypes.c_uint32, 6),  # 6 bit wide
         ("destId", ctypes.c_uint32, 6), # 6 bits wide
@@ -188,12 +191,17 @@ class Robot():
     def sendCanData(self, destNodeId, cmd, val, data):        
         if self.bus is None: return
         cs = CStruct()
+        #print(CStruct.sourceId)
+        #print(CStruct.destId)
+        #print(CStruct.reserved)        
         cs.sourceId = MY_NODE_ID
         cs.destId = destNodeId
         node = struct.unpack_from('<BB', cs)
-        #print(node[0])
+        #print(node)
         
-        frame = bytes(node) + bytes([cmd]) + bytes([val]) + data
+        # now works on both Python2/3 
+        #frame = bytes(node) + bytes([cmd]) + bytes([val]) + data
+        frame = bytes(bytearray(node)) + bytes(bytearray([cmd])) + bytes(bytearray([val])) + data
 
         #print('sendCanData=', frame, 'sourceNodeId=', bin(MY_NODE_ID), 'destNodeId=', bin(destNodeId), 'cmd=', bin(cmd), 
         #    'val=', bin(val), 'data=', data)
@@ -203,7 +211,11 @@ class Robot():
 
         #frame = [0x7c,0xe0,0x02,0x1d,0x91,0x90,0x90,0xbd]
 
-        msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, is_extended_id=False)
+        # now works with older python-can libs
+        if can.__version__ == '2.0.0':
+            msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, extended_id=False)
+        else:
+            msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, is_extended_id=False)
         #print(msg)
         self.bus.send(msg, timeout=0.2)
 
@@ -246,7 +258,8 @@ if __name__ == "__main__":
     while True:
         time.sleep(1.0)
         #robot.motorSpeedDifferential(100.0, 100.0, 100.0)
-        robot.motorSpeedDifferential(30.0, 30.0, 30.0)
+        #robot.motorSpeedDifferential(30.0, 30.0, 30.0)
+        robot.motorSpeedDifferential(-20.0, -20.0, 0.0)
         
 
 
