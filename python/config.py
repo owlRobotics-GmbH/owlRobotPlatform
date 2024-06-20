@@ -92,6 +92,25 @@ ROBOTS = {
 
 
     'd8:3a:dd:c5:4e:2e': { 
+        "name": "owlRobot (fuxtec, Alex)",
+        "type": ROBOT_TYPE_DIFF_DRIVE,
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
+        "bluetoothUSB": False, 
+        "swapLeftMotor": True,                    # swap left motor?
+        "swapRightMotor": False,                  # swap right motor?
+        "wheelToBodyCenterY": 0.22,               # wheel-to-axle-center Y axis (m)
+        "wheelDiameter": 0.30,                    # wheel diameter (m)
+        "gearRatio": 300.0,                       # gear ratio  (1.0 = no gears)
+        "maxSpeedX": 0.4,                         # max speed in X axis (m/s)        
+        "maxSpeedY": 0.4,                         # max speed in Y axis (m/s)
+        "maxSpeedTheta": 2.5,                     # max angular speed (rad/s) 
+        "toolMotor": True,                        # has tool motor?
+        "camW": 640,                              # camera with resolution (pixels)
+        "camH": 480,                              # camera height resolution (pixels)
+        "camLookingForward": True,                # camera is looking forward?
+    },
+
+    'xx:xx:xx:xx:xx:xx': { 
         "name": "owlRobot (4WD, Alex)",
         "type": ROBOT_TYPE_MECANUM,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
