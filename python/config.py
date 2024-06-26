@@ -30,6 +30,25 @@ ROBOT_TYPE_MECANUM    = 1
 # define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m), wheel diameter (m), max speed (m/s) 
         
 ROBOTS = {
+    '2c:cf:67:26:9b:af': {                        # robot ID (MAC address)
+        "name": "owlCrawler (DiffDrive)",  # Bluetooth name
+        "type": ROBOT_TYPE_DIFF_DRIVE,            # robot type
+        "bluetoothAddr": "F0:F1:F2:F3:F4:F5",     # Bluetooth address
+        "bluetoothUSB": False,                    # Bluetooth USB interface? 
+        "swapLeftMotor": True,                    # swap left motor?
+        "swapRightMotor": False,                  # swap right motor?
+        "wheelToBodyCenterY": 0.22,               # wheel-to-axle-center Y axis (m)
+        "wheelDiameter": 0.225,                    # wheel diameter (m)
+        "gearRatio": 103.2,                        # gear ratio  (1.0 = no gears)   23,2
+        "maxSpeedX": 1.38,                      # max speed in X axis (m/s)        
+        "maxSpeedY": 1.38,                         # max speed in Y axis (m/s)
+        "maxSpeedTheta": 1.5,                     # max angular speed (rad/s) 
+        "toolMotor": True,                        # has tool motor?
+        "camW": 640,                              # camera with resolution (pixels)
+        "camH": 480,                              # camera height resolution (pixels)
+        "camLookingForward": True,                # camera is looking forward?
+    },
+
     '2c:cf:67:27:32:cb': {                        # robot ID (MAC address)
         "name": "owlRobot (DiffDrive, Bernd)",    # Bluetooth name
         "type": ROBOT_TYPE_DIFF_DRIVE,            # robot type
