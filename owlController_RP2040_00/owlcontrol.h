@@ -8,9 +8,6 @@
 #include <Arduino.h>
 #include "owlcan.h"
 
-// The lower the numerical ID, the higher the message priority. 
-#define CAN_CONTROL_MSG_ID     200    // high priority ID
-
 
 
 // -----CAN frame data types----------------
