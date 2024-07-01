@@ -33,10 +33,10 @@ class robot {
     unsigned long odometry_ctrl_sum;
     unsigned long odometry_left_sum;
     unsigned long odometry_right_sum;
-    owlDrive leftMotor;    
-    owlDrive rightMotor;
-    owlDrive sprayMotor;
-    owlControl control;
+    owlDrive leftMotor;     // owlDrive motor (CAN node)
+    owlDrive rightMotor;    // owlDrive motor (CAN node)
+    owlDrive sprayMotor;    // owlDrive motor (CAN node)
+    owlControl control;     // owlControl PCB (CAN node)
   private:
     bool plotDescr;
     unsigned long nextRequestTime; 

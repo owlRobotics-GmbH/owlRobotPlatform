@@ -10,11 +10,11 @@
 
 //#define DEBUG 1
 
-#define MOTOR_LEFT_NODE_ID  1
-#define MOTOR_RIGHT_NODE_ID 2
-#define MOTOR_SPRAY_NODE_ID 3
+#define MOTOR_LEFT_NODE_ID  1   // owlDrive motor (CAN node)
+#define MOTOR_RIGHT_NODE_ID 2   // owlDrive motor (CAN node)
+#define MOTOR_SPRAY_NODE_ID 3   // owlDrive motor (CAN node)
 
-#define CONTROL_NODE_ID  1
+#define CONTROL_NODE_ID  1      // owlControl PCB (CAN node)
 
 
 extern Funkt myF;
@@ -59,10 +59,10 @@ class MyCanDriver: public owlDriveCAN {
       while (can0.readMessage(&rx) == MCP2515::ERROR_OK) {
         //Serial.print("New frame from ID: ");
         //Serial.println(rx.can_id);
-        aRobot->leftMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
-        aRobot->rightMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
-        aRobot->sprayMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);            
-        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
+        aRobot->leftMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);    // owlDrive motor (CAN node)
+        aRobot->rightMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)
+        aRobot->sprayMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)          
+        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // owlControl PCB (CAN node)
       }
     }
 };
@@ -73,10 +73,10 @@ MyCanDriver canDriver;
 
 
 robot::robot() : 
-  leftMotor(&canDriver, MOTOR_LEFT_NODE_ID),  
-  rightMotor(&canDriver, MOTOR_RIGHT_NODE_ID),  
-  sprayMotor(&canDriver, MOTOR_SPRAY_NODE_ID),     
-  control(&canDriver, CONTROL_NODE_ID) {
+  leftMotor(&canDriver, MOTOR_LEFT_NODE_ID),     // owlDrive motor (CAN node)
+  rightMotor(&canDriver, MOTOR_RIGHT_NODE_ID),   // owlDrive motor (CAN node)
+  sprayMotor(&canDriver, MOTOR_SPRAY_NODE_ID),   // owlDrive motor (CAN node)
+  control(&canDriver, CONTROL_NODE_ID) {         // owlControl PCB (CAN node)
 
   lastControlTime = 0;
   nextJoyTime = 0;
