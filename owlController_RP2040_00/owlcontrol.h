@@ -1,5 +1,5 @@
 /*
-  owlControl SDK (CAN)
+  owlControl PCB SDK (CAN)
 */
 
 #ifndef OWL_CONTROL_H

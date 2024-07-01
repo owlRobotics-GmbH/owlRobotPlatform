@@ -1,5 +1,5 @@
 /*
-  owlDrive SDK (CAN)
+  owlDrive motor SDK (CAN)
 */
 
 #ifndef OWL_DRIVE_H
