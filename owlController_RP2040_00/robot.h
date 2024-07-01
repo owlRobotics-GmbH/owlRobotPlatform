@@ -10,6 +10,7 @@
 #include "config.h"
 #include "pid.h"
 #include "can.h"
+#include "owldrive.h"
 #include "owlcontrol.h"
 
 
@@ -35,6 +36,7 @@ class robot {
     owlDrive leftMotor;    
     owlDrive rightMotor;
     owlDrive sprayMotor;
+    owlControl control;
   private:
     bool plotDescr;
     unsigned long nextRequestTime; 
@@ -44,9 +46,6 @@ class robot {
     float steerFac_l, steerFac_r;
     int controlLoops;
     unsigned long lastControlTime;
-    void sendCanData(int destNodeId, canCmdType_t cmd, canValueType_t val, canDataType_t data);
-    void onCanReceive(struct can_frame buf);
-    void printCanFrame(struct can_frame buf);        
 
 };
 

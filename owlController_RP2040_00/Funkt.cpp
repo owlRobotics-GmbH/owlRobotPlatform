@@ -77,6 +77,15 @@ bool Funkt::rain(){
     return (mVrain>rainDetect);            
 }
 
+float Funkt::getBatteryVolt(){
+  float adcVolt = ADC_read(7);
+  batteryVolt = adcVolt * 10.0 / 290.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
+    #ifdef DEBUG
+      Serial.print("  batV: ");Serial.print(batteryVolt);Serial.println("  mV ");
+    #endif
+  return batteryVolt;
+}
+
  
 void Funkt::PowerHold(bool holdPWR){        //ok
   digitalWrite(PowerHold_Pin,holdPWR);

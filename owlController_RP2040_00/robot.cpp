@@ -14,6 +14,8 @@
 #define MOTOR_RIGHT_NODE_ID 2
 #define MOTOR_SPRAY_NODE_ID 3
 
+#define CONTROL_NODE_ID  1
+
 
 extern Funkt myF;
 cmd cmdAT;
@@ -70,10 +72,11 @@ MyCanDriver canDriver;
 
 
 robot::robot() : 
-    leftMotor(&canDriver, MOTOR_LEFT_NODE_ID),  
-    rightMotor(&canDriver, MOTOR_RIGHT_NODE_ID),  
-    sprayMotor(&canDriver, MOTOR_SPRAY_NODE_ID) {    
-  
+  leftMotor(&canDriver, MOTOR_LEFT_NODE_ID),  
+  rightMotor(&canDriver, MOTOR_RIGHT_NODE_ID),  
+  sprayMotor(&canDriver, MOTOR_SPRAY_NODE_ID),     
+  control(&canDriver, CONTROL_NODE_ID) {
+
   lastControlTime = 0;
   nextJoyTime = 0;
   nextJoyTime = 0;

@@ -5,7 +5,7 @@
 #include "owlcontrol.h"
 
 
-owlDrive::owlDrive(owlDriveCAN *aCanDriver, int aDriverNodeId, int aOperatorNodeId, int aCanMsgId){
+owlControl::owlControl(owlDriveCAN *aCanDriver, int aDriverNodeId, int aOperatorNodeId, int aCanMsgId){
   init();
   canDriver = aCanDriver;
   canMsgId = aCanMsgId;
@@ -14,24 +14,20 @@ owlDrive::owlDrive(owlDriveCAN *aCanDriver, int aDriverNodeId, int aOperatorNode
 }
 
 
-void owlDrive::init(){
+void owlControl::init(){
   debug = false;
-  error = err_no_comm; 
-  voltage = 0;
-  current = 0;
-  target = 0;
-  velocity = 0;
-  angle = 0;
+  error = owlctl::err_no_comm; 
+  batteryVoltage = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
 }
     
 
-void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){    
+void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
     canNodeType_t node;
     node.byteVal[0] = canData[0];
     node.byteVal[1] = canData[1];    
-    if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlDrive node  
+    if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node  
 
     rxPacketCounter++;
     rxPacketTime = millis();
@@ -41,7 +37,7 @@ void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){
     }    
 
     int cmd = canData[2];     
-    canValueType_t val = ((canValueType_t)canData[3]);            
+    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);            
     canDataType_t data;
     data.byteVal[0] = canData[4];
     data.byteVal[1] = canData[5];
@@ -51,35 +47,20 @@ void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){
     if (cmd == can_cmd_info){
         // info value (volt, velocity, position, ...)
         switch (val){
-          case can_val_error:
-            error = (errType_t)data.byteVal[0]; 
+          case owlctl::can_val_error:
+            error = (owlctl::errorType_t)data.byteVal[0]; 
             break;
-          case can_val_target:
-            target = data.floatVal;
-            break;
-          case can_val_velocity:
-            velocity = data.floatVal;
-            break;
-          case can_val_voltage:
-            voltage = data.floatVal;
-            break;
-          case can_val_current:
-            current = data.floatVal;
-            break;
-          case can_val_angle:
-            angle = data.floatVal;
-            break;
-          case can_val_motion_ctl_mode:
-            motionControlMode = data.byteVal[0];
+          case owlctl::can_val_battery_voltage:
+            batteryVoltage = data.floatVal;
             break;
         }
     } 
 }
 
 
-void owlDrive::sendCanData(int destNodeId, canCmdType_t cmd, canValueType_t val, canDataType_t data){        
+void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data){        
     unsigned char canData[8];
-    int id = CAN_MOTOR_MSG_ID;    
+    int id = CAN_CONTROL_MSG_ID;    
     int len;
     if (cmd == can_cmd_request){
       len = 4;
@@ -102,12 +83,12 @@ void owlDrive::sendCanData(int destNodeId, canCmdType_t cmd, canValueType_t val,
 }
 
 
-void owlDrive::printCanFrame(unsigned char canData[8]){
+void owlControl::printCanFrame(unsigned char canData[8]){
     canNodeType_t node;
     node.byteVal[0] = canData[0];
     node.byteVal[1] = canData[1];
     int cmd = canData[2];     
-    canValueType_t val = ((canValueType_t)canData[3]);            
+    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);            
     canDataType_t data;
     data.byteVal[0] = canData[4];
     data.byteVal[1] = canData[5];
@@ -141,119 +122,22 @@ void owlDrive::printCanFrame(unsigned char canData[8]){
 }
 
 
-void owlDrive::sendTarget(float value){
+void owlControl::sendBatteryVoltage(float value){
   canDataType_t data;
   data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_target, data);
-}
-
-void owlDrive::sendVoltage(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_voltage, data);
-}
-
-void owlDrive::sendVelocity(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_velocity, data);
-}
-
-void owlDrive::sendAngle(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_angle, data);
-}
-
-void owlDrive::sendEnable(bool enable){
-  canDataType_t data;
-  data.byteVal[0] = (char)enable;
-  sendCanData(driverNodeId, can_cmd_set, can_val_motor_enable, data);
+  sendCanData(driverNodeId, can_cmd_set, owlctl::can_val_battery_voltage, data);
 }
 
 
-void owlDrive::sendPAngleP(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_pAngleP, data);
-}
-
-void owlDrive::sendVelocityLimit(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_velocityLimit, data);
-}
-
-void owlDrive::sendPidVelocityP(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_pidVelocityP, data);
-}
-
-void owlDrive::sendPidVelocityI(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_pidVelocityI, data);
-}
-
-void owlDrive::sendPidVelocityD(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_pidVelocityD, data);
-}
-
-void owlDrive::sendPidVelocityRamp(float value){
-  canDataType_t data;
-  data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, can_val_pidVelocityRamp, data);
-}
-
-void owlDrive::sendLpfVelocityTf(float value){
-  canDataType_t data;
-  data.floatVal = value;  
-  sendCanData(driverNodeId, can_cmd_set, can_val_lpfVelocityTf, data);
-}
-
-
-
-void owlDrive::requestError(){
+void owlControl::requestError(){
   canDataType_t data;  
   data.floatVal = 0;  
-  sendCanData(driverNodeId, can_cmd_request, can_val_error, data);
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_error, data);
 }
 
-void owlDrive::requestMotionControlMode(){
+void owlControl::requestBatteryVoltage(){
   canDataType_t data;
   data.floatVal = 0;    
-  sendCanData(driverNodeId, can_cmd_request, can_val_motion_ctl_mode, data);
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_battery_voltage, data);
 }
 
-void owlDrive::requestVelocity(){
-  canDataType_t data;
-  data.floatVal = 0;    
-  sendCanData(driverNodeId, can_cmd_request, can_val_velocity, data);
-}
-
-void owlDrive::requestTarget(){
-  canDataType_t data;
-  data.floatVal = 0;    
-  sendCanData(driverNodeId, can_cmd_request, can_val_target, data);
-}
-
-void owlDrive::requestVoltage(){
-  canDataType_t data;
-  data.floatVal = 0;    
-  sendCanData(driverNodeId, can_cmd_request, can_val_voltage, data);
-}
-
-void owlDrive::requestCurrent(){
-  canDataType_t data;  
-  data.floatVal = 0;  
-  sendCanData(driverNodeId, can_cmd_request, can_val_current, data);
-}
-
-void owlDrive::requestAngle(){
-  canDataType_t data;
-  data.floatVal = 0;    
-  sendCanData(driverNodeId, can_cmd_request, can_val_angle, data);
-}
