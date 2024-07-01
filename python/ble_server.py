@@ -171,7 +171,7 @@ while True:
             robot.toolMotor.setSpeed(toolMotorSpeed)
         
     if time.time() > nextCanLowPrioTime:
-        nextCanLowPrioTime = time.time() + 1.0
+        nextCanLowPrioTime = time.time() + 10.0
         robot.requestBatteryVoltage()
 
  
