@@ -90,8 +90,9 @@ class Listener(Device.Listener, Connection.Listener):
             f'indicate {"enabled" if indicate_enabled else "disabled"}'
         )
         # TODO: Dabble App may expect some initial notify data: 
-        # self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
-        # syncRunner.spawn(self.device.notify_subscribers(self.device.characteristicRead))
+        #self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        #self.device.characteristicRead.value = bytes([0xFF, 0x02, 0x02, 0x06]) + bytes('pong\r\n\0', 'utf-8') + bytes([0x00])        
+        #AsyncRunner.spawn(self.device.notify_subscriber(connection, self.device.characteristicRead))
 
         
 
@@ -105,6 +106,8 @@ class Dabble():
         self.radius = 0 
         self.x_value = 0  # x/y-value of analog joystick
         self.y_value = 0
+        self.terminalTransmit = ''
+        self.terminalReceived = ''
 
         self.proc = threading.Thread(target=self.startAsync, args=(bluetooth_transport,name,address, snoop_file), daemon=True)
         self.proc.start()
@@ -164,7 +167,7 @@ class Dabble():
             )
             print('APP_NAME', APP_NAME)
             if APP_NAME == 'dabble':                
-                characteristicWrite = Characteristic(
+                self.device.characteristicWrite = Characteristic(
                             UUID_CHAR_TX ,
                             Characteristic.Properties.WRITE | Characteristic.Properties.READ | Characteristic.Properties.NOTIFY,
                             Characteristic.WRITEABLE | Characteristic.READABLE,
@@ -180,7 +183,7 @@ class Dabble():
                 custom_service1 = Service(
                     UUID_SERVICE,
                     [
-                        characteristicWrite,
+                        self.device.characteristicWrite,
                         self.device.characteristicRead
                     ],
                 )
@@ -224,12 +227,19 @@ class Dabble():
 
             while True:
                 #print('sleep')
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.2)
                 #for val in bytes([0xFF, 0x00, 0x01, 0x00, 0x00]):
                 #    await asyncio.sleep(0.02)
                 #    self.device.characteristicRead.value = [val] 
                 #    await self.device.notify_subscribers(self.device.characteristicRead)
                 #await self.device.indicate_subscribers(self.device.characteristicRead)
+                
+                #self.device.characteristicRead.value = bytes([0xFF, 0x02, 0x02, 0x01, 0x04]) + bytes('pong', 'utf-8') + bytes([0x00])        
+                if self.terminalTransmit != '':
+                    self.device.characteristicRead.value = self.terminalTransmit
+                    self.terminalTransmit = ''
+                    print('notify: ', self.device.characteristicRead.value)
+                    await self.device.notify_subscribers(self.device.characteristicRead)
                 
                 
             #await self.hci_source.wait_for_termination()
@@ -240,11 +250,7 @@ class Dabble():
         return bytes(f'Hello {connection}', 'ascii')
 
 
-    def my_custom_write(self, connection, value):
-        print(f'----- WRITE from {connection}: {value}')
-        print(type(value))
-        if not isinstance(value, bytes): return
-        if len(value) != 8: return
+    def parseGameControl(self, value):
         if value[5] == 0x01:
             self.extraButton = 'start'
             print('extra: start')
@@ -294,7 +300,36 @@ class Dabble():
                 print('joy: released')
 
 
+    def parseTerminal(self, value):
+        resp = ''
+        idx = 5
+        while idx < len(value) and value[idx] != 0:
+            resp += chr(value[idx])
+            idx += 1
+        resp = resp.strip()
+        self.terminalReceived = resp
+        print("received: ", resp)
 
+    def sendTerminal(self, value):
+        #self.device.characteristicRead.value = bytes([0xFF, 0x00, 0x01, 0x00, 0x00])
+        data = bytes([0xFF, 0x02, 0x02, 0x01])
+        data += bytes([len(value)])
+        for ch in value: data += bytes([ord(ch)])
+        data += bytes([0x00])
+        #print('sendTerminal: ', data)
+        self.terminalTransmit = data
+        #self.device.characteristicRead.value = data
+        #await self.device.notify_subscribers(self.device.characteristicRead)
+        
+        
+
+    def my_custom_write(self, connection, value):
+        print(f'----- WRITE from {connection}: {value}')
+        print(type(value))
+        if not isinstance(value, bytes): return
+        if value[0] != 0xFF: return
+        if value[1] == 0x01: self.parseGameControl(value)
+        elif value[1] == 0x02: self.parseTerminal(value)
 
 if __name__ == "__main__":
     #logging.basicConfig(level=os.environ.get('BUMBLE_LOGLEVEL', 'DEBUG').upper())    
@@ -307,6 +342,13 @@ if __name__ == "__main__":
         
         while (True):
             time.sleep(1.0)
-            #print('.')
+            #print('resp:', app.terminalResponse, len(app.terminalResponse) )            
+            if len(app.terminalReceived) > 0:
+                if app.terminalReceived == 'ping':
+                    app.sendTerminal('pong')
+                app.terminalReceived = ''
+
+
+
     
 
