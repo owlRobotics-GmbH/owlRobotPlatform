@@ -131,6 +131,7 @@ void loop() {
    } 
 
    if (stateTimer[5]<millis()){
+      robot.control.batteryVoltage = myF.getBatteryVoltage();
       myF.rain();                 // If(rain .......
       digitalWrite(blueLED,!digitalRead(blueLED)); 
       stateTimer[5]=millis()+1000;

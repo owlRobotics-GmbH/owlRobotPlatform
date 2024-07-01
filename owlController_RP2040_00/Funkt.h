@@ -38,7 +38,7 @@ class Funkt {
  //  void ADC_init();
    float ADC_read(int muxChnl);
    bool rain();
-   float getBatteryVolt();
+   float getBatteryVoltage();
 //   float read_M_Current(int motor);
    void PowerHold(bool holdPWR);
    void PIpwr(bool on_off);
@@ -53,5 +53,5 @@ class Funkt {
   private:  
    int val, port,InPort;
    int ADC_Value;
-   float currOffset,mVrain, batteryVolt;
+   float currOffset,mVrain, batteryVoltage;
 };
