@@ -85,6 +85,7 @@ while True:
         if app.terminalReceived.lower() == 'ping':
             app.sendTerminal('pong')
         elif app.terminalReceived.lower() == 'shutdown':
+            app.sendTerminal('bye...')
             os.system('shutdown now')
         app.terminalReceived = ''
 
