@@ -56,7 +56,9 @@ class owlControl
 
     void requestError();
     void requestBatteryVoltage();
-    void sendBatteryVoltage(float value);
+
+    void sendError(int destNodeId, owlctl::errorType_t error);
+    void sendBatteryVoltage(int destNodeId, float value);
 
   protected:
     void init();    
