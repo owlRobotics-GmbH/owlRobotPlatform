@@ -81,7 +81,7 @@ float Funkt::getBatteryVoltage(){
   float adcVolt = ADC_read(7);
   batteryVoltage = adcVolt * 10.0 / 290.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
     #ifdef DEBUG
-      Serial.print("  batV: ");Serial.print(batteryVolt);Serial.println("  mV ");
+      Serial.print("  batV: ");Serial.print(batteryVoltage);Serial.println("  mV ");
     #endif
   return batteryVoltage;
 }
