@@ -62,6 +62,7 @@ class MyCanDriver: public owlDriveCAN {
         aRobot->leftMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
         aRobot->rightMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
         aRobot->sprayMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);            
+        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);
       }
     }
 };
