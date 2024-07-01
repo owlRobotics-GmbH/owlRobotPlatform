@@ -117,13 +117,13 @@ class Motor():
         # apply gear ratio
         aSpeed *= self.gearRatio
         #print(self.nodeId, 'speed', aSpeed)
-        self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_velocity, struct.pack('<f', aSpeed))
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_velocity, struct.pack('<f', aSpeed))
 
     def getSpeed(self):
         return self.speed
 
     def enable(self, flag):
-        self.robot.sendCanData(self.nodeId, can_cmd_set, can_val_motor_enable, struct.pack('B', flag))
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_motor_enable, struct.pack('B', flag))
     
 
 # abstract robot class with forward and backward kinematics
@@ -207,7 +207,7 @@ class Robot():
         self.bus.shutdown()
 
 
-    def sendCanData(self, destNodeId, cmd, val, data):        
+    def sendCanData(self, msgId, destNodeId, cmd, val, data):        
         if self.bus is None: return
         cs = CStruct()
         #print(CStruct.sourceId)
@@ -222,7 +222,7 @@ class Robot():
         #frame = bytes(node) + bytes([cmd]) + bytes([val]) + data
         frame = bytes(bytearray(node)) + bytes(bytearray([cmd])) + bytes(bytearray([val])) + data
 
-        #print('sendCanData=', frame, 'sourceNodeId=', bin(MY_NODE_ID), 'destNodeId=', bin(destNodeId), 'cmd=', bin(cmd), 
+        #print('sendCanData=', frame, 'msgId=', msgId, 'sourceNodeId=', bin(MY_NODE_ID), 'destNodeId=', bin(destNodeId), 'cmd=', bin(cmd), 
         #    'val=', bin(val), 'data=', data)
         
         #for data in frame:
@@ -232,35 +232,35 @@ class Robot():
 
         # now works with older python-can libs
         if can.__version__ == '2.0.0':
-            msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, extended_id=False)
+            msg = can.Message(arbitration_id=msgId, data=frame, extended_id=False)
         else:
-            msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, is_extended_id=False)
+            msg = can.Message(arbitration_id=msgId, data=frame, is_extended_id=False)
         print(msg)
         self.bus.send(msg, timeout=0.2)
 
 
     def requestBatteryVoltage(self):
-        self.sendCanData(OWL_CONTROL_NODE_ID, can_cmd_request, can_val_battery_voltage, bytes([]))
+        self.sendCanData(OWL_CONTROL_MSG_ID, OWL_CONTROL_NODE_ID, can_cmd_request, can_val_battery_voltage, bytes([]))
         
 
 
     # differential drive platform
     def motorSpeedDifferential(self, leftMotorSpeed, rightMotorSpeed, toolMotorSpeed):        
-        self.sendCanData(LEFT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftMotorSpeed))
-        self.sendCanData(RIGHT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightMotorSpeed))
-        self.sendCanData(TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', toolMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, LEFT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, RIGHT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', toolMotorSpeed))
 
-        #self.sendCanData(LEFT_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', leftMotorSpeed))
-        #self.sendCanData(RIGHT_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', rightMotorSpeed))
-        #self.sendCanData(TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', toolMotorSpeed))
+        #self.sendCanData(OWL_DRIVE_MSG_ID, LEFT_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', leftMotorSpeed))
+        #self.sendCanData(OWL_DRIVE_MSG_ID, RIGHT_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', rightMotorSpeed))
+        #self.sendCanData(OWL_DRIVE_MSG_ID, TOOL_MOTOR_NODE_ID, can_cmd_set, can_val_pwm_speed, struct.pack('<f', toolMotorSpeed))
 
 
     # mecanum platform
     def motorSpeedMecanum(self, leftBackMotorSpeed, rightBackMotorSpeed, rightFrontMotorSpeed, leftFrontMotorSpeed):
-        self.sendCanData(LEFT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftBackMotorSpeed))
-        self.sendCanData(RIGHT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightBackMotorSpeed))
-        self.sendCanData(RIGHT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightFrontMotorSpeed))
-        self.sendCanData(LEFT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftFrontMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, LEFT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftBackMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, RIGHT_BACK_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightBackMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, RIGHT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', rightFrontMotorSpeed))
+        self.sendCanData(OWL_DRIVE_MSG_ID, LEFT_FRONT_MOTOR_NODE_ID, can_cmd_set, can_val_velocity, struct.pack('<f', leftFrontMotorSpeed))
     
 
     #  transfers body velocities into motor velocities and apply velocities
