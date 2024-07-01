@@ -36,6 +36,7 @@ print('press CTRL+C to exit...')
 toolMotorSpeed = 0
 circleButtonTime = 0
 nextCanTime = 0
+nextCanLowPrioTime = 0
 followMe = False
 trackTimeout = 0
 oscillateLeft = True
@@ -44,6 +45,11 @@ sideways = False
 
 
 while True:
+    if time.time() > nextCanLowPrioTime:
+        nextCanLowPrioTime = time.time() + 1.0
+        robot.requestBatteryVoltage()
+
+
     time.sleep(0.01)
 
     if not dabble.connected: continue    
@@ -156,6 +162,5 @@ while True:
         if not robot.toolMotor is None:
             robot.toolMotor.setSpeed(toolMotorSpeed)
         
-
 
 

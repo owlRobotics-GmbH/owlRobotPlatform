@@ -11,7 +11,11 @@ import can   # pip install --break-system-packages  python-can
 
 
 OWL_DRIVE_MSG_ID      = 300
+OWL_CONTROL_MSG_ID    = 200
+
 MY_NODE_ID            = 60 
+
+OWL_CONTROL_NODE_ID    = 1
 
 LEFT_MOTOR_NODE_ID    = 1
 RIGHT_MOTOR_NODE_ID   = 2
@@ -72,6 +76,13 @@ err_undervoltage = 3  # undervoltage triggered
 err_overvoltage  = 4  # overvoltage triggered
 err_overcurrent  = 5  # overcurrent triggered
 err_overtemp     = 6  # over-temperature triggered    
+
+
+
+# owlControl PCB
+can_val_battery_voltage         = 2   # battery voltage
+
+
 
 
 class CStruct(ctypes.LittleEndianStructure):    
@@ -144,6 +155,7 @@ class Robot():
         try:
             self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
             #notifier = can.Notifier(self.bus, [can.Printer()])
+            notifier = can.Notifier(self.bus,[self.onCanReceived])
         except:
             self.bus = None
             print('error opening CAN bus')
@@ -178,6 +190,13 @@ class Robot():
         # --------- motor ----------------------------------------------------------------------------------------
         self.toolMotor = None        
         self.lastDriveTime = time.time()
+
+        
+    def onCanReceived(self, can):
+        print( 'CAN RX:', can.arbitration_id )
+        #if can.arbitration_id == 200:
+        #   self.parse 
+
 
     def log(self):
         print('odoX', round(self.odoX, 2), 'odoY', round(self.odoY, 2), 'odoTheta', round(self.odoTheta / math.pi * 180.0))
@@ -216,8 +235,13 @@ class Robot():
             msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, extended_id=False)
         else:
             msg = can.Message(arbitration_id=OWL_DRIVE_MSG_ID, data=frame, is_extended_id=False)
-        #print(msg)
+        print(msg)
         self.bus.send(msg, timeout=0.2)
+
+
+    def requestBatteryVoltage(self):
+        self.sendCanData(OWL_CONTROL_NODE_ID, can_cmd_request, can_val_battery_voltage, bytes([]))
+        
 
 
     # differential drive platform

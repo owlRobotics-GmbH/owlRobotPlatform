@@ -28,6 +28,7 @@ void owlDrive::init(){
     
 
 void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){    
+    if (id != canMsgId) return;
     canNodeType_t node;
     node.byteVal[0] = canData[0];
     node.byteVal[1] = canData[1];    
@@ -79,7 +80,7 @@ void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){
 
 void owlDrive::sendCanData(int destNodeId, canCmdType_t cmd, owldrv::canValueType_t val, canDataType_t data){        
     unsigned char canData[8];
-    int id = CAN_MOTOR_MSG_ID;    
+    int id = canMsgId;    
     int len;
     if (cmd == can_cmd_request){
       len = 4;

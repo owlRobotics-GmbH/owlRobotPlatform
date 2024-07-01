@@ -24,10 +24,12 @@ void owlControl::init(){
     
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
+    if (id != canMsgId) return;
     canNodeType_t node;
     node.byteVal[0] = canData[0];
     node.byteVal[1] = canData[1];    
-    if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node  
+    //if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node  
+    if (node.sourceAndDest.destNodeID != driverNodeId) return; // message is not for expected owlControl node  
 
     rxPacketCounter++;
     rxPacketTime = millis();
@@ -55,12 +57,22 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             break;
         }
     } 
+    else if (cmd == can_cmd_request){
+        switch (val){
+          case owlctl::can_val_error:
+            error = (owlctl::errorType_t)data.byteVal[0]; 
+            break;
+          case owlctl::can_val_battery_voltage:
+            batteryVoltage = data.floatVal;
+            break;
+        }
+    }
 }
 
 
 void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data){        
     unsigned char canData[8];
-    int id = CAN_CONTROL_MSG_ID;    
+    int id = canMsgId;    
     int len;
     if (cmd == can_cmd_request){
       len = 4;
@@ -68,7 +80,8 @@ void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueT
       len = 8;
     }
     canNodeType_t node;
-    node.sourceAndDest.sourceNodeID = operatorNodeId;
+    //node.sourceAndDest.sourceNodeID = operatorNodeId;
+    node.sourceAndDest.sourceNodeID = driverNodeId;    
     node.sourceAndDest.destNodeID = destNodeId;    
     canData[0] = node.byteVal[0];
     canData[1] = node.byteVal[1];    
@@ -122,11 +135,20 @@ void owlControl::printCanFrame(unsigned char canData[8]){
 }
 
 
-void owlControl::sendBatteryVoltage(float value){
+
+void owlControl::sendBatteryVoltage(int destNodeId, float value){
   canDataType_t data;
   data.floatVal = value;
-  sendCanData(driverNodeId, can_cmd_set, owlctl::can_val_battery_voltage, data);
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_battery_voltage, data);
 }
+
+void owlControl::sendError(int destNodeId, owlctl::errorType_t error){
+  canDataType_t data;
+  data.byteVal[0] = error;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_error, data);
+}
+
+
 
 
 void owlControl::requestError(){
@@ -140,4 +162,5 @@ void owlControl::requestBatteryVoltage(){
   data.floatVal = 0;    
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_battery_voltage, data);
 }
+
 
