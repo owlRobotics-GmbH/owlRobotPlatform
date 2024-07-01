@@ -85,14 +85,15 @@ while True:
     if len(app.terminalReceived) > 0:
         if app.terminalReceived.lower() == 'ping':
             app.sendTerminal('pong')
+        elif app.terminalReceived.lower() == 'battery':
+            app.sendTerminal(str(robot.batteryVoltage))                
+        elif app.terminalReceived.lower() == 'ip':            
+            app.sendTerminal(str(robot.getIPAddress()))                
         elif app.terminalReceived.lower() == 'shutdown':
             app.sendTerminal('bye...')
             os.system('shutdown now')
         app.terminalReceived = ''
-    if time.time() > nextTerminalTime:
-        nextTerminalTime = time.time() + 10.0        
-        app.sendTerminal('bat=' + str(robot.batteryVoltage) + '  ip=' + str(robot.getIPAddress()))
-
+    
 
 
     speedLinearX = 0      # forward speed
