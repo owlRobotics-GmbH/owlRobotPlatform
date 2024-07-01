@@ -37,6 +37,11 @@ echo "setup bluetooth interface..."
 hciconfig hci0 down
 
 
+echo "---------all processes using the CAN bus------------"
+lsof | grep -i can_raw
+echo "----------------------------------------------------"
+
+
 echo "starting python app..."
 echo "NOTE: to test Bluetooth communication only and redirect output to a log file use: sudo ./run_ble_server.sh dabble.py &> log.txt" 
 
