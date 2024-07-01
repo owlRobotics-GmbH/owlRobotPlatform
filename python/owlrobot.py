@@ -193,6 +193,7 @@ class Robot():
 
         # --------- misc -----------------------------------------------------------------------------------------
         self.batteryVoltage = 0.0 
+        self.ipAddress = ''
 
         
     def onCanReceived(self, can):
@@ -297,6 +298,12 @@ class Robot():
 
     def enableMotors(self, flag):
         pass
+
+    
+    def getIPAddress(self):
+        self.ipAddress = os.popen("/usr/bin/ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'").read().strip()
+        #print('getIPAddress ', self.ipAddress)
+        return self.ipAddress
 
 
 if __name__ == "__main__":

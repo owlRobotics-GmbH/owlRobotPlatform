@@ -46,6 +46,7 @@ sideways = False
 
 
 while True:
+
     time.sleep(0.01)
 
     if not dabble.connected: continue    
@@ -88,10 +89,9 @@ while True:
             app.sendTerminal('bye...')
             os.system('shutdown now')
         app.terminalReceived = ''
-
     if time.time() > nextTerminalTime:
-        nextTerminalTime = time.time() + 10.0
-        app.sendTerminal('bat=' + str(robot.batteryVoltage))
+        nextTerminalTime = time.time() + 10.0        
+        app.sendTerminal('bat=' + str(robot.batteryVoltage) + '  ip=' + str(robot.getIPAddress()))
 
 
 
