@@ -82,8 +82,10 @@ while True:
 
     # Dabble terminal 
     if len(app.terminalReceived) > 0:
-        if app.terminalReceived == 'ping':
+        if app.terminalReceived.lower() == 'ping':
             app.sendTerminal('pong')
+        elif app.terminalReceived.lower() == 'shutdown':
+            os.system('shutdown now')
         app.terminalReceived = ''
 
     if time.time() > nextTerminalTime:
