@@ -191,11 +191,35 @@ class Robot():
         self.toolMotor = None        
         self.lastDriveTime = time.time()
 
+        # --------- misc -----------------------------------------------------------------------------------------
+        self.batteryVoltage = 0.0 
+
         
     def onCanReceived(self, can):
-        print( 'CAN RX:', can.arbitration_id )
-        #if can.arbitration_id == 200:
-        #   self.parse 
+        node = CStruct.from_buffer_copy(can.data) # first two bytes src/dst address
+        cmd = can.data[2]
+        val = can.data[3]
+        longData = 0
+        floatData = 0
+        byteData = 0
+        if len(can.data) == 5:
+            byteData = can.data[4]
+        if len(can.data) == 8:
+            longData = struct.unpack('<L', bytes(bytearray([can.data[4]])) + bytes(bytearray([can.data[5]])) 
+                           + bytes(bytearray([can.data[6]])) + bytes(bytearray([can.data[7]]))  )[0]
+            floatData = struct.unpack('<f', bytes(bytearray([can.data[4]])) + bytes(bytearray([can.data[5]])) 
+                           + bytes(bytearray([can.data[6]])) + bytes(bytearray([can.data[7]]))  )[0]
+                                                                                
+            #print('floatData=', floatData)
+        #print( 'CAN RX:', can, 'src=', node.sourceId, 'dst=',node.destId, 'cmd=', cmd, 'val=', val, 'datalen=', len(can.data))    
+        
+        if can.arbitration_id == OWL_CONTROL_MSG_ID:
+            if cmd == can_cmd_info and val == can_val_battery_voltage:
+                self.batteryVoltage = round(floatData, 1)
+                print('batteryVoltage=', self.batteryVoltage)
+        elif can.arbitration_id == OWL_DRIVE_MSG_ID:
+            pass
+            
 
 
     def log(self):
@@ -235,7 +259,7 @@ class Robot():
             msg = can.Message(arbitration_id=msgId, data=frame, extended_id=False)
         else:
             msg = can.Message(arbitration_id=msgId, data=frame, is_extended_id=False)
-        print(msg)
+        #print(msg)
         self.bus.send(msg, timeout=0.2)
 
 

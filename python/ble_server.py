@@ -35,6 +35,7 @@ print('press CTRL+C to exit...')
 
 toolMotorSpeed = 0
 circleButtonTime = 0
+nextTerminalTime = 0
 nextCanTime = 0
 nextCanLowPrioTime = 0
 followMe = False
@@ -45,16 +46,12 @@ sideways = False
 
 
 while True:
-    if time.time() > nextCanLowPrioTime:
-        nextCanLowPrioTime = time.time() + 1.0
-        robot.requestBatteryVoltage()
-
-
     time.sleep(0.01)
 
     if not dabble.connected: continue    
     #print('.', end="", flush=True)
 
+    # Dabble buttons
     if app.extraButton == 'select':
         if time.time() > circleButtonTime:
             circleButtonTime = time.time() + 0.5
@@ -82,6 +79,17 @@ while True:
             print('toolMotorSpeed', toolMotorSpeed)
     elif app.extraButton == 'rectangle':
         os.system('shutdown now')
+
+    # Dabble terminal 
+    if len(app.terminalReceived) > 0:
+        if app.terminalReceived == 'ping':
+            app.sendTerminal('pong')
+        app.terminalReceived = ''
+
+    if time.time() > nextTerminalTime:
+        nextTerminalTime = time.time() + 10.0
+        app.sendTerminal('bat=' + str(robot.batteryVoltage))
+
 
 
     speedLinearX = 0      # forward speed
@@ -162,5 +170,8 @@ while True:
         if not robot.toolMotor is None:
             robot.toolMotor.setSpeed(toolMotorSpeed)
         
+    if time.time() > nextCanLowPrioTime:
+        nextCanLowPrioTime = time.time() + 1.0
+        robot.requestBatteryVoltage()
 
-
+ 
