@@ -52,7 +52,7 @@ while True:
     time.sleep(0.01)
 
     if not dabble.connected: 
-        nextTerminalTime = 0 
+        nextTerminalTime = time.time() + 2.0 
         continue    
     #print('.', end="", flush=True)
 
