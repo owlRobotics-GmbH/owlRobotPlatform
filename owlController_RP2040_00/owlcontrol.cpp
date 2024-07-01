@@ -60,10 +60,10 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
     else if (cmd == can_cmd_request){
         switch (val){
           case owlctl::can_val_error:
-            sendError(); 
+            sendError(node.sourceAndDest.sourceNodeID, error); 
             break;
           case owlctl::can_val_battery_voltage:
-            sendBatteryVoltage();
+            sendBatteryVoltage(node.sourceAndDest.sourceNodeID, batteryVoltage);
             break;
         }
     }
