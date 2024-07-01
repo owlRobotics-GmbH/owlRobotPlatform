@@ -36,6 +36,7 @@ print('press CTRL+C to exit...')
 toolMotorSpeed = 0
 circleButtonTime = 0
 nextTerminalTime = 0
+terminalValueIdx = 0
 nextCanTime = 0
 nextCanLowPrioTime = 0
 followMe = False
@@ -45,11 +46,14 @@ oscillateTimeout = 0
 sideways = False 
 
 
+
 while True:
 
     time.sleep(0.01)
 
-    if not dabble.connected: continue    
+    if not dabble.connected: 
+        nextTerminalTime = 0 
+        continue    
     #print('.', end="", flush=True)
 
     # Dabble buttons
@@ -85,15 +89,21 @@ while True:
     if len(app.terminalReceived) > 0:
         if app.terminalReceived.lower() == 'ping':
             app.sendTerminal('pong')
-        elif app.terminalReceived.lower() == 'battery':
-            app.sendTerminal(str(robot.batteryVoltage))                
-        elif app.terminalReceived.lower() == 'ip':            
-            app.sendTerminal(str(robot.getIPAddress()))                
         elif app.terminalReceived.lower() == 'shutdown':
             app.sendTerminal('bye...')
-            os.system('shutdown now')
-        app.terminalReceived = ''
-    
+            os.system('shutdown now')        
+        app.terminalReceived = ''        
+
+    if time.time() > nextTerminalTime:
+        if terminalValueIdx == 0:
+            nextTerminalTime = time.time() + 1.0
+            app.sendTerminal('bat=' + str(robot.batteryVoltage))                
+        elif terminalValueIdx == 1:            
+            app.sendTerminal(str(robot.getIPAddress()))                
+            nextTerminalTime = time.time() + 10.0        
+        terminalValueIdx += 1
+        if terminalValueIdx > 1: terminalValueIdx = 0
+        
 
 
     speedLinearX = 0      # forward speed
