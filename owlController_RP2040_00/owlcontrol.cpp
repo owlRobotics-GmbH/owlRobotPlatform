@@ -24,6 +24,12 @@ void owlControl::init(){
     
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
+    if (debug){
+      Serial.print("onCanReceived id=");
+      Serial.println(id);    
+      printCanFrame(canData);
+    }    
+
     if (id != canMsgId) return;
     canNodeType_t node;
     node.byteVal[0] = canData[0];
@@ -33,10 +39,6 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
 
     rxPacketCounter++;
     rxPacketTime = millis();
-
-    if (debug){
-      printCanFrame(canData);
-    }    
 
     int cmd = canData[2];     
     owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);            
