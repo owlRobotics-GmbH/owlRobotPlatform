@@ -37,12 +37,12 @@ ROBOTS = {
         "bluetoothUSB": False,                    # Bluetooth USB interface? 
         "swapLeftMotor": True,                    # swap left motor?
         "swapRightMotor": False,                  # swap right motor?
-        "wheelToBodyCenterY": 0.62,               # wheel-to-axle-center Y axis (m)
+        "wheelToBodyCenterY": 0.24,               # wheel-to-axle-center Y axis (m)
         "wheelDiameter": 0.26,                    # wheel diameter (m)
-        "gearRatio": 80.0,                        # gear ratio  (1.0 = no gears)
+        "gearRatio": 250.0,                        # gear ratio  (1.0 = no gears)
         "maxSpeedX": 0.60,                         # max speed in X axis (m/s)        
         "maxSpeedY": 0.60,                         # max speed in Y axis (m/s)
-        "maxSpeedTheta": 2.5,                     # max angular speed (rad/s) 
+        "maxSpeedTheta": 0.5,                     # max angular speed (rad/s) 
         "toolMotor": True,                        # has tool motor?
         "camW": 640,                              # camera with resolution (pixels)
         "camH": 480,                              # camera height resolution (pixels)
