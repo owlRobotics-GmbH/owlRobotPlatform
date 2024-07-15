@@ -18,6 +18,7 @@ void owlControl::init(){
   debug = false;
   error = owlctl::err_no_comm; 
   batteryVoltage = 0;
+  bumperState = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
 }
@@ -54,15 +55,21 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_error:
             error = (owlctl::errorType_t)data.byteVal[0]; 
             break;
+          case owlctl::can_val_bumper_state:
+            bumperState = data.byteVal[0];
+            break;
           case owlctl::can_val_battery_voltage:
             batteryVoltage = data.floatVal;
-            break;
+            break;          
         }
     } 
     else if (cmd == can_cmd_request){
         switch (val){
           case owlctl::can_val_error:
             sendError(node.sourceAndDest.sourceNodeID, error); 
+            break;
+          case owlctl::can_val_bumper_state:
+            sendBumperState(node.sourceAndDest.sourceNodeID, bumperState);
             break;
           case owlctl::can_val_battery_voltage:
             sendBatteryVoltage(node.sourceAndDest.sourceNodeID, batteryVoltage);
@@ -144,6 +151,12 @@ void owlControl::sendBatteryVoltage(int destNodeId, float value){
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_battery_voltage, data);
 }
 
+void owlControl::sendBumperState(int destNodeId, byte value){
+  canDataType_t data;
+  data.byteVal[0] = value;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_bumper_state, data);
+}
+
 void owlControl::sendError(int destNodeId, owlctl::errorType_t error){
   canDataType_t data;
   data.byteVal[0] = error;
@@ -157,6 +170,12 @@ void owlControl::requestError(){
   canDataType_t data;  
   data.floatVal = 0;  
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_error, data);
+}
+
+void owlControl::requestBumperState(){
+  canDataType_t data;
+  data.floatVal = 0;    
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_bumper_state, data);
 }
 
 void owlControl::requestBatteryVoltage(){

@@ -18,6 +18,7 @@ namespace owlctl {
   enum canValueType_t: uint8_t {
       can_val_error             = 1, // error status
       can_val_battery_voltage   = 2, // battery voltage
+      can_val_bumper_state      = 3, // bumper state
   };
 
   // motor driver error values
@@ -44,6 +45,7 @@ class owlControl
     int operatorNodeId;  // node ID used for operator
     owlctl::errorType_t error;     // error status (see error constants above)
     float batteryVoltage;   // volts
+    byte bumperState;  // bumper state
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
 
@@ -56,9 +58,11 @@ class owlControl
 
     void requestError();
     void requestBatteryVoltage();
+    void requestBumperState();
 
     void sendError(int destNodeId, owlctl::errorType_t error);
     void sendBatteryVoltage(int destNodeId, float value);
+    void sendBumperState(int destNodeId, byte value);
 
   protected:
     void init();    
