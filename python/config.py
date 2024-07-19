@@ -30,7 +30,7 @@ ROBOT_TYPE_MECANUM    = 1
 # define robot type, wheel-to-center-x distance (m), and wheel-to-center-y distance (m), wheel diameter (m), max speed (m/s) 
         
 ROBOTS = {
-      '2c:cf:67:26:9c:88': {                      # robot ID (MAC address)
+      '2c:cf:67:26:9c:ec': {                      # robot ID (MAC address)
         "name": "owlMower (DiffDrive)",           # Bluetooth name
         "type": ROBOT_TYPE_DIFF_DRIVE,            # robot type
         "bluetoothAddr": "F0:F1:F2:F3:F4:F5",     # Bluetooth address
