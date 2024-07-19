@@ -66,6 +66,9 @@ bool power_on_init = 1;
 
 byte ii;
 
+String picoID = "";
+
+
 void setup() {
   delay (50);
   pinMode(IntCAN,INPUT);  // Interrupt oin CAN
@@ -97,12 +100,40 @@ void setup() {
   analogReadResolution(ADC_Resulution);
   watchdog_enable(1500, 1);
   //mpu.begin();  //does not work jet
+
+
+  // ---------------------------- get pico id --------------------------------    
+  const int BOARD_ID_MESSAGE_LEN = 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1;
+  char boardIDDesc[BOARD_ID_MESSAGE_LEN];
+  pico_get_unique_board_id_string(boardIDDesc, BOARD_ID_MESSAGE_LEN);
+  // E6616407E38B9125
+  // E660C0D1C7268934
+  // E4638C729F2E4821 
+  pico_unique_board_id_t uid;
+  pico_get_unique_board_id(&uid);
+  unsigned short hash = 0;
+  for (int i=0; i < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; i++){
+      hash = hash * 37 + uid.id[i];    
+  }
+  Serial.print("pico id:");  
+  Serial.print(boardIDDesc);
+  Serial.print(" ");
+  Serial.print(hash);
+  Serial.println();
+  picoID = boardIDDesc;
+  // ------------------------------------------------------------------    
 }
 
 void loop() {
 
  if(millis()>1500&&power_on_init){
-    myF.PIpwr(1);     // set to 1 to power on the RP
+
+    if ( picoID == "E4638C729F2E4821"){
+      //Serial.println("owlMower owlControlPCB");
+      myF.PIpwr(0);
+    } else {
+      myF.PIpwr(1);     // set to 1 to power on the RP
+    }
     power_on_init=0;  // set init bit to 0, no more IF
   }
 
@@ -123,7 +154,8 @@ void loop() {
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
-      if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);
+      robot.control.bumperState = (byte)(myF.IN_Pin[4] == LOW);
+      if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);      
       else if (!myF.IN_Pin[3]) neopix.NeoPixel_scene(2,1);
       else neopix.NeoPixel_scene(neopix.scene_default,neopix.default_brightness);
       myF.refreshIOports(); 

@@ -106,6 +106,7 @@ void robot::roboter(){
   bool emergencyPressed = (emergStop != 0);
   bool bumperPressed = (bumperStop != 0);
   bool watchDogTimeout = (millis()>watchdogTimer);
+  weHaveControl = false;
   if (watchDogTimeout){
     allowManualCtl = true;
   }
@@ -227,23 +228,26 @@ void robot::roboter(){
     speed_spray = 0;
   }
 
-  // send speed to motor
-  //leftMotor.sendVelocity(speed_left);
-  //rightMotor.sendVelocity(speed_right);  
-  //sprayMotor.sendVelocity(speed_spray);
+  // do we have control over the motors?
+  if (weHaveControl){
+    // send speed to motor
+    leftMotor.sendVelocity(speed_left);
+    rightMotor.sendVelocity(speed_right);  
+    sprayMotor.sendVelocity(speed_spray);
 
-  if (millis()> nextRequestTime){  
-    nextRequestTime = millis() + 200;
-    //leftMotor.requestError();
-    //leftMotor.requestVelocity();
+    if (millis()> nextRequestTime){  
+      nextRequestTime = millis() + 200;
+      leftMotor.requestError();
+      leftMotor.requestVelocity();
+      
+      rightMotor.requestError();
+      rightMotor.requestVelocity();
     
-    //rightMotor.requestError();
-    //rightMotor.requestVelocity();
-  
-    //sprayMotor.requestError();
-    //sprayMotor.requestVelocity();
+      sprayMotor.requestError();
+      sprayMotor.requestVelocity();
+    }
   }
-  
+
   canDriver.processReceivedPackets(this);
 
   

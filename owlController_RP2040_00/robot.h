@@ -20,6 +20,7 @@ class robot {
     robot(); 
     void begin();
     void roboter();
+    bool weHaveControl; // do we have control over the motors?
     bool allowManualCtl;
     bool emergStop, bumperStop;
     int X_axis, Y_axis, Z_axis, X_alt, Y_alt, Z_alt; 
