@@ -19,6 +19,8 @@ void owlControl::init(){
   error = owlctl::err_no_comm; 
   batteryVoltage = 0;
   bumperState = 0;
+  stopButtonState = false;
+  buzzerState = false;
   rxPacketTime = 0;
   rxPacketCounter = 0;
 }
@@ -61,6 +63,12 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_battery_voltage:
             batteryVoltage = data.floatVal;
             break;          
+          case owlctl::can_val_stop_button_state:
+            stopButtonState = data.byteVal[0];
+            break;
+          case owlctl::can_val_buzzer_state:
+            buzzerState = data.byteVal[0];
+            break;
         }
     } 
     else if (cmd == can_cmd_request){
@@ -73,6 +81,12 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             break;
           case owlctl::can_val_battery_voltage:
             sendBatteryVoltage(node.sourceAndDest.sourceNodeID, batteryVoltage);
+            break;
+          case owlctl::can_val_stop_button_state:
+            sendStopButtonState(node.sourceAndDest.sourceNodeID, stopButtonState);
+            break;
+          case owlctl::can_val_buzzer_state:
+            sendBuzzerState(node.sourceAndDest.sourceNodeID, buzzerState);
             break;
         }
     }
@@ -163,6 +177,17 @@ void owlControl::sendError(int destNodeId, owlctl::errorType_t error){
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_error, data);
 }
 
+void owlControl::sendStopButtonState(int destNodeId, bool value){
+  canDataType_t data;
+  data.byteVal[0] = (byte)value;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_stop_button_state, data);
+}
+
+void owlControl::sendBuzzerState(int destNodeId, bool value){
+  canDataType_t data;
+  data.byteVal[0] = (byte)value;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_buzzer_state, data);
+}
 
 
 
@@ -184,4 +209,15 @@ void owlControl::requestBatteryVoltage(){
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_battery_voltage, data);
 }
 
+void owlControl::requestStopButtonState(){
+  canDataType_t data;
+  data.floatVal = 0;    
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_stop_button_state, data);
+}
+
+void owlControl::requestBuzzerState(){
+  canDataType_t data;
+  data.floatVal = 0;    
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_buzzer_state, data);
+}
 

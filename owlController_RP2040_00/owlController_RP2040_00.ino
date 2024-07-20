@@ -150,16 +150,20 @@ void loop() {
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
       
 
+      if (robot.control.buzzerState) myF.extPieper(1);
+        else myF.extPieper(0);
+  
       myF.OUT_Pin[1]=!myF.IN_Pin[1];
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
-      robot.control.bumperState = (byte)(myF.IN_Pin[4] == LOW);
+      robot.control.bumperState = (byte)(myF.IN_Pin[4] == LOW); 
+      robot.control.stopButtonState = (byte)(myF.IN_Pin[5] == LOW);
       if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);      
       else if (!myF.IN_Pin[3]) neopix.NeoPixel_scene(2,1);
       else neopix.NeoPixel_scene(neopix.scene_default,neopix.default_brightness);
       myF.refreshIOports(); 
-      stateTimer[1]=millis()+100;
+      stateTimer[1]=millis()+100;      
    } 
 
    if (stateTimer[5]<millis()){

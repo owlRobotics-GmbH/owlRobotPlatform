@@ -19,6 +19,8 @@ namespace owlctl {
       can_val_error             = 1, // error status
       can_val_battery_voltage   = 2, // battery voltage
       can_val_bumper_state      = 3, // bumper state
+      can_val_stop_button_state = 4, // STOP button state
+      can_val_buzzer_state      = 5, // buzzer state
   };
 
   // motor driver error values
@@ -44,8 +46,10 @@ class owlControl
     int driverNodeId;    // node ID used in your owlControl PCB     
     int operatorNodeId;  // node ID used for operator
     owlctl::errorType_t error;     // error status (see error constants above)
-    float batteryVoltage;   // volts
-    byte bumperState;  // bumper state
+    float batteryVoltage;  // volts
+    byte bumperState;      // bumper state
+    bool stopButtonState;  // STOP button state
+    bool buzzerState;      // buzzer state
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
 
@@ -59,10 +63,14 @@ class owlControl
     void requestError();
     void requestBatteryVoltage();
     void requestBumperState();
+    void requestStopButtonState();
+    void requestBuzzerState();
 
     void sendError(int destNodeId, owlctl::errorType_t error);
     void sendBatteryVoltage(int destNodeId, float value);
     void sendBumperState(int destNodeId, byte value);
+    void sendStopButtonState(int destNodeId, bool value);
+    void sendBuzzerState(int destNodeId, bool value);
 
   protected:
     void init();    
