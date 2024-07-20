@@ -21,10 +21,16 @@ void owlControl::init(){
   bumperState = 0;
   stopButtonState = false;
   buzzerState = false;
+  buzzerStateTimeout = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
 }
-    
+
+void owlControl::run(){
+  if ((!buzzerState) && (millis() > buzzerStateTimeout)) {
+    buzzerState = false;
+  }
+}    
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
     if (debug){
@@ -89,6 +95,14 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             sendBuzzerState(node.sourceAndDest.sourceNodeID, buzzerState);
             break;
         }
+    }
+    else if (cmd == can_cmd_set){
+      switch (val){
+        case owlctl::can_val_buzzer_state:
+          buzzerState = (bool)data.byteVal[0];
+          buzzerStateTimeout = millis() + 2000;
+          break;
+      }
     }
 }
 

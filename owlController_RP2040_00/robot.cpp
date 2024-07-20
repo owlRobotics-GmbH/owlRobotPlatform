@@ -249,7 +249,11 @@ void robot::roboter(){
   }
 
   canDriver.processReceivedPackets(this);
-
+  
+  leftMotor.run();
+  rightMotor.run();
+  sprayMotor.run();
+  control.run();
   
   if (millis() > nextSerialOutputTime){
     if (debugOutput){

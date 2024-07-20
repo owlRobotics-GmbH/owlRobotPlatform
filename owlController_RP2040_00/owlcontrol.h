@@ -72,7 +72,10 @@ class owlControl
     void sendStopButtonState(int destNodeId, bool value);
     void sendBuzzerState(int destNodeId, bool value);
 
+    void run();
+
   protected:
+    unsigned long buzzerStateTimeout; 
     void init();    
     void sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data);
     void printCanFrame(unsigned char canData[8]);

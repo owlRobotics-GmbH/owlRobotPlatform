@@ -95,6 +95,8 @@ class owlDrive
     void requestVelocity();
     void requestAngle();          
 
+    void run();
+
   protected:
     void init();    
     void sendCanData(int destNodeId, canCmdType_t cmd, owldrv::canValueType_t val, canDataType_t data);

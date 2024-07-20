@@ -25,7 +25,9 @@ void owlDrive::init(){
   rxPacketTime = 0;
   rxPacketCounter = 0;
 }
-    
+
+void owlDrive::run(){ 
+}    
 
 void owlDrive::onCanReceived(int id, int len, unsigned char canData[8]){    
     if (id != canMsgId) return;
