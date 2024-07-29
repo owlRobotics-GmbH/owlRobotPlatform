@@ -43,12 +43,12 @@ void owlControl::run(){
 
 void owlControl::setStopButtonState(bool state){
   if (state) stopButtonStateTimeout = millis() + 500; 
-  stopButtonState = state;
+  if (state) stopButtonState = state;
 }
 
 void owlControl::setBumperState(byte state){
   if (state != 0) bumperStateTimeout = millis() + 500; 
-  bumperState = state;
+  if (state) bumperState = state;
 }
 
 void owlControl::setRainState(bool state){
