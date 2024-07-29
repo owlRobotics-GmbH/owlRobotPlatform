@@ -21,6 +21,7 @@ void owlControl::init(){
   bumperState = 0;
   stopButtonState = false;
   buzzerState = false;
+  rainState = false;
   buzzerStateTimeout = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
@@ -75,6 +76,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_buzzer_state:
             buzzerState = data.byteVal[0];
             break;
+          case owlctl::can_val_rain_state:
+            rainState = data.byteVal[0];
+            break;
         }
     } 
     else if (cmd == can_cmd_request){
@@ -93,6 +97,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             break;
           case owlctl::can_val_buzzer_state:
             sendBuzzerState(node.sourceAndDest.sourceNodeID, buzzerState);
+            break;
+          case owlctl::can_val_rain_state:
+            sendRainState(node.sourceAndDest.sourceNodeID, rainState);
             break;
         }
     }
@@ -203,6 +210,11 @@ void owlControl::sendBuzzerState(int destNodeId, bool value){
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_buzzer_state, data);
 }
 
+void owlControl::sendRainState(int destNodeId, bool value){
+  canDataType_t data;
+  data.byteVal[0] = (byte)value;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_rain_state, data);
+}
 
 
 void owlControl::requestError(){
@@ -233,5 +245,11 @@ void owlControl::requestBuzzerState(){
   canDataType_t data;
   data.floatVal = 0;    
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_buzzer_state, data);
+}
+
+void owlControl::requestRainState(){
+  canDataType_t data;
+  data.floatVal = 0;    
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_rain_state, data);
 }
 
