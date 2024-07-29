@@ -77,9 +77,14 @@ class owlControl
     void sendRainState(int destNodeId, bool value);
 
     void run();
+    void setStopButtonState(bool state);
+    void setBumperState(byte state);
+    void setRainState(bool state);
 
   protected:
-    unsigned long buzzerStateTimeout; 
+    unsigned long buzzerStateTimeout;
+    unsigned long stopButtonStateTimeout;
+    unsigned long bumperStateTimeout;         
     void init();    
     void sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data);
     void printCanFrame(unsigned char canData[8]);

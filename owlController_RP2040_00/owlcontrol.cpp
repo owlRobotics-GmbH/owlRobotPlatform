@@ -32,7 +32,29 @@ void owlControl::run(){
   if ((buzzerState) && (millis() > buzzerStateTimeout)) {
     buzzerState = false;
   }
+  if ((bumperState != 0) && (millis() > bumperStateTimeout)) {
+    bumperState = 0;
+  }
+  if ((stopButtonState) && (millis() > stopButtonStateTimeout)) {
+    stopButtonState = false;
+  }
 }    
+
+
+void owlControl::setStopButtonState(bool state){
+  if (state) stopButtonStateTimeout = millis() + 500; 
+  stopButtonState = state;
+}
+
+void owlControl::setBumperState(byte state){
+  if (state != 0) bumperStateTimeout = millis() + 500; 
+  bumperState = state;
+}
+
+void owlControl::setRainState(bool state){
+  rainState = state;
+}
+
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
     if (debug){
