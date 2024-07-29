@@ -142,7 +142,9 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
        
-      stateTimer[0]=millis()+50; 
+      robot.processReceivedPackets();  // process received CAN packets
+      stateTimer[0]=millis()+1; 
+      //Serial.print(".");
    }
     
    if (stateTimer[1]<millis()){
@@ -197,14 +199,14 @@ void loop() {
 //NeoPixel example
   if (millis()> MotorStatTimer){  
     MotorStatTimer = millis() + 750;
-    Serial.print("left :  ");
+    //Serial.print("left :  ");
     robot.leftMotor.requestVelocity();
-    delay(7);
-    Serial.println(robot.leftMotor.velocity);
-    Serial.print("right :  ");
+    //delay(7);  // no delays here to speed-up CAN packet receive processing
+    //Serial.println(robot.leftMotor.velocity);
+    //Serial.print("right :  ");
     robot.rightMotor.requestVelocity();
-    delay(7);
-    Serial.println(robot.rightMotor.velocity);
+    //delay(7);   // no delays here to speed-up CAN packet receive processing
+    //Serial.println(robot.rightMotor.velocity);
     
     if ((-1*robot.rightMotor.velocity)==0 && robot.leftMotor.velocity==0){   //Robot stops
       neopix.NeoPixel_scene(2,0.1);

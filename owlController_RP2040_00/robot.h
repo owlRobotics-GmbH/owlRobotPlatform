@@ -20,6 +20,7 @@ class robot {
     robot(); 
     void begin();
     void roboter();
+    void processReceivedPackets();
     bool weHaveControl; // do we have control over the motors?
     bool allowManualCtl;
     bool emergStop, bumperStop;
@@ -49,5 +50,7 @@ class robot {
     unsigned long lastControlTime;
 
 };
+
+
 
 #endif

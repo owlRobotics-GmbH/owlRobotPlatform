@@ -98,6 +98,11 @@ void robot::begin(){
 
  }
 
+
+void robot::processReceivedPackets(){
+  canDriver.processReceivedPackets(this);
+}
+
 void robot::roboter(){
   
   batteryVolt = myF.ADC_read(7)/1000*30.0+0.65; // read Battery power
@@ -247,8 +252,6 @@ void robot::roboter(){
       sprayMotor.requestVelocity();
     }
   }
-
-  canDriver.processReceivedPackets(this);
   
   leftMotor.run();
   rightMotor.run();
