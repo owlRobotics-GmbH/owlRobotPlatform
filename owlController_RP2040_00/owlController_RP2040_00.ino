@@ -152,7 +152,7 @@ void loop() {
 
       if (robot.control.buzzerState) myF.extPieper(1);
         else myF.extPieper(0);
-  
+     
       myF.OUT_Pin[1]=!myF.IN_Pin[1];
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];

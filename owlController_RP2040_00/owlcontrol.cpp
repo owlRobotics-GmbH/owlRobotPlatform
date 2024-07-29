@@ -28,7 +28,8 @@ void owlControl::init(){
 }
 
 void owlControl::run(){
-  if ((!buzzerState) && (millis() > buzzerStateTimeout)) {
+   //robot.control.buzzerState = !robot.control.buzzerState;  
+  if ((buzzerState) && (millis() > buzzerStateTimeout)) {
     buzzerState = false;
   }
 }    
