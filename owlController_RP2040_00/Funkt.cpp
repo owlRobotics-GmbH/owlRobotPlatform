@@ -5,6 +5,7 @@
 #include <MCP342x.h>
 #include "config.h"
 #include <Adafruit_NeoPixel.h>
+#include <RP2040_PWM.h>
 
 //#define DEBUG 1
 
@@ -13,6 +14,7 @@
 //MCP342x adc = MCP342x(ADCadr);
  
 TCA9548A I2CMux;
+RP2040_PWM* PWM_load;
 Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
 
  Funkt::Funkt(){}
@@ -21,6 +23,7 @@ Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
     pinMode(PIon_off,OUTPUT);  //PIN 10
     pinMode(PIEPER_Pin,OUTPUT);  //PIN 2
     pinMode(PowerHold_Pin,OUTPUT);  //Pico 11  
+    pinMode(CANioPower_Pin,OUTPUT);  //Pico 23
     pinMode(anaMUX_Adr0,OUTPUT);
     pinMode(anaMUX_Adr1,OUTPUT);
     pinMode(anaMUX_Adr2,OUTPUT);
@@ -28,7 +31,8 @@ Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
     digitalWrite (anaMUX_Adr0,0);
     digitalWrite (anaMUX_Adr1,0);
     digitalWrite (anaMUX_Adr2,0);
-
+    digitalWrite (LoadPowerPWM_Pin,0);
+    digitalWrite (CANioPower_Pin,0);
    // Wire.setPins(6,7);
     I2CMux.begin(Wire);
     delay(2);
@@ -47,6 +51,10 @@ Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
     strip2.setPixelColor(1,  strip2.Color(0, 160, 0));
     strip2.setBrightness(24);
     strip2.show();
+
+    // Init PWM Chan. to controll Akku load power
+    PWM_load = new RP2040_PWM(LoadPowerPWM_Pin, 100, 0);
+    PWM_load->setPWM(LoadPowerPWM_Pin, 100, 0);
    }  
 
    
@@ -86,6 +94,10 @@ float Funkt::getBatteryVoltage(){
   return batteryVoltage;
 }
 
+void Funkt::LoadPowerPWM(int perct){
+  PWM_load->setPWM(LoadPowerPWM_Pin, 100, perct);
+}
+
  
 void Funkt::PowerHold(bool holdPWR){        //ok
   digitalWrite(PowerHold_Pin,holdPWR);
@@ -95,7 +107,9 @@ bool Funkt::SW_Power_off(){                 //ok
      digitalWrite (PowerHold_Pin,0);        // Power hold pin 11, to power off = 0
      return(0);     
  }  
- 
+void Funkt::CAN_Power(bool on_off){         //ok
+     digitalWrite (CANioPower_Pin,on_off);  //  pin 06, to power off = 0     
+ }  
 void Funkt::PIpwr (bool val){
     digitalWrite (PIon_off,val);
   }   

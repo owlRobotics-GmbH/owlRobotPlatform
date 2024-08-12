@@ -70,11 +70,11 @@ String picoID = "";
 
 
 void setup() {
-  delay (50);
-  pinMode(IntCAN,INPUT);  // Interrupt oin CAN
+  delay (150);
   Serial.begin(115200);
-  Serial.println("start Setup");
-
+  Serial.print("start Setup SW Version : ");
+  Serial.println(VERS);
+  pinMode(IntCAN,INPUT);  // Interrupt oin CAN
   if (watchdog_caused_reboot()) {
         printf("Rebooted by Watchdog!\n");
     } else {
@@ -126,15 +126,18 @@ void setup() {
 
 void loop() {
 
- if(millis()>1500&&power_on_init){
-
+ if(millis()>PI_PWRon_delay&&power_on_init){        // PI_PWRon_delay is defined in config.h
+    myF.LoadPowerPWM(10);
     if ( picoID == "E4638C729F2E4821"){
       //Serial.println("owlMower owlControlPCB");
       myF.PIpwr(0);
     } else {
       myF.PIpwr(1);     // set to 1 to power on the RP
     }
-    power_on_init=0;  // set init bit to 0, no more IF
+    if ( millis()>PI_PWRon_delay+1000){
+      myF.CAN_Power(1);
+      power_on_init=0;  // set init bit to 0, no more IF
+    } 
   }
 
    startTimer=micros();

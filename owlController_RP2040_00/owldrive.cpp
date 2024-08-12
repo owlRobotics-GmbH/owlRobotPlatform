@@ -260,5 +260,3 @@ void owlDrive::requestAngle(){
   data.floatVal = 0;    
   sendCanData(driverNodeId, can_cmd_request, owldrv::can_val_angle, data);
 }
-
-

@@ -275,4 +275,3 @@ void owlControl::requestRainState(){
   data.floatVal = 0;    
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_rain_state, data);
 }
-

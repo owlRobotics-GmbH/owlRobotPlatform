@@ -1,5 +1,5 @@
 /// act. software version 
-#define VERS "HermesPico,1.0.0"
+#define VERS "owlController,0.0.1  09.08.23"
 
 /*     Motor Parameter         */
 
@@ -15,6 +15,7 @@
 //ADC
 #define ADC_Resulution 10 //bit
 
+#define PI_PWRon_delay 2000   // defines Pi power on delay in ms ( 1000ms after that, CAN powers on 
 
 #define PCF8591_default  0x48  // default
 #define PCF8591_modified 0x4A

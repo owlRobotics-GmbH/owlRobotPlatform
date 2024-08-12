@@ -8,6 +8,8 @@
 #define anaMUX_Adr0 13
 #define anaMUX_Adr1 14 
 #define anaMUX_Adr2 15 
+#define LoadPowerPWM_Pin 23
+#define CANioPower_Pin 06
 
 #define PIon_off 10
 
@@ -42,7 +44,9 @@ class Funkt {
 //   float read_M_Current(int motor);
    void PowerHold(bool holdPWR);
    void PIpwr(bool on_off);
-    void readIN_port();
+   void CAN_Power(bool on_off);
+   void readIN_port();
+   void LoadPowerPWM(int perct);
    bool SW_Power_off();
    byte IOPort0,IOPort1,IOPort21_P0,IOPort21_P1;
    int  IOPort;
