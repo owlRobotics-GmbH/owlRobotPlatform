@@ -320,12 +320,22 @@ if __name__ == "__main__":
 
     robot = Robot()
 
+    nextStateTime = 0
+    state = 0
+
     while True:
-        time.sleep(0.5)
-        #robot.motorSpeedDifferential(100.0, 100.0, 100.0)
-        #robot.motorSpeedDifferential(30.0, 30.0, 30.0)
-        robot.motorSpeedDifferential(-100.0, -100.0, 0.0)
-        
+        time.sleep(0.05)
+        if time.time() > nextStateTime:
+            nextStateTime = time.time() + 3.0
+            state = not state
+
+        if state:
+            #robot.motorSpeedDifferential(100.0, 100.0, 100.0)
+            #robot.motorSpeedDifferential(30.0, 30.0, 30.0)
+            robot.motorSpeedDifferential(-100.0, -100.0, 0.0)
+        else:
+            robot.motorSpeedDifferential(100.0, 100.0, 0.0)
+
 
 
 
