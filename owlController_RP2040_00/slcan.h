@@ -7,6 +7,10 @@
    3. candump slcan0
 
 
+  SLCAN protocol:
+   example packet:  id=12C len=8 data=7C 80 2 3 0 0 C8 42
+   SLCAN:           t12C87C8002030000C842  
+
 */
 
 #ifndef SLCAN_H
