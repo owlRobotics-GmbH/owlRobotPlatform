@@ -1,5 +1,12 @@
 /*
   CAN-over-serial protocol (SLCAN)
+
+  Run this on your connected Linux machine to start and test the CAN bridge:
+   1. sudo slcand -o -s8 -t hw -S 1000000 /dev/ttyACM0      (replace with USB device path)
+   2. sudo ip link set up slcan0
+   3. candump slcan0
+
+
 */
 
 #ifndef SLCAN_H
