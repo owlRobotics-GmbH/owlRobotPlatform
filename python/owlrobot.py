@@ -260,8 +260,8 @@ class Robot():
         #print('sendCanData=', frame, 'msgId=', msgId, 'sourceNodeId=', bin(MY_NODE_ID), 'destNodeId=', bin(destNodeId), 'cmd=', bin(cmd), 
         #    'val=', bin(val), 'data=', data)
         
-        #for data in frame:
-        #    print(bin(data))
+        #for d in frame:
+        #    print(hex(ord(d)))
 
         #frame = [0x7c,0xe0,0x02,0x1d,0x91,0x90,0x90,0xbd]
 
@@ -335,7 +335,7 @@ if __name__ == "__main__":
             robot.motorSpeedDifferential(-100.0, -100.0, 0.0)
         else:
             robot.motorSpeedDifferential(100.0, 100.0, 0.0)
-
-
+        
+        robot.requestBatteryVoltage()
 
 

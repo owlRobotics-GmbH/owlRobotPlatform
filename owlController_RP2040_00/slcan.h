@@ -11,6 +11,9 @@
    example packet:  id=12C len=8 data=7C 80 2 3 0 0 C8 42
    SLCAN:           t12C87C8002030000C842  
 
+   example packet:  id=7C0 len=2 data=01 02 
+   SLCAN:           t7C020102  
+
 */
 
 #ifndef SLCAN_H
