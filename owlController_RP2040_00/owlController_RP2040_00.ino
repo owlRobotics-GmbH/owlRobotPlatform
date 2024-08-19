@@ -160,7 +160,7 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
        
-      robot.slcan.run();    
+      robot.slcan.run();     // CAN-USB-bridge
       //can.run();  // CAN packet receiver (FIFO)    
       robot.processReceivedPackets();  // process received CAN packets
       stateTimer[0]=millis()+1; 
