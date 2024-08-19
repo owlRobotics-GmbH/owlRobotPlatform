@@ -51,16 +51,20 @@ class MyCanDriver: public owlDriveCAN {
     };
 
     // if we received a CAN packet via CAN interface, send it to all owlDrives
+    void onPacketReceived(unsigned long id, int len, unsigned char data[8], bool enableUsbBridge = true) override {
+        if (enableUsbBridge) aRobot->slcan.onCanReceived(id, len, data);      // CAN-USB-bridge
+        aRobot->control.onCanReceived(id, len, data);      // owlControl PCB (CAN node)
+        aRobot->leftMotor.onCanReceived(id, len, data);    // owlDrive motor (CAN node)
+        aRobot->rightMotor.onCanReceived(id, len, data);   // owlDrive motor (CAN node)
+        aRobot->sprayMotor.onCanReceived(id, len, data);   // owlDrive motor (CAN node)          
+    }
+
     void processReceivedPackets(robot *aRobot){
       can_frame_t rx;
       while (can.read(rx)){	
         //Serial.print("New frame from ID: ");
         //Serial.println(rx.can_id);
-        aRobot->slcan.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // CAN-USB-bridge
-        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // owlControl PCB (CAN node)
-        aRobot->leftMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);    // owlDrive motor (CAN node)
-        aRobot->rightMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)
-        aRobot->sprayMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)          
+        onPacketReceived(rx.can_id, rx.can_dlc, rx.data);
       }
     }
     void setRobot(robot *aRobot){

@@ -60,6 +60,8 @@ class owlDriveCAN
   public:
     // owlDrive wants to send a CAN packet - send it via your CAN interface 
     virtual void sendPacket(unsigned long id, int len, unsigned char data[8], bool enableUsbBridge = true) = 0;
+    virtual void onPacketReceived(unsigned long id, int len, unsigned char data[8], bool enableUsbBridge = true) = 0;
+
 };
 
 

@@ -186,6 +186,7 @@ void SLCAN::send_canmsg(char *buf)
       //}
       //Serial.println();
       canDriver->sendPacket(msg_id[0], hlen, msg_data, false);
+      canDriver->onPacketReceived(msg_id[0], hlen, msg_data, false);
       //while (!Canbus.message_tx(&msg)) ;
     }
 
