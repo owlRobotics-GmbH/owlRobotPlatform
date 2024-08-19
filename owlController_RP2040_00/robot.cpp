@@ -39,7 +39,7 @@ class MyCanDriver: public owlDriveCAN {
     } 
 
     // send packet via CAN interface
-    void sendPacket(unsigned long id, int len, unsigned char data[8]) override {
+    void sendPacket(unsigned long id, int len, unsigned char data[8], bool enableUsbBridge = true) override {
       can_frame_t buf;
       buf.can_id = id;    
       buf.can_dlc = len;
@@ -47,7 +47,7 @@ class MyCanDriver: public owlDriveCAN {
       //Serial.print("sendPacket ");
       //Serial.println(id);
       can.write(buf);
-      aRobot->slcan.onCanReceived(id, len, data);      // CAN-USB-bridge
+      if (enableUsbBridge) aRobot->slcan.onCanReceived(id, len, data);      // CAN-USB-bridge
     };
 
     // if we received a CAN packet via CAN interface, send it to all owlDrives
