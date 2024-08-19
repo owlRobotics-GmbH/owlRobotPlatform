@@ -8,7 +8,7 @@
 #include "mcp2515.h"
 
 
-#define CAN_FIFO_FRAMES_RX 2000
+#define CAN_FIFO_FRAMES 1000
 
 
 
@@ -20,6 +20,18 @@ typedef struct can_frame_t {
         unsigned long msecs;   // timestamp milliseconds
 } can_frame_t;
 
+class FIFO
+{
+  public:
+    unsigned long frameCounter = 0;
+    bool available();  
+    bool read(can_frame_t &frame);  
+    bool write(can_frame_t frame);
+  private:
+    int fifoStart = 0;
+    int fifoEnd = 0;
+    can_frame_t fifo[CAN_FIFO_FRAMES];
+};
 
 class CAN
 {
@@ -32,10 +44,9 @@ class CAN
     bool write(can_frame_t frame);
     bool run();
   private:
+    FIFO rxFifo;
+    FIFO txFifo;    
     MCP2515 *can0 = 0;
-    can_frame_t fifoRx[CAN_FIFO_FRAMES_RX];
-    int fifoRxStart = 0;
-    int fifoRxEnd = 0;
 };
 
 extern CAN can;
