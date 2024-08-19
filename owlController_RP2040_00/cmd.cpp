@@ -12,7 +12,7 @@ extern Funkt myF;
 extern joystick joystk;
 
 
-#define DEBUG 1
+//#define DEBUG 1
 
 cmd::cmd(){}
 

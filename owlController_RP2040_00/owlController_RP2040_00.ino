@@ -31,10 +31,14 @@ Arduino libraries to install:
 #include "mcp2515.h"
 #include "NeoPix.h"
 #include "owlcontrol.h"
+#include "watchdog.h"
+#include "can.h"
 
+/*
 extern "C" {
   #include <hardware/watchdog.h>
 };
+*/
 
 #define blueLED 3
 #define IntCAN 20
@@ -50,6 +54,7 @@ joystick joystk;
 robot robot;
 NeoPix neopix ;
 extern owlDrive owlDrive;
+Watchdog watchdog;
 
 ComParser comParser(&Serial);
 //mpu mpu;
@@ -72,15 +77,18 @@ String picoID = "";
 void setup() {
   delay (150);
   Serial.begin(115200);
-  Serial.print("start Setup SW Version : ");
-  Serial.println(VERS);
+  watchdog.begin();
+  //Serial.print("start Setup SW Version : ");
+  //Serial.println(VERS);
   pinMode(IntCAN,INPUT);  // Interrupt oin CAN
-  if (watchdog_caused_reboot()) {
+  /*if (watchdog_caused_reboot()) {
         printf("Rebooted by Watchdog!\n");
     } else {
         printf("Clean boot\n");
     }
+  */
 
+  can.begin();
   //Wire.setClock(400000);
   Wire.setClock(100000);  
   Wire.begin();
@@ -95,10 +103,10 @@ void setup() {
   delay (50);
   myF.extPieper(0);
   myF.anaMux(8);
-  Serial.println("Setup done");
+  //Serial.println("Setup done");
   // default: 10 bit
   analogReadResolution(ADC_Resulution);
-  watchdog_enable(1500, 1);
+  //watchdog_enable(1500, 1);
   //mpu.begin();  //does not work jet
 
 
@@ -115,13 +123,20 @@ void setup() {
   for (int i=0; i < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; i++){
       hash = hash * 37 + uid.id[i];    
   }
-  Serial.print("pico id:");  
+  /*Serial.print("pico id:");  
   Serial.print(boardIDDesc);
   Serial.print(" ");
   Serial.print(hash);
-  Serial.println();
+  Serial.println();*/
   picoID = boardIDDesc;
   // ------------------------------------------------------------------    
+
+  delay(3000);  
+  //watchdog.dumpInfo();
+  // start 2nd core 
+  //Serial.print("starting 2nd core...");
+  multicore_launch_core1(core1_entry); 
+  watchdog.enable();
 }
 
 void loop() {
@@ -145,6 +160,8 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
        
+      robot.slcan.run();    
+      //can.run();  // CAN packet receiver (FIFO)    
       robot.processReceivedPackets();  // process received CAN packets
       stateTimer[0]=millis()+1; 
       //Serial.print(".");
@@ -197,7 +214,8 @@ void loop() {
    if(maxTime<=(endTimer-startTimer)) maxTime=endTimer-startTimer;
    //Serial.print ("max Time in uSek.: "); Serial.print (maxTime);
    //Serial.print ("Durchlauf in uSek.: "); Serial.println (endTimer-startTimer);
-  watchdog_update();
+  //watchdog_update();
+  //watchdog.resetTimeout();
 
 //NeoPixel example
   if (millis()> MotorStatTimer){  
@@ -235,5 +253,23 @@ void loop() {
 }
 
 
+// 2nd core loop 
+// https://github.com/arduino/ArduinoCore-mbed/issues/217
+// https://forums.raspberrypi.com/viewtopic.php?t=302472
+// https://hackaday.io/page/9880-raspberry-pi-pico-multicore-adventures
+
+void core1_entry(){
+  unsigned long nextMiscTime = 0;
+  while (true){
+    can.run();  // CAN packet receiver (FIFO)
+    if (millis() > nextMiscTime){
+      nextMiscTime = millis() + 500;
+      //watchdog_update();
+      watchdog.resetTimeout();                               
+    }
+    //delay(1);
+  }
+}
 
   
+

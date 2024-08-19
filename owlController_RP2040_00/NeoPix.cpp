@@ -54,7 +54,7 @@ void NeoPix::NeoPixel_scene(int sceneNo,float Pix_brightness ){
         }
       }
        else strip.neoPixelFill(int(125*Pix_brightness),int(125*Pix_brightness),0, true); 
-     Serial.println("Blinker links"); 
+     //Serial.println("Blinker links"); 
     break; 
     case 7:   // 
     if (LED_COUNT ==144){
@@ -67,7 +67,7 @@ void NeoPix::NeoPixel_scene(int sceneNo,float Pix_brightness ){
       }
      else strip.neoPixelFill(int(125*Pix_brightness),0,int(125*Pix_brightness), true);  
       
-      Serial.println("Blinker rechts");
+      //Serial.println("Blinker rechts");
     break; 
     case 10:   // clear strip, all pix are red green blue LEDs runtime ~4ms with 70 NeoPixel
     for(i=0;i<LED_COUNT;i=i+3){

@@ -12,7 +12,7 @@
 #include "can.h"
 #include "owldrive.h"
 #include "owlcontrol.h"
-
+#include "slcan.h"
 
 
 class robot {
@@ -39,6 +39,7 @@ class robot {
     owlDrive rightMotor;    // owlDrive motor (CAN node)
     owlDrive sprayMotor;    // owlDrive motor (CAN node)
     owlControl control;     // owlControl PCB (CAN node)
+    SLCAN slcan;  // CAN-USB-bridge
   private:
     bool plotDescr;
     unsigned long nextRequestTime; 

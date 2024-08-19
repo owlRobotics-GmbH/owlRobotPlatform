@@ -153,13 +153,21 @@ class Robot():
         self.name = aname        
         print(self.name, ': init')
         try:
-            self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
-            #notifier = can.Notifier(self.bus, [can.Printer()])
+            print('trying slcan0...')
+            self.bus = can.interface.Bus(channel='slcan0', bustype='socketcan', receive_own_messages=True)
             notifier = can.Notifier(self.bus,[self.onCanReceived])
+            print('ok')
         except:
-            self.bus = None
-            print('error opening CAN bus')
-            pass
+            try:
+                print('trying can0...')
+                self.bus = can.interface.Bus(channel='can0', bustype='socketcan', receive_own_messages=True)
+                #notifier = can.Notifier(self.bus, [can.Printer()])
+                notifier = can.Notifier(self.bus,[self.onCanReceived])
+                print('ok')
+            except:
+                self.bus = None
+                print('error opening CAN bus')
+                pass
 
         # default wheel dimensions        
         self.wheelDiameter = 0          # wheel diameter (m) 
@@ -197,6 +205,8 @@ class Robot():
 
         
     def onCanReceived(self, can):
+        if len(can.data) < 4:
+            return
         node = CStruct.from_buffer_copy(can.data) # first two bytes src/dst address
         cmd = can.data[2]
         val = can.data[3]
@@ -311,10 +321,10 @@ if __name__ == "__main__":
     robot = Robot()
 
     while True:
-        time.sleep(1.0)
+        time.sleep(0.5)
         #robot.motorSpeedDifferential(100.0, 100.0, 100.0)
         #robot.motorSpeedDifferential(30.0, 30.0, 30.0)
-        robot.motorSpeedDifferential(-20.0, -20.0, 0.0)
+        robot.motorSpeedDifferential(-100.0, -100.0, 0.0)
         
 
 

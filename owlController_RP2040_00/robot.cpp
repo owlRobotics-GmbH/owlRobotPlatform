@@ -6,9 +6,10 @@
 #include "comparser.h"
 #include "config.h"
 #include "cmd.h"
-#include "mcp2515.h"
 
 //#define DEBUG 1
+
+//#define COM_PARSER 1
 
 #define MOTOR_LEFT_NODE_ID  1   // owlDrive motor (CAN node)
 #define MOTOR_RIGHT_NODE_ID 2   // owlDrive motor (CAN node)
@@ -33,37 +34,37 @@ float xExp = 0;
 // this CAN driver connects CAN packet interface with owlDrives
 class MyCanDriver: public owlDriveCAN {
   public:       
-    MCP2515 can0;
-    MyCanDriver() : can0(spi0, 17, 19, 16, 18, 10000000) {
-      //Initialize interface
-      can0.reset();
-      can0.setBitrate(CAN_1000KBPS, MCP_16MHZ);
-      //can0.setBitrate(CAN_1000KBPS, MCP_8MHZ);    
-      can0.setNormalMode();
+    robot *aRobot = NULL;
+    MyCanDriver() {
     } 
 
     // send packet via CAN interface
     void sendPacket(unsigned long id, int len, unsigned char data[8]) override {
-      struct can_frame buf;
+      can_frame_t buf;
       buf.can_id = id;    
       buf.can_dlc = len;
       for (int i=0; i < 8; i++) buf.data[i] = data[i];
       //Serial.print("sendPacket ");
       //Serial.println(id);
-      can0.sendMessage(&buf);
+      can.write(buf);
+      aRobot->slcan.onCanReceived(id, len, data);      // CAN-USB-bridge
     };
 
     // if we received a CAN packet via CAN interface, send it to all owlDrives
     void processReceivedPackets(robot *aRobot){
-      struct can_frame rx;
-      while (can0.readMessage(&rx) == MCP2515::ERROR_OK) {
+      can_frame_t rx;
+      while (can.read(rx)){	
         //Serial.print("New frame from ID: ");
         //Serial.println(rx.can_id);
+        aRobot->slcan.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // CAN-USB-bridge
+        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // owlControl PCB (CAN node)
         aRobot->leftMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);    // owlDrive motor (CAN node)
         aRobot->rightMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)
         aRobot->sprayMotor.onCanReceived(rx.can_id, rx.can_dlc, rx.data);   // owlDrive motor (CAN node)          
-        aRobot->control.onCanReceived(rx.can_id, rx.can_dlc, rx.data);      // owlControl PCB (CAN node)
       }
+    }
+    void setRobot(robot *aRobot){
+      this->aRobot = aRobot;
     }
 };
 
@@ -95,8 +96,9 @@ robot::robot() :
 }
 
 void robot::begin(){
-
- }
+  canDriver.setRobot(this);
+  slcan.begin(&canDriver);
+}
 
 
 void robot::processReceivedPackets(){
@@ -137,20 +139,22 @@ void robot::roboter(){
   String cmd;
 
   //***************************     AT command handling  ****************************      
-  while (comParser.cmdAvailable(cmd)){
-    #ifdef DEBUG
-      Serial.print("CMD: ");
-      Serial.println(cmd);
-    #endif
-    if (cmd.startsWith("AT+D")) debugOutput = !debugOutput;       
-    else if (cmd.startsWith("AT+V")) cmdAT.cmdV(); 
-    else if (cmd.startsWith("AT+M"))cmdAT.cmdM();
-    else if (cmd.startsWith("AT+S"))cmdAT.cmdS();
-    else if (cmd.startsWith("AT+J"))cmdAT.cmdJ();
-    else if (cmd.startsWith("AT+B"))cmdAT.cmdB();
-    else if (cmd.startsWith("AT+P"))cmdAT.cmdP();
-    else cmdAT.NOcmd();
-  }
+  #ifdef COM_PARSER
+    while (comParser.cmdAvailable(cmd)){
+      #ifdef DEBUG
+        Serial.print("CMD: ");
+        Serial.println(cmd);
+      #endif
+      if (cmd.startsWith("AT+D")) debugOutput = !debugOutput;       
+      else if (cmd.startsWith("AT+V")) cmdAT.cmdV(); 
+      else if (cmd.startsWith("AT+M"))cmdAT.cmdM();
+      else if (cmd.startsWith("AT+S"))cmdAT.cmdS();
+      else if (cmd.startsWith("AT+J"))cmdAT.cmdJ();
+      else if (cmd.startsWith("AT+B"))cmdAT.cmdB();
+      else if (cmd.startsWith("AT+P"))cmdAT.cmdP();
+      else cmdAT.NOcmd();
+    }
+  #endif
 
   //if ((allowManualCtl) && (joystickButtonPressed)){
   allowManualCtl=0;         // overright
@@ -233,6 +237,8 @@ void robot::roboter(){
     speed_spray = 0;
   }
 
+  //leftMotor.sendVelocity(100);
+    
   // do we have control over the motors?
   if (weHaveControl){
     // send speed to motor
