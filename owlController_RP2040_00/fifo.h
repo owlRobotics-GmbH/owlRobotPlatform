@@ -16,40 +16,34 @@
 template<typename TData, uint16_t TLen>
 class FiFo
 {
-  public:
-    unsigned long frameCounter = 0;
+  public:    
     bool available(){
-      	return (fifoStart != fifoEnd); 
+      	return (fifoRead != fifoWrite); 
     }  
+    
     bool read(TData &frame){
       if (!available ()){
         return false;
       }
-  	  frame = fifo[fifoStart];
-	    if (fifoStart == TLen-1) fifoStart = 0; 
-	      else fifoStart++;
+  	  frame = fifo[fifoRead = (fifoRead + 1) % TLen];
       return true;
     }
+
     bool write(TData frame){
-        int nextFifoEnd = fifoEnd;
-    	if (nextFifoEnd == TLen-1) nextFifoEnd = 0; 
-	      else nextFifoEnd++;
-	
-      if (nextFifoEnd != fifoStart){
-        // no fifoRx overflow 
-        fifo[fifoEnd] = frame;
-        fifoEnd = nextFifoEnd;
-        frameCounter++;
-        return true;
-      } else {
-        // fifoRx overflow
-        fifoEnd = fifoStart;
-        return false;
-      }  
+       uint16_t tmpWrite = (fifoWrite + 1) % TLen;
+        if (tmpWrite != fifoRead)
+        {
+          fifo[tmpWrite] = frame;
+          fifoWrite = tmpWrite;
+          return true;
+        } else {
+          return false;
+        }
     }
+
   protected:
-    int fifoStart = 0;
-    int fifoEnd = 0;
+    uint16_t fifoRead = 0;
+    uint16_t fifoWrite = 0;
     TData fifo[TLen];
 };
 
