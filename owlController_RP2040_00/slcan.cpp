@@ -311,7 +311,7 @@ void SLCAN::xfer_tty2can()
   static char cmdbuf[CMD_LEN];
   static int cmdidx = 0;
 
-  if ((length = Serial.available()) > 0) {
+  while ((length = Serial.available()) > 0) {
     for (int i = 0; i < length; i++) {
       char val = Serial.read();
       cmdbuf[cmdidx++] = val;
