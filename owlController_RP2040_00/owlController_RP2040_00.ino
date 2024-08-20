@@ -215,7 +215,7 @@ void loop() {
    //Serial.print ("max Time in uSek.: "); Serial.print (maxTime);
    //Serial.print ("Durchlauf in uSek.: "); Serial.println (endTimer-startTimer);
   //watchdog_update();
-  //watchdog.resetTimeout();
+  watchdog.resetTimeout();
 
 //NeoPixel example
   if (millis()> MotorStatTimer){  
@@ -262,11 +262,11 @@ void core1_entry(){
   unsigned long nextMiscTime = 0;
   while (true){
     can.run();  // CAN packet receiver (FIFO)
-    if (millis() > nextMiscTime){
+    /*if (millis() > nextMiscTime){
       nextMiscTime = millis() + 500;
       //watchdog_update();
       watchdog.resetTimeout();                               
-    }
+    }*/
     //delay(1);
   }
 }
