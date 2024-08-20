@@ -160,9 +160,6 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
 
-      robot.slcan.run();     // process CAN-USB-bridge 
-
-      robot.processReceivedPackets();  // process received CAN packets
       
       if (robot.control.buzzerState) myF.extPieper(1);
         else myF.extPieper(0);
@@ -266,6 +263,9 @@ void core1_entry(){
     robot.slcan.fillRxFifo(); // USB packet receiver (FIFO)
     can.fillRxFifo(); // CAN packet receiver (FIFO)
     can.processTxFifo();  // CAN packet sender (FIFO)    
+
+    robot.slcan.run();     // process CAN-USB-bridge 
+    robot.processReceivedPackets();  // process received CAN packets
 
     /*if (millis() > nextMiscTime){
       nextMiscTime = millis() + 500;
