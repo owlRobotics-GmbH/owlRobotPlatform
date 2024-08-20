@@ -161,20 +161,18 @@ void loop() {
    if (stateTimer[0]<millis()){
        
       robot.slcan.run();     // process CAN-USB-bridge 
-
       robot.processReceivedPackets();  // process received CAN packets
+      if (robot.control.buzzerState) myF.extPieper(1);
+        else myF.extPieper(0);
+
       stateTimer[0]=millis()+1; 
-      //Serial.print(".");
+      //Serial.print(".");   
    }
     
    if (stateTimer[1]<millis()){
       robot.roboter();
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
-      
-
-      if (robot.control.buzzerState) myF.extPieper(1);
-        else myF.extPieper(0);
-     
+           
       myF.OUT_Pin[1]=!myF.IN_Pin[1];
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];
