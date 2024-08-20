@@ -32,11 +32,11 @@ bool CAN::write(can_frame_t frame){
 }
 
 
-bool CAN::run(){
+void CAN::fillRxFifo(){
 	can_frame_t frame;		
   struct can_frame fr; 
 
-  if (can0 == 0) return false;  
+  if (can0 == 0) return;  
 
   while (true){
     MCP2515::ERROR err = can0->readMessage(&fr);
@@ -49,8 +49,16 @@ bool CAN::run(){
       rxFifo.write(frame);
     } else break;  
   }
+}
 
-  if (txFifo.read(frame)){
+
+void CAN::processTxFifo(){
+  can_frame_t frame;		
+  struct can_frame fr; 
+
+  if (can0 == 0) return;  
+
+  while (txFifo.read(frame)){
     fr.can_id = frame.can_id;
     fr.can_dlc = frame.can_dlc;
     for (int i=0; i < 8; i++) fr.data[i] = frame.data[i]; 
@@ -72,7 +80,5 @@ bool CAN::run(){
 
     can0->sendMessage(&fr);
   }
-	
-	return true;
 }
 

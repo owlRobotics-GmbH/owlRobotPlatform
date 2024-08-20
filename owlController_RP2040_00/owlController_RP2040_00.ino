@@ -160,8 +160,8 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
        
-      robot.slcan.run();     // CAN-USB-bridge
-      //can.run();  // CAN packet receiver (FIFO)    
+      robot.slcan.run();     // process CAN-USB-bridge 
+
       robot.processReceivedPackets();  // process received CAN packets
       stateTimer[0]=millis()+1; 
       //Serial.print(".");
@@ -262,7 +262,9 @@ void core1_entry(){
   unsigned long nextMiscTime = 0;
   while (true){
     robot.slcan.fillRxFifo(); // USB packet receiver (FIFO)
-    can.run();  // CAN packet receiver (FIFO)
+    can.fillRxFifo(); // CAN packet receiver (FIFO)
+    can.processTxFifo();  // CAN packet sender (FIFO)    
+
     /*if (millis() > nextMiscTime){
       nextMiscTime = millis() + 500;
       //watchdog_update();

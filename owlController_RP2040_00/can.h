@@ -31,7 +31,8 @@ class CAN
     bool available();  
     bool read(can_frame_t &frame);  
     bool write(can_frame_t frame);
-    bool run();
+    void fillRxFifo();
+    void processTxFifo();
   private:
     FiFo<can_frame_t, CAN_FIFO_FRAMES> rxFifo;
     FiFo<can_frame_t, CAN_FIFO_FRAMES> txFifo;
