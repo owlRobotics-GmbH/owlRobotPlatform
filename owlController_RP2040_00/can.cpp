@@ -86,6 +86,18 @@ bool CAN::run(){
 
   if (can0 == 0) return false;  
 
+  while (true){
+    MCP2515::ERROR err = can0->readMessage(&fr);
+      
+    if (err == MCP2515::ERROR_OK) {
+      frame.can_id = fr.can_id;
+      frame.can_dlc = fr.can_dlc;
+      for (int i=0; i < 8; i++) frame.data[i] = fr.data[i]; 
+
+      rxFifo.write(frame);
+    } else break;  
+  }
+
   if (txFifo.read(frame)){
     fr.can_id = frame.can_id;
     fr.can_dlc = frame.can_dlc;
@@ -108,19 +120,6 @@ bool CAN::run(){
 
     can0->sendMessage(&fr);
   }
-
-  
-  MCP2515::ERROR err = can0->readMessage(&fr);
-  
-  if (err == MCP2515::ERROR_OK) {
-    frame.can_id = fr.can_id;
-    frame.can_dlc = fr.can_dlc;
-    for (int i=0; i < 8; i++) frame.data[i] = fr.data[i]; 
-
-    rxFifo.write(frame);
-  }
-
-	
 	
 	return true;
 }
