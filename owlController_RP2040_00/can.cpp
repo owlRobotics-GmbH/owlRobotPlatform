@@ -38,17 +38,15 @@ void CAN::fillRxFifo(){
 
   if (can0 == 0) return;  
 
-  while (true){
-    MCP2515::ERROR err = can0->readMessage(&fr);
-      
-    if (err == MCP2515::ERROR_OK) {
-      frame.can_id = fr.can_id;
-      frame.can_dlc = fr.can_dlc;
-      for (int i=0; i < 8; i++) frame.data[i] = fr.data[i]; 
+  MCP2515::ERROR err = can0->readMessage(&fr);
+    
+  if (err == MCP2515::ERROR_OK) {
+    frame.can_id = fr.can_id;
+    frame.can_dlc = fr.can_dlc;
+    for (int i=0; i < 8; i++) frame.data[i] = fr.data[i]; 
 
-      rxFifo.write(frame);
-    } else break;  
-  }
+    rxFifo.write(frame);
+  } 
 }
 
 
@@ -58,7 +56,7 @@ void CAN::processTxFifo(){
 
   if (can0 == 0) return;  
 
-  while (txFifo.read(frame)){
+  if (txFifo.read(frame)){
     fr.can_id = frame.can_id;
     fr.can_dlc = frame.can_dlc;
     for (int i=0; i < 8; i++) fr.data[i] = frame.data[i]; 

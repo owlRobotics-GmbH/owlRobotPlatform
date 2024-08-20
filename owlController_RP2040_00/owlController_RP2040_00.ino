@@ -159,16 +159,18 @@ void loop() {
 
    // important tasks
    if (stateTimer[0]<millis()){
-       
+
       robot.slcan.run();     // process CAN-USB-bridge 
+
       robot.processReceivedPackets();  // process received CAN packets
+      
       if (robot.control.buzzerState) myF.extPieper(1);
         else myF.extPieper(0);
 
       stateTimer[0]=millis()+1; 
-      //Serial.print(".");   
+      //Serial.print(".");
    }
-    
+
    if (stateTimer[1]<millis()){
       robot.roboter();
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
@@ -187,6 +189,7 @@ void loop() {
    } 
 
    if (stateTimer[5]<millis()){
+      watchdog.resetTimeout();
       robot.control.batteryVoltage = myF.getBatteryVoltage();
       robot.control.setRainState( myF.rain() );
       digitalWrite(blueLED,!digitalRead(blueLED)); 
@@ -200,7 +203,8 @@ void loop() {
       //Serial.println("run done");
       stateTimer[8]=millis()+5000;
     
-   }   
+   } 
+
 /*   if (stateTimer[9]<millis()){
      if(yxc++>2)  while(1){           // WD Test
         Serial.println ("WD Trap!! ");
@@ -213,9 +217,9 @@ void loop() {
    //Serial.print ("max Time in uSek.: "); Serial.print (maxTime);
    //Serial.print ("Durchlauf in uSek.: "); Serial.println (endTimer-startTimer);
   //watchdog_update();
-  watchdog.resetTimeout();
 
 //NeoPixel example
+  
   if (millis()> MotorStatTimer){  
     MotorStatTimer = millis() + 750;
     //Serial.print("left :  ");

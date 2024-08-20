@@ -311,20 +311,18 @@ void SLCAN::xfer_tty2can()
   static char cmdbuf[CMD_LEN];
   static int cmdidx = 0;
 
-  while ((length = rxFifo.available()) > 0) {
-    for (int i = 0; i < length; i++) {
-      char val = 0;
-      rxFifo.read(val);
-      cmdbuf[cmdidx++] = val;
+  while (rxFifo.available()) {
+    char val = 0;
+    rxFifo.read(val);
+    cmdbuf[cmdidx++] = val;
 
-      if (cmdidx == CMD_LEN) { // command is too long
-        slcan_nack();
-        cmdidx = 0;
-      } else if (val == '\r') { // end of command
-        cmdbuf[cmdidx] = '\0';
-        pars_slcancmd(cmdbuf);
-        cmdidx = 0;
-      }
+    if (cmdidx == CMD_LEN) { // command is too long
+      slcan_nack();
+      cmdidx = 0;
+    } else if (val == '\r') { // end of command
+      cmdbuf[cmdidx] = '\0';
+      pars_slcancmd(cmdbuf);
+      cmdidx = 0;
     }
   }
 }
@@ -337,8 +335,8 @@ void SLCAN::run() {
 
 
 void SLCAN::fillRxFifo(){
-  while (Serial.available()){
-    rxFifo.write(Serial.read());
+  if (Serial.available() > 0) {
+    rxFifo.write(Serial.read());    
   }
 }
 
