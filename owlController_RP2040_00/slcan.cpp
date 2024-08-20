@@ -311,9 +311,10 @@ void SLCAN::xfer_tty2can()
   static char cmdbuf[CMD_LEN];
   static int cmdidx = 0;
 
-  while ((length = Serial.available()) > 0) {
+  while ((length = rxFifo.available()) > 0) {
     for (int i = 0; i < length; i++) {
-      char val = Serial.read();
+      char val = 0;
+      rxFifo.read(val);
       cmdbuf[cmdidx++] = val;
 
       if (cmdidx == CMD_LEN) { // command is too long
@@ -332,5 +333,12 @@ void SLCAN::xfer_tty2can()
 void SLCAN::run() {
   //xfer_can2tty();
   xfer_tty2can();
+}
+
+
+void SLCAN::fillRxFifo(){
+  while (Serial.available()){
+    rxFifo.write(Serial.read());
+  }
 }
 

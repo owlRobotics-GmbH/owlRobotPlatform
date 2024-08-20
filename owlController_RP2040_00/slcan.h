@@ -21,13 +21,16 @@
 
 #include <Arduino.h>
 #include "owlcan.h"
+#include "fifo.h"
 
+#define SERIAL_FIFO_FRAMES 1000
 
 class SLCAN
 {
   public:
     void begin(owlDriveCAN *aCanDriver);
     void run();
+    void fillRxFifo();
     void onCanReceived(int id, int len, unsigned char canData[8]);    
   protected:
     owlDriveCAN *canDriver; // driver to send/receive data
@@ -39,7 +42,8 @@ class SLCAN
     void slcan_nack();
     void send_canmsg(char *buf);
     void pars_slcancmd(char *buf);
-    void xfer_tty2can();
+    void xfer_tty2can();    
+    FiFo<char, SERIAL_FIFO_FRAMES> rxFifo;
     int g_can_speed = 0; // default: 1000k
     int g_ts_en = 0;
 };
