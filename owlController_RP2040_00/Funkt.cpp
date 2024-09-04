@@ -94,6 +94,16 @@ float Funkt::getBatteryVoltage(){
   return batteryVoltage;
 }
 
+float Funkt::getChargerVoltage(){
+  float adcVolt = ADC_read(0);
+  chargerVoltage = adcVolt * 10.0 / 90.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
+    #ifdef DEBUG
+      Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  mV ");
+    #endif
+  return chargerVoltage;
+}
+
+
 void Funkt::LoadPowerPWM(int perct){
   PWM_load->setPWM(LoadPowerPWM_Pin, 100, perct);
 }

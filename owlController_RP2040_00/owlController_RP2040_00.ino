@@ -188,6 +188,7 @@ void loop() {
    if (stateTimer[5]<millis()){
       watchdog.resetTimeout();
       robot.control.batteryVoltage = myF.getBatteryVoltage();
+      robot.control.chargerVoltage = myF.getChargerVoltage();
       robot.control.setRainState( myF.rain() );
       digitalWrite(blueLED,!digitalRead(blueLED)); 
       stateTimer[5]=millis()+1000;

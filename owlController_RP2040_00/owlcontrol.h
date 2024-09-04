@@ -22,6 +22,7 @@ namespace owlctl {
       can_val_stop_button_state = 4, // STOP button state
       can_val_buzzer_state      = 5, // buzzer state
       can_val_rain_state        = 6, // rain state
+      can_val_charger_voltage   = 7, // charger voltage
   };
 
   // motor driver error values
@@ -48,6 +49,7 @@ class owlControl
     int operatorNodeId;  // node ID used for operator
     owlctl::errorType_t error;     // error status (see error constants above)
     float batteryVoltage;  // volts
+    float chargerVoltage;  // volts
     byte bumperState;      // bumper state
     bool stopButtonState;  // STOP button state
     bool buzzerState;      // buzzer state
@@ -64,6 +66,7 @@ class owlControl
 
     void requestError();
     void requestBatteryVoltage();
+    void requestChargerVoltage();    
     void requestBumperState();
     void requestStopButtonState();
     void requestBuzzerState();
@@ -71,6 +74,7 @@ class owlControl
 
     void sendError(int destNodeId, owlctl::errorType_t error);
     void sendBatteryVoltage(int destNodeId, float value);
+    void sendChargerVoltage(int destNodeId, float value);   
     void sendBumperState(int destNodeId, byte value);
     void sendStopButtonState(int destNodeId, bool value);
     void sendBuzzerState(int destNodeId, bool value);
