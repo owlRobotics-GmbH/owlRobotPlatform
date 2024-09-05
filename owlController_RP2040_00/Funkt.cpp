@@ -96,7 +96,7 @@ float Funkt::getBatteryVoltage(){
 
 float Funkt::getChargerVoltage(){
   float adcVolt = ADC_read(0);
-  chargerVoltage = adcVolt * 10.0 / 1.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
+  chargerVoltage = adcVolt * 10.0 / 10000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
     #ifdef DEBUG
       Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  mV ");
     #endif
