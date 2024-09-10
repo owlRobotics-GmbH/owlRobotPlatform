@@ -87,7 +87,7 @@ bool Funkt::rain(){
 
 float Funkt::getBatteryVoltage(){
   float adcVolt = ADC_read(7);
-  batteryVoltage = adcVolt * 10.0 / 290.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
+  batteryVoltage = adcVolt/10.0 * 340.0 / 1000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2 
     #ifdef DEBUG
       Serial.print("  batV: ");Serial.print(batteryVoltage);Serial.println("  mV ");
     #endif
@@ -96,7 +96,7 @@ float Funkt::getBatteryVoltage(){
 
 float Funkt::getChargerVoltage(){
   float adcVolt = ADC_read(0);
-  chargerVoltage = adcVolt * 10.0 / 10000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2=10/290*adcVolt 
+  chargerVoltage = adcVolt/10.0 * 100.0 / 1000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2 
     #ifdef DEBUG
       Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  mV ");
     #endif
