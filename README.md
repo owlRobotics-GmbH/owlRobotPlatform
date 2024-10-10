@@ -20,9 +20,10 @@ Supported/tested platforms:
 
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
 
+
 3. Hoverboard motors (4 wheel hub motors)
-![1715422181499_small](https://github.com/user-attachments/assets/17ac3450-d8f3-4c64-96bd-36eba9b7ffd6)
-![1715200960151_small](https://github.com/user-attachments/assets/91df2c73-16d4-4bae-a640-aadbe2b062b7)
+
+![1715422181499_small](https://github.com/user-attachments/assets/17ac3450-d8f3-4c64-96bd-36eba9b7ffd6) ![1715200960151_small](https://github.com/user-attachments/assets/91df2c73-16d4-4bae-a640-aadbe2b062b7)
 
 https://www.youtube.com/watch?v=J3IJpunduYg
 
