@@ -1,9 +1,9 @@
 # owlRobotPlatform
-'owlRobotics robot platform' is an 'universal hardware platform' for your robotics projects. It contains:
+'owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
 
-1. owlControl: a PCB with an integrated Raspberry Pico (RP2040) with an integrated CAN bus interface. Optionally, it contains a breakout for a Raspberry PI (the 'brain'). The Raspberry, the Pico and your own hardware can use the CAN bus for communication.
+1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with an integrated **CAN bus** interface. Optionally, it contains a breakout for a **Raspberry PI** (the 'brain'). The Raspberry, the Pico and your own hardware can use the CAN bus for communication.
    
-2. owlDrive: motor drivers for brushless motors (BLDC) - it has an intetgrated CAN bus interface
+2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface.
 
 This repository contains  interface code and examples for the owlRobotics robot platform. 
 
