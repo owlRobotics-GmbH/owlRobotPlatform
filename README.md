@@ -21,7 +21,7 @@ Supported/tested platforms:
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
 
 
-3. 4WD DIY platform with hoverboard motors (4 wheel hub motors)
+3. DIY 4WD platform with hoverboard motors (4 wheel hub motors)
 
 ![1715422181499_small](https://github.com/user-attachments/assets/17ac3450-d8f3-4c64-96bd-36eba9b7ffd6) ![1715200960151_small](https://github.com/user-attachments/assets/61df8fdd-978a-47dc-8950-e3b4a34cb854)
 
