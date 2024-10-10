@@ -3,9 +3,9 @@
 
 1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with an integrated **CAN bus** interface. Optionally, it contains a breakout for a **Raspberry PI** (the 'brain'). The Raspberry, the Pico and your own hardware can use the CAN bus for communication.
    
-2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface.
+2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface.   
 
-This repository contains  interface code and examples for the owlRobotics robot platform. 
+This repository contains  interface code (App, Python etc.) and examples A for the owlRobotPlatform.  
 
 ![owlplatform](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/f4a7ead1-3a4a-428f-946e-b021bfd83857)
 
@@ -128,6 +128,9 @@ rostopic pub /cmd_vel geometry_msgs/Twist -r 3 -- '[0.1,0.0,0.0]' '[0.0, 0.0, 0.
 ```
 The motors should rotate forward (0.1 m/s).
 
+
+## Ardumower Sunray firmware
+The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. More details: https://github.com/Ardumower/Sunray
 
 
 
