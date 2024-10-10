@@ -5,6 +5,9 @@
    
 2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface.   
 
+NOTE: The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. More details: https://github.com/Ardumower/Sunray
+
+
 This repository contains  interface code (App, Python etc.) and examples A for the owlRobotPlatform.  
 
 ![owlplatform](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/f4a7ead1-3a4a-428f-946e-b021bfd83857)
