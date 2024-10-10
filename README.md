@@ -23,7 +23,8 @@ Supported/tested platforms:
 
 3. Hoverboard motors (4 wheel hub motors)
 
-![1715422181499_small](https://github.com/user-attachments/assets/17ac3450-d8f3-4c64-96bd-36eba9b7ffd6) ![1715200960151_small](https://github.com/user-attachments/assets/91df2c73-16d4-4bae-a640-aadbe2b062b7)
+![1715422181499_small](https://github.com/user-attachments/assets/17ac3450-d8f3-4c64-96bd-36eba9b7ffd6) ![1715200960151_small](https://github.com/user-attachments/assets/61df8fdd-978a-47dc-8950-e3b4a34cb854)
+
 
 https://www.youtube.com/watch?v=J3IJpunduYg
 
