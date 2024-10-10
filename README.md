@@ -3,7 +3,7 @@
 
 1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with an integrated **CAN bus** interface. Optionally, it contains a breakout for a **Raspberry PI** (the 'brain'). The Raspberry, the Pico and your own hardware can use the CAN bus for communication.
    
-2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface (More details: https://owlrobotics-store.company.site/products/owlDrive-c157373865) 
+2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface (More details: https://owlrobotics-store.company.site/products/) 
 
 NOTE: The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. More details: https://github.com/Ardumower/Sunray
 
