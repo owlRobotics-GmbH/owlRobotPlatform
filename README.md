@@ -18,10 +18,12 @@ Supported/tested platforms:
 
 2. Mecanum platform (4 wheel motors)
 
-3. Your custom robot platform (up to 63 motors)
-
-   
 ![Screenshot from 2024-05-01 08-29-33](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/41efcbc9-595b-408d-b5af-a34705f70225)
+
+3. Hoverboard motors (4 wheel hub motors)
+https://www.youtube.com/watch?v=J3IJpunduYg
+
+4. Your custom robot platform (up to 63 motors)
 
 
 Supported/tested hardware:
