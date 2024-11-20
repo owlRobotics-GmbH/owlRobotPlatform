@@ -99,7 +99,7 @@ sudo ./service.sh
 Please enter your choice: 
 ```
 
-and choose point 1   ('Start ble_server service')
+and choose point 1   ('Start ble_server service') to start the service or point 2 ('Stop ble_server service') to stop the service. 
 
 
 ## ROS interface
