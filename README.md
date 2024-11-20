@@ -38,7 +38,7 @@ https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smar
 
 
 
-## Python interface demo
+## Dabble App/Python interface demo
 
 Used Python libraries:
 * CAN bus communication: https://github.com/hardbyte/python-can
@@ -89,7 +89,7 @@ select: camera-based follow-me mode on/off
 start: toggle between sideways motion and rotation (only Mecanum platform)
 ```
 
-6. In order to install the demo Python script as a Linux (autostart) service:
+6. In order to install/uninstall the demo Python script as a Linux (autostart) service:
 
 ```
 sudo ./service.sh
