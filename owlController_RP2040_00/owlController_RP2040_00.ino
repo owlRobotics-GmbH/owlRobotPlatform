@@ -14,6 +14,7 @@ Arduino libraries to install:
 + Adafruit ILI9341 by Adafruit Version 1.5.12
 + Adafruit SSD1306 by Adafruit Version 2.5.7
 + Adafruit GFX by Adafruit Version 1.11.3 
++ Adafruit NeoPixel 1.10.6
 + RP2040_PWM by Khoi Hoang Version 1.3.1
 
 */
