@@ -2,6 +2,11 @@
 Only tested with legacy Arduino IDE v1.8.19 
 Arduino boards to install:
 + Raspberry Pi Pico/RP2040 by Earle F. Philhower, III version 2.0.3
+  https://github.com/earlephilhower/arduino-pico
+  Open up the Arduino IDE and go to File->Preferences.
+  In the dialog that pops up, enter the following URL in the "Additional Boards Manager URLs" field:
+       https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+
 
 Arduino libraries to install:
 + TCA9548A by Jonathan Dempsey Version 1.1.3
