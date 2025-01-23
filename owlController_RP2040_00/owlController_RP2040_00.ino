@@ -1,4 +1,5 @@
 /*
+Only tested with legacy Arduino IDE v1.8.19 
 Arduino boards to install:
 + Raspberry Pi Pico/RP2040 by Earle F. Philhower, III version 2.0.3
 
