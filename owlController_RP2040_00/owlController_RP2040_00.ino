@@ -216,7 +216,9 @@ void loop() {
    //Serial.print ("Durchlauf in uSek.: "); Serial.println (endTimer-startTimer);
   //watchdog_update();
 
-//NeoPixel example
+
+  /*
+  //NeoPixel example
   
   if (millis()> MotorStatTimer){  
     MotorStatTimer = millis() + 750;
@@ -250,6 +252,9 @@ void loop() {
       neopix.scene_default=0;
     }
   }
+  */
+
+
 }
 
 
@@ -261,12 +266,15 @@ void loop() {
 void core1_entry(){
   unsigned long nextMiscTime = 0;
   while (true){
+    
+    // ---- handling for Linux CAN-USB bridge (SLCAN) -------------
     robot.slcan.fillRxFifo(); // USB packet receiver (FIFO)
     can.fillRxFifo(); // CAN packet receiver (FIFO)
     can.processTxFifo();  // CAN packet sender (FIFO)    
 
     robot.slcan.run();     // process CAN-USB-bridge 
     robot.processReceivedPackets();  // process received CAN packets
+    // ----------------------------------------------------------
 
     /*if (millis() > nextMiscTime){
       nextMiscTime = millis() + 500;
