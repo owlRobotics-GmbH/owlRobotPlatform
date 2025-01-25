@@ -21,9 +21,11 @@ Arduino libraries to install:
 
 owlController (I/O PCB) wiring (PCB pins):
 
+(NOTE: all pins including ADC pins max 3.3v input !)
+
 ADC pin 3:
 ADC pin 2:
-ADC pin 1: charger voltage (charger detection)
+ADC pin 1: charger voltage divider (charger detection - use a voltage divider circuit to get down to 3.3v)
 
 IN pin 4:  BUMPER  (active-low)      
 IN pin 3:  STOP BUTTON  (active-high)
