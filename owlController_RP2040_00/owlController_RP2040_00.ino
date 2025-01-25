@@ -220,6 +220,26 @@ void loop() {
       robot.control.setRainState( myF.rain() );
       digitalWrite(blueLED,!digitalRead(blueLED)); 
       stateTimer[5]=millis()+1000;
+
+      /*
+      Serial.print("IN:");
+      Serial.print(myF.IN_Pin[1]);
+      Serial.print(",");      
+      Serial.print(myF.IN_Pin[2]);
+      Serial.print(",");      
+      Serial.print(myF.IN_Pin[3]);
+      Serial.print(",");      
+      Serial.print(myF.IN_Pin[4]);
+      Serial.print(" batV:");
+      Serial.print(myF.getBatteryVoltage());
+      Serial.print(" chgV:");
+      Serial.print(myF.getChargerVoltage());
+      Serial.print(" rain:");
+      Serial.print(myF.rain());
+      Serial.print(" mV:");
+      Serial.print(myF.mVrain);    
+      Serial.println();    
+      */
    }
    
    // unimportant tasks

@@ -55,8 +55,9 @@ class Funkt {
    bool IN_Pin[5];
    bool OUT_Pin[5];
    int  i;
+   float mVrain;
   private:  
    int val, port,InPort;
    int ADC_Value;
-   float currOffset,mVrain, batteryVoltage, chargerVoltage;
+   float currOffset, batteryVoltage, chargerVoltage;
 };
