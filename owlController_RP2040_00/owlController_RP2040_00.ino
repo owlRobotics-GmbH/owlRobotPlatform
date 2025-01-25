@@ -18,6 +18,24 @@ Arduino libraries to install:
 + NeoPixelConnect by Alan Yorinks 1.2.0
 + RP2040_PWM by Khoi Hoang Version 1.3.1
 
+
+owlController (I/O PCB) wiring (PCB pins):
+
+ADC pin 3:
+ADC pin 2:
+ADC pin 1: charger voltage (charger detection)
+
+IN pin 4:  BUMPER  (active-low)      
+IN pin 3:  STOP BUTTON  (active-high)
+IN pin 2:  
+IN pin 1:
+
+OUT pin 4:
+OUT pin 3:
+OUT pin 2:
+OUT pin 1:
+
+
 */
 
 //#include <Arduino.h>
