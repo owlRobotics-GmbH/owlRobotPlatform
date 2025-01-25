@@ -86,21 +86,21 @@ bool Funkt::rain(){
 }
 
 float Funkt::getBatteryVoltage(){
-  float adcVolt = ADC_read(7);
-  batteryVoltage = adcVolt/10.0 * 340.0 / 1000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2 
+  float adcVolt = ADC_read(7);  // returns millivolt
+  batteryVoltage = adcVolt/10.0 * 340.0 / 1000.0;  // 3v ADC input equals 100v sensor value  
     #ifdef DEBUG
       Serial.print("  batV: ");Serial.print(batteryVoltage);Serial.println("  mV ");
     #endif
-  return batteryVoltage;
+  return batteryVoltage; // returns millivolt
 }
 
-float Funkt::getChargerVoltage(){
-  float adcVolt = ADC_read(0);
-  chargerVoltage = adcVolt/10.0 * 100.0 / 1000.0;  // U1/U2 = R1/R2   => U1=R1/R2*U2 
+float Funkt::getChargerVoltage(){  
+  float adcVolt = ADC_read(0); // returns millivolt
+  chargerVoltage = adcVolt/10.0 * 100.0 / 1000.0;  // 3v ADC input equals 30V sensor value
     #ifdef DEBUG
       Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  mV ");
     #endif
-  return chargerVoltage;
+  return chargerVoltage; // returns millivolt
 }
 
 
