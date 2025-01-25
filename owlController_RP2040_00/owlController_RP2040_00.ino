@@ -25,8 +25,8 @@ owlController (I/O PCB) wiring (PCB pins):
 
 ADC pin 3:
 ADC pin 2:
-ADC pin 1: charger voltage divider (charger detection - use a voltage divider circuit to get down to 3.3v)
-           code assumes:  3v ADC input equals 30V sensor value
+ADC pin 1: charger voltage divider (charger detection - use a 75K resistor in series to reduce the voltage divider)
+           (code assumes:  3v ADC input equals 30V sensor value)
 IN pin 4:  BUMPER  (active-low)      
 IN pin 3:  STOP BUTTON  (active-high)
 IN pin 2:  
