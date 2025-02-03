@@ -27,9 +27,9 @@ ADC pin 3:
 ADC pin 2:
 ADC pin 1: charger voltage divider (charger detection - use a 75K resistor in series to reduce the voltage divider)
            (code assumes:  3v ADC input equals 30V sensor value)
-IN pin 4:  BUMPER  (active-low) -  PCB already contains a pull-up 
+IN pin 4:  BUMPER  (active-low)       -  PCB already contains a pull-up 
 IN pin 3:  STOP BUTTON  (active-high) -  PCB already contains a pull-up
-IN pin 2:  
+IN pin 2:  LIFT SENSOR (active-low)   -  PCB already contains a pull-up
 IN pin 1:
 
 OUT pin 4:
@@ -218,6 +218,7 @@ void loop() {
       robot.control.batteryVoltage = myF.getBatteryVoltage();
       robot.control.chargerVoltage = myF.getChargerVoltage();
       robot.control.setRainState( myF.rain() );
+      robot.control.setLiftState( (byte)(myF.IN_Pin[2] == LOW) );
       digitalWrite(blueLED,!digitalRead(blueLED)); 
       stateTimer[5]=millis()+1000;
 

@@ -20,6 +20,7 @@ void owlControl::init(){
   batteryVoltage = 0;
   chargerVoltage = 0;
   bumperState = 0;
+  liftState = false;
   stopButtonState = false;
   buzzerState = false;
   rainState = false;
@@ -56,6 +57,9 @@ void owlControl::setRainState(bool state){
   rainState = state;
 }
 
+void owlControl::setLiftState(bool state){
+  liftState = state;
+}
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
     if (debug){
@@ -88,6 +92,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_error:
             error = (owlctl::errorType_t)data.byteVal[0]; 
             break;
+          case owlctl::can_val_lift_state:
+            liftState = data.byteVal[0];
+            break;
           case owlctl::can_val_bumper_state:
             bumperState = data.byteVal[0];
             break;
@@ -113,6 +120,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_error:
             sendError(node.sourceAndDest.sourceNodeID, error); 
             break;
+          case owlctl::can_val_lift_state:
+            sendLiftState(node.sourceAndDest.sourceNodeID, liftState);
+            break;          
           case owlctl::can_val_bumper_state:
             sendBumperState(node.sourceAndDest.sourceNodeID, bumperState);
             break;
@@ -228,6 +238,12 @@ void owlControl::sendBumperState(int destNodeId, byte value){
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_bumper_state, data);
 }
 
+void owlControl::sendLiftState(int destNodeId, bool value){
+  canDataType_t data;
+  data.byteVal[0] = (byte)value;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_lift_state, data);
+}
+
 void owlControl::sendError(int destNodeId, owlctl::errorType_t error){
   canDataType_t data;
   data.byteVal[0] = error;
@@ -263,6 +279,12 @@ void owlControl::requestBumperState(){
   canDataType_t data;
   data.floatVal = 0;    
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_bumper_state, data);
+}
+
+void owlControl::requestLiftState(){
+  canDataType_t data;
+  data.floatVal = 0;    
+  sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_lift_state, data);
 }
 
 void owlControl::requestBatteryVoltage(){
