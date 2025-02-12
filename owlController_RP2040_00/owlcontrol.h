@@ -24,6 +24,7 @@ namespace owlctl {
       can_val_rain_state        = 6, // rain state
       can_val_charger_voltage   = 7, // charger voltage
       can_val_lift_state        = 8, // lift state
+      can_val_slow_down_state   = 9, // slow-down state
   };
 
   // motor driver error values
@@ -56,6 +57,7 @@ class owlControl
     bool buzzerState;      // buzzer state
     bool liftState;        // lift state
     bool rainState;        // rain state
+    bool slowDownState;    // slow-down state
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
 
@@ -74,6 +76,7 @@ class owlControl
     void requestStopButtonState();
     void requestBuzzerState();
     void requestRainState();
+    void requestSlowDownState();
 
     void sendError(int destNodeId, owlctl::errorType_t error);
     void sendBatteryVoltage(int destNodeId, float value);
@@ -83,12 +86,14 @@ class owlControl
     void sendStopButtonState(int destNodeId, bool value);
     void sendBuzzerState(int destNodeId, bool value);
     void sendRainState(int destNodeId, bool value);
+    void sendSlowDownState(int destNodeId, bool value);
 
     void run();
     void setStopButtonState(bool state);
     void setBumperState(byte state);
     void setRainState(bool state);
     void setLiftState(bool state);
+    void setSlowDownState(bool state);
 
   protected:
     unsigned long buzzerStateTimeout;
