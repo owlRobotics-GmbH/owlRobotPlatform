@@ -97,9 +97,9 @@ function remove_fs_dirty_bit() {
 	echo "removing any filesystem dirty bit"
 	RPI_DISK=`df | grep $RPI_VOL_PATH | cut -d " " -f1`
 	echo "disk: $RPI_DISK"
-	sudo dosfsck -yfv $RPI_DISK 
+	sudo dosfsck -yf $RPI_DISK 
 	sudo sync
-	sleep 1.0
+	sleep 3.0
 }
 
 function copy_file() {
