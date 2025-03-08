@@ -27,7 +27,7 @@ echo "This script will flash 'owlController firmware' onto  RP2040 (Raspberry Pi
 echo "1. connect owlController's RP2040 USB to owlController's RaspberryPI5"
 echo "2. press button 'Reset RP2040' on owlController PCB"
 
-pause 
+read -p "Press ENTER to continue..."
 
 # allow user to access /dev/ttyACM0
 sudo usermod -a -G dialout $USER
