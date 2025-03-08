@@ -57,7 +57,8 @@ function wait_for_disk() {
 function copy_file() {
 	# copy flash-file to pico
 	echo copy flash-file to pico...
-	sudo find -type f -name '*.uf2' -exec cp -prv {} /media/$USER/RPI-RP2 \;
+	find -type f -name '*.uf2' -exec cp -prv {} /media/$USER/RPI-RP2 \;
+	sync
 
 	# check if flash has been successful
 	count=0
@@ -101,9 +102,9 @@ copy_file
 
 
 # remove filesystem dirty bit:
-# dmsg
+# sudo dmsg
 # lsblk
-# dosfsck -yfv /dev/sda1 
+# sudo dosfsck -yfv /dev/sda1 
 
 
 
