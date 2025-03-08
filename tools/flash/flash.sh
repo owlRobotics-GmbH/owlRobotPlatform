@@ -141,10 +141,10 @@ fi
 
 #exit
 
-choose_flash_file
 
 # RP2040 is now in bootloader
 wait_for_disk
+choose_flash_file
 copy_file
 
 
