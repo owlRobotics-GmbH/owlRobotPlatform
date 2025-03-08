@@ -90,7 +90,7 @@ function wait_for_disk() {
 		fi
 	done
 	# give pico some time to mount fully
-	sleep 2.0
+	#sleep 2.0
 }
 
 function remove_fs_dirty_bit() {
@@ -154,6 +154,7 @@ else
   wait_for_serial
   delete_old_relics
   reset_pico
+  sleep 8.0
 fi
 
 #exit
