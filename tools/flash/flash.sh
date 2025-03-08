@@ -8,9 +8,11 @@ DEV=""
 # flash file path
 FLASH_FILE=""
 
-# RP2040 mounted disk path
-RPI_DISK_PATH="/media/$USER/RPI-RP2"
+# RP2040 mounted volume path
+RPI_VOL_PATH="/media/$USER/RPI-RP2"
 
+# RP2040 disk device
+RPI_DISK = ""
 
 
 
@@ -76,7 +78,7 @@ function reset_pico() {
 function wait_for_disk() {
 	# wait until pico has mounted as mass storage device
 	count=0
-	while [ ! -d $RPI_DISK_PATH ]
+	while [ ! -d $RPI_VOL_PATH ]
 	do 
 		sleep 0.5
 		echo .
@@ -91,20 +93,25 @@ function wait_for_disk() {
 	sleep 2.0
 }
 
+function remove_fs_dirty_bit() {
+	echo "removing any filesystem dirty bit"
+	RPI_DISK=`df | grep $RPI_VOL_PATH | cut -d " " -f1`
+	echo "disk: $RPI_DISK"
+	sudo dosfsck -yfv $RPI_DISK 
+	sudo sync
+	sleep 3.0
+}
+
 function copy_file() {
 	# copy flash-file to pico
-	echo "removing any filesystem dirty bit"
-	sudo dosfsck -yfv /dev/sda1 
-	sudo sync
-	sleep 1.0
 	echo copy flash-file to pico...
 	#sudo find -type f -name '*.uf2' -exec cp -prv {} /media/$USER/RPI-RP2 \;
-	echo "$FLASH_FILE -> $RPI_DISK_PATH" 
-    sudo cp $FLASH_FILE $RPI_DISK_PATH
+	echo "$FLASH_FILE -> $RPI_VOL_PATH" 
+    sudo cp $FLASH_FILE $RPI_VOL_PATH
 	
 	# check if flash has been successful
 	count=0
-	while [ -d $RPI_DISK_PATH ]
+	while [ -d $RPI_VOL_PATH ]
 	do 
 		sleep 0.5
 		echo .
@@ -153,6 +160,7 @@ fi
 # RP2040 is now in bootloader
 wait_for_disk
 choose_flash_file
+remove_fs_dirty_bit
 copy_file
 
 
