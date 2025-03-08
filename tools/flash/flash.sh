@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # script to flash 'owlController firmware' onto  RP2040 (Raspberry Pico)  
 
