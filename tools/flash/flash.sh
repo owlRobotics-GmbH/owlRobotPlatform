@@ -2,8 +2,16 @@
 
 # script to flash 'owlController firmware' onto  RP2040 (Raspberry Pico)  
 
+# RP2040 serial device path (if not in bootloader mode)
 DEV=""
+
+# flash file path
 FLASH_FILE=""
+
+# RP2040 mounted disk path
+RPI_DISK_PATH="/media/$USER/RPI-RP2"
+
+
 
 
 function choose_serial_device() {
@@ -68,7 +76,7 @@ function reset_pico() {
 function wait_for_disk() {
 	# wait until pico has mounted as mass storage device
 	count=0
-	while [ ! -d /media/$USER/RPI-RP2 ]
+	while [ ! -d $RPI_DISK_PATH ]
 	do 
 		sleep 0.5
 		echo .
@@ -91,12 +99,12 @@ function copy_file() {
 	sleep 1.0
 	echo copy flash-file to pico...
 	#sudo find -type f -name '*.uf2' -exec cp -prv {} /media/$USER/RPI-RP2 \;
-	echo "$FLASH_FILE -> /media/$USER/RPI-RP2" 
-    sudo cp $FLASH_FILE /media/$USER/RPI-RP2
+	echo "$FLASH_FILE -> $RPI_DISK_PATH" 
+    sudo cp $FLASH_FILE $RPI_DISK_PATH
 	
 	# check if flash has been successful
 	count=0
-	while [ -d /media/$USER/RPI-RP2 ]
+	while [ -d $RPI_DISK_PATH ]
 	do 
 		sleep 0.5
 		echo .
