@@ -7,7 +7,6 @@ DEV="/dev/ttyACM0"
 
 function wait_for_serial() {
 	# wait for serial device to mount	
-	#ls /dev/serial/by-id
 	echo waiting for pico to mount
 	count=0
 	while [ ! -e $DEV ]
@@ -77,15 +76,22 @@ function copy_file() {
 	echo flash successful - black magic happened ~\\\(o.O~\\\)
 }
 
-DEV=/dev/$1
-echo "DEV=$DEV"
+if [ -z "$( ls -A /dev/serial/by-id/usb-Raspberry_Pi_Pico* )" ]; then
+  echo "no RP2040 serial devices => assuming RP2040 already in bootloader"
+else
+  echo "found RP2040 serial devices => assuming RP2040 not yet in bootloader"
+  DEV=/dev/$1
+  echo "DEV=$DEV"
+  # optional
+  #exit
+  wait_for_serial
+  delete_old_relics
+  reset_pico
+fi
 
-# optional
-wait_for_serial
-delete_old_relics
+#exit
 
-# mandatory
-reset_pico
+# RP2040 is now in bootloader
 wait_for_disk
 copy_file
 
