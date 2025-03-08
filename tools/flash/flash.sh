@@ -99,7 +99,7 @@ function remove_fs_dirty_bit() {
 	echo "disk: $RPI_DISK"
 	sudo dosfsck -yfv $RPI_DISK 
 	sudo sync
-	sleep 3.0
+	sleep 1.0
 }
 
 function copy_file() {
