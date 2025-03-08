@@ -15,6 +15,16 @@ RPI_VOL_PATH="/media/$USER/RPI-RP2"
 RPI_DISK = ""
 
 
+function replug_usb() {
+	echo "replug_usb"
+	for i in /sys/bus/pci/drivers/[uoex]hci_hcd/*:*; do
+		[ -e "$i" ] || continue
+		echo "${i##*/}" > "${i%/*}/unbind"
+		echo "${i##*/}" > "${i%/*}/bind"
+	done
+	sleep 2.0
+}
+
 
 function choose_serial_device() {
   echo 
@@ -90,13 +100,16 @@ function wait_for_disk() {
 		fi
 	done
 	# give pico some time to mount fully
-	#sleep 2.0
+	sleep 2.0
 }
 
 function remove_fs_dirty_bit() {
 	echo "removing any filesystem dirty bit"
 	RPI_DISK=`df | grep $RPI_VOL_PATH | cut -d " " -f1`
-	echo "disk: $RPI_DISK"
+	echo "disk: $RPI_DISK"	
+	if [ -z "${VAR}" ]; then		
+		return
+	fi
 	sudo dosfsck -yw $RPI_DISK 
 	#sleep 2.0
 	#sudo mount -o remount, rw $RPI_VOL_PATH 
@@ -121,7 +134,7 @@ function copy_file() {
 		# exit script if flash was not successful (pico is still mounted as mass storage device)
 		if [ $count -ge 30 ]; then 
 			echo pico was reset but could not be flashed - please drag and drop .uf2-file manually!
-			exit
+			return
 		fi
 	done
 
@@ -161,10 +174,11 @@ fi
 
 
 # RP2040 is now in bootloader
+#remove_fs_dirty_bit
 wait_for_disk
 choose_flash_file
-remove_fs_dirty_bit
 copy_file
+replug_usb
 
 
 
