@@ -76,6 +76,9 @@ function copy_file() {
 	echo flash successful - black magic happened ~\\\(o.O~\\\)
 }
 
+
+
+
 if [ -z "$( ls -A /dev/serial/by-id/usb-Raspberry_Pi_Pico* )" ]; then
   echo "no RP2040 serial devices => assuming RP2040 already in bootloader"
 else
