@@ -5,7 +5,7 @@
 
 echo "This script will flash 'owlController firmware' onto  RP2040 (Raspberry Pico)"
 echo 
-echo "NOTE: Skip the following step - Only use below steps to manually activate the RP2040 bootloader. 
+echo "NOTE: Skip the following step - Only use below steps to manually activate the RP2040 bootloader."
 echo "1. Disconnect owlController's RP2040 USB"
 echo "2. Press and hold button 'Boot Set' on owlController PCB"
 echo "3. Press button 'Reset RP2040' on owlController PCB" 
