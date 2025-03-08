@@ -3,6 +3,27 @@
 # script to flash 'owlController firmware' onto  RP2040 (Raspberry Pico)  
 
 # 1. connect RP2040 USB to RaspberryPI5
-# 2. run this script 
+# 2. run this script :  ./flash.sh
+
+
+# example output:
+#   pi@testpi5:~/owlRobotPlatform/tools/flash $ ./flash.sh 
+#   waiting for pico to mount
+#   deleted mass storage relics (if existing): /
+#   resetting pico
+#   .
+#   .
+#   .
+#   copy flash-file to pico...
+#   './owlController_RP2040_00.ino.uf2' -> '/media/pi/RPI-RP2/owlController_RP2040_00.ino.uf2'
+#   .
+#   flash successful - black magic happened ~\(o.O~\)
+#   pi@testpi5:~/owlRobotPlatform/tools/flash $
+
+
+# allow user to access /dev/ttyACM0
+sudo usermod -a -G dialout $USER
 
 ./picoFlashTool_Linux ttyACM0
+
+
