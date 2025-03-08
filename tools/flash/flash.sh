@@ -97,9 +97,9 @@ function remove_fs_dirty_bit() {
 	echo "removing any filesystem dirty bit"
 	RPI_DISK=`df | grep $RPI_VOL_PATH | cut -d " " -f1`
 	echo "disk: $RPI_DISK"
-	sudo dosfsck -yf $RPI_DISK 
-	sleep 1.0
-	sudo mount -o remount, rw $RPI_VOL_PATH 
+	sudo dosfsck -yw $RPI_DISK 
+	#sleep 2.0
+	#sudo mount -o remount, rw $RPI_VOL_PATH 
 	sleep 2.0
 }
 
