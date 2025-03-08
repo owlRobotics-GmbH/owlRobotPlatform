@@ -31,7 +31,7 @@ function delete_old_relics() {
 
 function reset_pico() {
 	# reset pico over baud rate change to 1200 baud
-	echo resetting pico
+	echo "resetting pico (manually press button 'Reset RP2040' if it does not work)"
 	sudo stty -F $DEV 1200
 }
 
