@@ -12,7 +12,7 @@ FLASH_FILE=""
 RPI_VOL_PATH="/media/$USER/RPI-RP2"
 
 # RP2040 disk device
-RPI_DISK = ""
+RPI_DISK=""
 
 
 function replug_usb() {
