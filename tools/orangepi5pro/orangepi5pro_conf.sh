@@ -20,6 +20,10 @@ fi
 
 echo "[OK] Orange Pi 5 Pro detected."
 
+# installing missing packages...
+sudo apt-get install -y libavcodec58
+
+
 # === Step 2: Ensure gpio mode 6 down is in /etc/rc.local ===
 RC_LOCAL="/etc/rc.local"
 GPIO_CMD="gpio mode 6 down"
