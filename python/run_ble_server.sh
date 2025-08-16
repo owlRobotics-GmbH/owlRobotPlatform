@@ -24,7 +24,9 @@ if [ "$(which python3)" == "" ]; then
     apt install python3
 fi
 
-if [ "$(which python3-pip)" == "" ]; then
+if command -v pip3 >/dev/null 2>&1; then
+    echo "already installed: python3-pip"
+else
     echo "installing python3-pip..."
     apt install python3-pip
 fi
