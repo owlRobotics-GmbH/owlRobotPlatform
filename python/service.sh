@@ -9,7 +9,11 @@ CMD=""
 function start_ble_server_service() {
   # enable ble_server service
   echo "starting ble_server service..."
-  cp /home/orangepi/owlRobotPlatform/python/misc/ble_server.service /etc/systemd/system/ble_server.service
+
+  REPLACEPATH="/home/pi/owlRobotPlatform/python"
+  sed "s+$REPLACEPATH+$PWD+g" <$PWD/misc/ble_server.service.example >$PWD/misc/ble_server.service
+
+  cp $PWD/misc/ble_server.service /etc/systemd/system/ble_server.service
   chmod 644 /etc/systemd/system/ble_server.service
   systemctl daemon-reload
   systemctl enable ble_server

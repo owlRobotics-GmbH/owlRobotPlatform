@@ -6,8 +6,8 @@ After=network-online.target
 User=root
 Group=root
 
-WorkingDirectory=/home/orangepi/owlRobotPlatform/python
-ExecStart=/home/orangepi/owlRobotPlatform/python/run_ble_server.sh
+WorkingDirectory=/home/pi/owlRobotPlatform/python
+ExecStart=/home/pi/owlRobotPlatform/python/run_ble_server.sh
 
 StandardInput=tty
 StandardOutput=journal
