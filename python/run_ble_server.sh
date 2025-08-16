@@ -1,27 +1,47 @@
 #!/bin/bash 
 
 
+PIP_OPTIONS=""
+
+
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root (sudo):   sudo ./run_ble_server.sh"
   exit
 fi
+
+
+if grep -qi "raspberry pi" /proc/device-tree/model 2>/dev/null; then
+    echo "Running on a Raspberry Pi"
+    PIP_OPTIONS="--break-system-packages"  # may be required for Raspi5
+else
+    echo "Not a Raspberry Pi"
+fi
+
+
 
 if [ "$(which python3)" == "" ]; then
     echo "installing python3..."
     apt install python3
 fi
 
+if [ "$(which python3-pip)" == "" ]; then
+    echo "installing python3-pip..."
+    apt install python3-pip
+fi
+
+
+
 python3 -c "import bumble"
 #echo $?
 if [[ "$?" -eq 1 ]]; then 
     echo "installing python3 packages..."    
-    # pip3 install --break-system-packages bumble==0.0.190
-    # pip3 install --break-system-packages bumble==4.3.1
-    pip3 install --break-system-packages bumble==0.0.190      # tested version: 0.0.190
-    pip3 install --break-system-packages python-can==4.3.1    # tested version: 4.3.1
-    pip3 install --break-system-packages opencv-python  
-    pip3 install --break-system-packages opencv-contrib-python  
-    pip3 install --break-system-packages psutil
+    # pip3 install $PIP_OPTIONS bumble==0.0.190
+    # pip3 install $PIP_OPTIONS bumble==4.3.1
+    pip3 install $PIP_OPTIONS bumble==0.0.190      # tested version: 0.0.190
+    pip3 install $PIP_OPTIONS python-can==4.3.1    # tested version: 4.3.1
+    pip3 install $PIP_OPTIONS opencv-python  
+    pip3 install $PIP_OPTIONS opencv-contrib-python  
+    pip3 install $PIP_OPTIONS psutil
 fi
 
 #apt install bluetooth pi-bluetooth bluez blueman
