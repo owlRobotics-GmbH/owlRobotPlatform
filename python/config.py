@@ -138,7 +138,7 @@ ROBOTS = {
         "swapRightMotor": False,                  # swap right motor?
         "wheelToBodyCenterY": 0.1,                # wheel-to-axle-center Y axis (m)
         "wheelDiameter": 0.12,                    # wheel diameter (m)
-        "gearRatio": 2000.0,                       # gear ratio  (1.0 = no gears)
+        "gearRatio": 1000.0,                      # gear ratio  (1.0 = no gears)
         "maxSpeedX": 0.4,                         # max speed in X axis (m/s)        
         "maxSpeedY": 0.4,                         # max speed in Y axis (m/s)
         "maxSpeedTheta": 2.5,                     # max angular speed (rad/s) 
