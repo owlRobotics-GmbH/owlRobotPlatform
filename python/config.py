@@ -87,20 +87,20 @@ ROBOTS = {
         "camLookingForward": True,                # camera is looking forward?
     },
 
-    '00:d8:61:05:af:39': { 
-        "name": "owlRobot (Laptop, Alex)",
+    'c0:74:2b:fb:47:27': { 
+        "name": "owlRobot (crawler)",
         "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F4",        
-        "bluetoothUSB": True, 
+        "bluetoothUSB": False, 
         "swapLeftMotor": True,
         "swapRightMotor": False,        
         "wheelToBodyCenterY": 0.2,
-        "wheelDiameter": 0.15,
-        "gearRatio": 20.0,        
+        "wheelDiameter": 0.2,
+        "gearRatio": 500.0,        
         "maxSpeedX": 0.4,        
         "maxSpeedY": 0.4,
         "maxSpeedTheta": 0.5,
-        "toolMotor": True,
+        "toolMotor": False,
         "camW": 640,
         "camH": 480,
         "camLookingForward": False,
