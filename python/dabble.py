@@ -280,24 +280,24 @@ class Dabble():
             self.radius= val&0x07;
             self.x_value= float(self.radius*(float(math.cos(float(self.angle*math.pi/180.0))))) / 6.0;
             self.y_value= float(self.radius*(float(math.sin(float(self.angle*math.pi/180.0))))) / 6.0;
-            print('x', round(self.x_value,2), 'y', round(self.y_value,2))            
+            print(time.time(), 'x', round(self.x_value,2), 'y', round(self.y_value,2))            
         elif value[2] == 0x01:  # digital joystick
             self.analogMode = False
             if value[6] == 0x01:
                 self.joystickButton = 'up'
-                print('joy: up')
+                print(time.time(), 'joy: up')
             elif value[6] == 0x02:
                 self.joystickButton = 'down'
-                print('joy: down')            
+                print(time.time(),'joy: down')            
             elif value[6] == 0x04:
                 self.joystickButton = 'left'
-                print('joy: left')
+                print(time.time(),'joy: left')
             elif value[6] == 0x08:
                 self.joystickButton = 'right'
-                print('joy: right')
+                print(time.time(),'joy: right')
             elif value[6] == 0x00:
                 self.joystickButton = 'released'
-                print('joy: released')
+                print(time.time(),'joy: released')
 
 
     def parseTerminal(self, value):

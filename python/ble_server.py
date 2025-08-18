@@ -11,7 +11,7 @@ import dabble
 import os
 import config
 import detect_object
-
+#import playsound
 
 # create robot from database
 robot = config.createRobot()
@@ -180,6 +180,9 @@ while True:
 
     if time.time() > nextCanTime:
         nextCanTime = time.time() + 0.1
+        #if (abs(speedLinearX) > 0):
+        #    playsound.playsound('misc/beep.mp3')
+        #print('robot.setRobotSpeed', speedLinearX, speedLinearY, speedAngular)
         robot.setRobotSpeed(speedLinearX, speedLinearY, speedAngular)
         if not robot.toolMotor is None:
             robot.toolMotor.setSpeed(toolMotorSpeed)
