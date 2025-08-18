@@ -236,10 +236,12 @@ class Dabble():
                 
                 #self.device.characteristicRead.value = bytes([0xFF, 0x02, 0x02, 0x01, 0x04]) + bytes('pong', 'utf-8') + bytes([0x00])        
                 if self.terminalTransmit != '':
-                    self.device.characteristicRead.value = self.terminalTransmit
-                    self.terminalTransmit = ''
-                    print('notify: ', self.device.characteristicRead.value)
-                    await self.device.notify_subscribers(self.device.characteristicRead)
+                    if False:
+                        # FIXME:  if activated, virtual joystick will fail on iOS ...
+                        self.device.characteristicRead.value = self.terminalTransmit
+                        self.terminalTransmit = ''
+                        print('notify: ', self.device.characteristicRead.value)
+                        await self.device.notify_subscribers(self.device.characteristicRead)
                 
                 
             #await self.hci_source.wait_for_termination()
