@@ -148,15 +148,13 @@ ROBOTS = {
         "camLookingForward": True,                # camera is looking forward?
     },
 
-    'xx:xx:xx:xx:xx:xx': { 
-        "name": "owlRobot (4WD, Alex)",
-        "type": ROBOT_TYPE_MECANUM,
+    '00:d8:61:05:af:39': { 
+        "name": "owlRobot (Alex laptop)",
+        "type": ROBOT_TYPE_DIFF_DRIVE,
         "bluetoothAddr": "F0:F1:F2:F3:F4:F2",        
-        "bluetoothUSB": False, 
-        "swapLeftBackMotor": True,
-        "swapRightBackMotor": False,
-        "swapLeftFrontMotor": True,
-        "swapRightFrontMotor": False,
+        "bluetoothUSB": True, 
+        "swapLeftMotor": True,
+        "swapRightMotor": False,
         "wheelToBodyCenterX": 0.27,         # wheel-to-front/back-axle-center in X axis (m)
         "wheelToBodyCenterY": 0.26,         # wheel-to-left/right-axle-center in Y axis (m)
         "wheelDiameter": 0.16,

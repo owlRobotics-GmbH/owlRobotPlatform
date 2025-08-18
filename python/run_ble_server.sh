@@ -10,11 +10,16 @@ if [ "$EUID" -ne 0 ]
 fi
 
 
-if grep -qi "raspberry pi" /proc/device-tree/model 2>/dev/null; then
-    echo "Running on a Raspberry Pi"
-    PIP_OPTIONS="--break-system-packages"  # may be required for Raspi5
+if [[ `uname -m` == "x86_64" ]]; then
+  echo "x86 detected"
+  PIP_OPTIONS="--break-system-packages"  
 else
-    echo "Not a Raspberry Pi"
+  if grep -qi "raspberry pi" /proc/device-tree/model 2>/dev/null; then
+      echo "Running on a Raspberry Pi"
+      PIP_OPTIONS="--break-system-packages"  # may be required for Raspi5
+  else
+      echo "Not a Raspberry Pi"
+  fi
 fi
 
 
@@ -70,6 +75,7 @@ echo "NOTE: to test Bluetooth communication only and redirect output to a log fi
 
 if [ "$#" -eq  "0" ] 
 then
+  # as sudo:   sudo /home/alex/anaconda3/envs/py39/bin/python3 ble_server.py   (find out python3 path with:  "which python3")
   # No arguments supplied
   python3 ble_server.py
 else
