@@ -3,7 +3,7 @@
 # OrangePi5PRO script:
 # - installs mDNS, VNC
 # - changes to German keyboard layout
-# - disables terminal/desktop autologin so power button allows to directly shutdown Linux
+# - disables terminal autologin so power button allows to directly shutdown Linux
 # - adds GPIO command to rc.local   for owlRobotics hardware
 # - activates MIPI cam driver
 # - activates I2C driver
@@ -39,13 +39,13 @@ sudo apt update
 sudo apt-get install libavcodec58 subversion btop 
 
 # ======  disabling terminal auto-login =====================================================
-echo -e "${RED}==========disabling terminal/desktop auto-login==========${NC}"
-sudo auto_login_cli.sh -d
+echo -e "${RED}==========disabling terminal auto-login==========${NC}"
+sudo auto_login_cli.sh -d             # required for shutdown via OrangePI power BUTTON
 # sudo auto_login_cli.sh orangepi
 # sudo auto_login_cli.sh root
-sudo disable_desktop_autologin.sh
+# sudo disable_desktop_autologin.sh
 # sudo desktop_login.sh root
-# sudo desktop_login.sh orangepi
+sudo desktop_login.sh orangepi      # required for VNC
 
 # ======  installing VScode =================================================================
 #printf "${RED}installing VScode...{NC}\n"
@@ -85,6 +85,9 @@ sudo systemctl enable x11vnc
 sudo systemctl start x11vnc
 #sudo systemctl --no-pager status x11vnc
 
+# x11vnc server test in terminal with:
+# x11vnc -storepasswd
+# x11vnc -display :0 -auth guess -forever -usepw
 
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
 echo -e "${RED}==========Installing Avahi mDNS=========${NC}"
