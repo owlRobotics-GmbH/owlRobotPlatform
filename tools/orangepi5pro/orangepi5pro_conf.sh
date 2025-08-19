@@ -93,8 +93,46 @@ else
     sudo sed -i "/^exit 0/i $GPIO_CMD" "$RC_LOCAL"
 fi
 
+# ============= activate I2C ===============================================================
+# i2c1-m4
+
+ENV_FILE="/boot/orangepiEnv.txt"
+OVERLAY_NAME="i2c1-m4"
+
+if grep -q "^overlays=" "$ENV_FILE"; then
+    if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
+    else
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
+        sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
+    fi
+else
+    echo "[INFO] Adding new overlays= line."
+    echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
+fi
+
+# ============= activate MIPI cam ===============================================================
+# opti5pro-cam2
+
+ENV_FILE="/boot/orangepiEnv.txt"
+OVERLAY_NAME="opti5pro-cam2"
+
+if grep -q "^overlays=" "$ENV_FILE"; then
+    if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
+    else
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
+        sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
+    fi
+else
+    echo "[INFO] Adding new overlays= line."
+    echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
+fi
+
 
 # ================= install CAN driver =====================================================
+# spi0-m2-cs0-mcp2515-16mhz
+
 
 # === Step 1: Copy DTS file to /boot ===
 DTS_FILE="res/rk3588-spi0-m2-cs0-mcp2515-16mhz.dts"
@@ -150,9 +188,9 @@ OVERLAY_NAME="spi0-m2-cs0-mcp2515-16mhz"
 
 if grep -q "^overlays=" "$ENV_FILE"; then
     if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
-        echo "[OK] Overlay already present in orangepiEnv.txt."
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
     else
-        echo "[INFO] Adding overlay to existing overlays= line."
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
         sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
     fi
 else
