@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # OrangePi5PRO script:
-# 1. compiles and installs CAN-SPI driver for owlRobotics hardware
-# 2. adds GPIO command to rc.local   for owlRobotics hardware
+# - installs mDNS
+# - changes to German keyboard layout
+# - adds GPIO command to rc.local   for owlRobotics hardware
+# - compiles and installs CAN-SPI driver for owlRobotics hardware
 
 
 # === Step 1: Detect Orange Pi 5 Pro ===
@@ -24,13 +26,26 @@ echo "[OK] Orange Pi 5 Pro detected."
 sudo apt update
 sudo apt-get install libavcodec58 avahi-daemon libnss-mdns  
 
-# activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' 
+# ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
 #sudo hostnamectl set-hostname orangepi5pro
 
 
-# === Step 2: Ensure gpio mode 6 down is in /etc/rc.local ===
+# ======== change keyboard layout ==============================================================
+CURRENT=$(localectl status | grep "Layout" | awk '{print $3}')
+
+if [ "$CURRENT" = "de" ]; then
+    echo "keyboard layout already German"
+else 
+    echo "changing keyboard layout to German..."
+    sudo sed -i 's/XKBLAYOUT=".*"/XKBLAYOUT="de"/' /etc/default/keyboard
+    sudo dpkg-reconfigure -f noninteractive keyboard-configuration
+    sudo service keyboard-setup restart
+    setxkbmap de
+fi
+
+# === owlRobotics PCB:  Ensure gpio mode 6 down is in /etc/rc.local ===
 RC_LOCAL="/etc/rc.local"
 GPIO_CMD="gpio mode 6 down"
 if grep -q "$GPIO_CMD" "$RC_LOCAL"; then
@@ -40,7 +55,10 @@ else
     sudo sed -i "/^exit 0/i $GPIO_CMD" "$RC_LOCAL"
 fi
 
-# === Step 3: Copy DTS file to /boot ===
+
+# ================= install CAN driver =====================================================
+
+# === Step 1: Copy DTS file to /boot ===
 DTS_FILE="res/rk3588-spi0-m2-cs0-mcp2515-16mhz.dts"
 if [ ! -f "$DTS_FILE" ]; then
     echo "Error: $DTS_FILE not found!"
@@ -50,15 +68,15 @@ fi
 sudo cp "$DTS_FILE" /boot
 echo "[OK] DTS file copied to /boot."
 
-# === Step 4: Install kernel headers ===
+# === Step 2: Install kernel headers ===
 echo "[INFO] Installing kernel headers..."
 sudo apt-get update
 sudo apt-get install -y linux-headers-generic
 
-# === Step 5: Change to /boot directory ===
+# === Step 3: Change to /boot directory ===
 cd /boot || { echo "Error: Cannot change directory to /boot."; exit 1; }
 
-# === Step 6: Compile DTS to DTSO ===
+# === Step 4: Compile DTS to DTSO ===
 DTS_BASENAME="rk3588-spi0-m2-cs0-mcp2515-16mhz"
 KERNEL_HEADERS=$(find /usr/src -name "linux-headers-*" | grep "5.15.0" | head -n 1)
 INCLUDE_PATH="$KERNEL_HEADERS/include"
@@ -76,7 +94,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "[OK] DTS compiled to DTSO."
 
-# === Step 7: Compile DTSO to DTBO ===
+# === Step 5: Compile DTSO to DTBO ===
 DTB_OUTPUT_DIR="/boot/dtb/rockchip/overlay"
 sudo mkdir -p "$DTB_OUTPUT_DIR"
 
@@ -88,7 +106,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "[OK] DTSO compiled to DTBO."
 
-# === Step 8: Activate DTBO in orangepiEnv.txt ===
+# === Step 6: Activate DTBO in orangepiEnv.txt ===
 ENV_FILE="/boot/orangepiEnv.txt"
 OVERLAY_NAME="spi0-m2-cs0-mcp2515-16mhz"
 
@@ -103,6 +121,8 @@ else
     echo "[INFO] Adding new overlays= line."
     echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
 fi
+
+# =====================================================================
 
 echo "[DONE] Configuration script completed successfully."
 
