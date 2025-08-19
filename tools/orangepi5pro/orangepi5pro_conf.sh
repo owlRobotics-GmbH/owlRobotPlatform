@@ -77,8 +77,13 @@ EOF
 chmod +x ~/.vnc/xstartup
 
 sudo apt install x11vnc
+
+sudo cp res/x11vnc.service /etc/systemd/system/x11vnc.service 
+sudo chmod 644 /etc/systemd/system/x11vnc.service
+sudo systemctl daemon-reload
 sudo systemctl enable x11vnc
-sudo systemctl enable x11vnc.service
+sudo systemctl start x11vnc
+#sudo systemctl --no-pager status x11vnc
 
 
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
