@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # OrangePi5PRO script:
-# - installs mDNS
+# - installs mDNS, VNC
 # - changes to German keyboard layout
+# - changes OrangePi power button to directly shutdown Linux (disables XFCE UI panel)
 # - adds GPIO command to rc.local   for owlRobotics hardware
 # - compiles and installs CAN-SPI driver for owlRobotics hardware
+
+# assumptions:
+#  Ubuntu Jammy Image:   https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
+
 
 
 # === Step 1: Detect Orange Pi 5 Pro ===
@@ -24,9 +29,42 @@ echo "[OK] Orange Pi 5 Pro detected."
 
 # installing missing packages...
 sudo apt update
-sudo apt-get install libavcodec58 avahi-daemon libnss-mdns  
+sudo apt-get install libavcodec58 subversion btop 
+
+# ======  installing VScode =================================================================
+#sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"
+#sudo apt install code
+
+# ======  change XFCE power button handling (to direct shutdown, no user prompt)
+
+if pgrep -x xfce4-session >/dev/null || pgrep -x xfce4-panel >/dev/null; then
+  echo "XFCE detected"
+  
+else
+  echo "no XFCE detected"
+fi
+
+# =======  installing x11vnc =================================================================
+# vncpasswd
+mkdir -p ~/.vnc
+vncpasswd -f <<< "orangepi" > ~/.vnc/passwd
+
+# create VNC xstartup-file
+cat > ~/.vnc/xstartup << 'EOF'
+#!/bin/sh
+xrdb $HOME/.Xresources
+startxfce4 &
+EOF
+
+chmod +x ~/.vnc/xstartup
+
+sudo apt install x11vnc
+sudo systemctl enable x11vnc
+sudo systemctl enable x11vnc.service
+
 
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
+sudo apt-get install avahi-daemon libnss-mdns 
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
 #sudo hostnamectl set-hostname orangepi5pro
