@@ -47,6 +47,24 @@ sudo auto_login_cli.sh -d             # required for shutdown via OrangePI power
 # sudo desktop_login.sh root
 sudo desktop_login.sh orangepi      # required for VNC
 
+
+# OrangePI POWER button (Linux shutdown):    
+# xfce4-power-manager-settings
+# systemd-inhibit --list
+#
+# WHO                          UID  USER     PID  COMM            WHAT                                                                       WHY                                                       MODE 
+# NetworkManager               0    root     959  NetworkManager  sleep                                                                      NetworkManager needs to turn off networks                 delay
+# UPower                       0    root     2903 upowerd         sleep                                                                      Pause device polling                                      delay
+# Unattended Upgrades Shutdown 0    root     1587 unattended-upgr shutdown                                                                   Stop ongoing upgrades or perform upgrades before shutdown delay
+# xfce4-power-manager          1000 orangepi 2943 xfce4-power-man handle-power-key:handle-suspend-key:handle-hibernate-key:handle-lid-switch xfce4-power-manager handles these events                  block
+# xscreensaver                 1000 orangepi 2990 xscreensaver-sy sleep                                                                      lock screen on suspend                                    delay
+# 
+# 5 inhibitors listed.
+
+# xfce4: shutdown on power button  (xfce4-power-manager-settings)
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/power-button-action
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/power-button-action -s 4
+
 # ======  installing VScode =================================================================
 #printf "${RED}installing VScode...{NC}\n"
 #sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"
