@@ -11,41 +11,48 @@
 #  Ubuntu Jammy Image:   https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
 
 
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 
 # === Step 1: Detect Orange Pi 5 Pro ===
 if [ -f /etc/orangepi-release ]; then
     source /etc/orangepi-release
 else
-    echo "Error: /etc/orangepi-release not found."
+    printf "${RED}Error: /etc/orangepi-release not found.${NC}\n"
     exit 1
 fi
 
 if [[ "$BOARD" != "orangepi5pro" ]]; then
-    echo "Error: This script is only for Orange Pi 5 Pro. Detected: $BOARD"
+    print "${RED}Error: This script is only for Orange Pi 5 Pro. Detected: $BOARD${NC}\n"
     exit 1
 fi
 
-echo "[OK] Orange Pi 5 Pro detected."
+printf "${RED}[OK] Orange Pi 5 Pro detected.{NC}\n"
+
 
 # installing missing packages...
+printf "${RED}installing missing packages...{NC}\n"
 sudo apt update
 sudo apt-get install libavcodec58 subversion btop 
 
 # ======  installing VScode =================================================================
+#printf "${RED}installing VScode...{NC}\n"
 #sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"
 #sudo apt install code
 
 # ======  change XFCE power button handling (to direct shutdown, no user prompt)
 
 if pgrep -x xfce4-session >/dev/null || pgrep -x xfce4-panel >/dev/null; then
-  echo "XFCE detected"
-  
+  printf "${RED}XFCE detected{NC}\n"
+
 else
-  echo "no XFCE detected"
+  printf "${RED}No XFCE detected{NC}\n"
 fi
 
 # =======  installing x11vnc =================================================================
 # vncpasswd
+printf "${RED}Installing x11vnc{NC}\n"
 mkdir -p ~/.vnc
 vncpasswd -f <<< "orangepi" > ~/.vnc/passwd
 
@@ -64,6 +71,7 @@ sudo systemctl enable x11vnc.service
 
 
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
+printf "${RED}Installing Avahi (mDNS) {NC}\n"
 sudo apt-get install avahi-daemon libnss-mdns 
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
@@ -71,6 +79,7 @@ sudo systemctl start avahi-daemon
 
 
 # ======== change keyboard layout ==============================================================
+printf "${RED}Changing keyboard layout {NC}\n"
 CURRENT=$(localectl status | grep "Layout" | awk '{print $3}')
 
 if [ "$CURRENT" = "de" ]; then
@@ -84,6 +93,8 @@ else
 fi
 
 # === owlRobotics PCB:  Ensure gpio mode 6 down is in /etc/rc.local ===
+printf "${RED}Installing GPIO mode 6 down setting {NC}\n"
+
 RC_LOCAL="/etc/rc.local"
 GPIO_CMD="gpio mode 6 down"
 if grep -q "$GPIO_CMD" "$RC_LOCAL"; then
@@ -95,6 +106,7 @@ fi
 
 # ============= activate I2C ===============================================================
 # i2c1-m4
+printf "${RED}Activating I2C  {NC}\n"
 
 ENV_FILE="/boot/orangepiEnv.txt"
 OVERLAY_NAME="i2c1-m4"
@@ -113,6 +125,7 @@ fi
 
 # ============= activate MIPI cam ===============================================================
 # opti5pro-cam2
+printf "${RED}Activating MIPI cam  {NC}\n"
 
 ENV_FILE="/boot/orangepiEnv.txt"
 OVERLAY_NAME="opti5pro-cam2"
@@ -132,6 +145,7 @@ fi
 
 # ================= install CAN driver =====================================================
 # spi0-m2-cs0-mcp2515-16mhz
+printf "${RED}Installing CAN driver  {NC}\n"
 
 
 # === Step 1: Copy DTS file to /boot ===
@@ -200,6 +214,7 @@ fi
 
 # =====================================================================
 
-echo "[DONE] Configuration script completed successfully."
+printf "${RED}[DONE] Configuration script completed successfully.  {NC}\n"
+
 
 
