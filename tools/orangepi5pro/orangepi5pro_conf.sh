@@ -3,7 +3,7 @@
 # OrangePi5PRO script:
 # - installs mDNS, VNC
 # - changes to German keyboard layout
-# - changes OrangePi power button to directly shutdown Linux (disables XFCE UI panel)
+# - disables terminal/desktop autologin so power button allows to directly shutdown Linux
 # - adds GPIO command to rc.local   for owlRobotics hardware
 # - activates MIPI cam driver
 # - activates I2C driver
@@ -37,6 +37,15 @@ echo -e "${RED}[OK] Orange Pi 5 Pro detected.${NC}"
 echo -e "${RED}==========installing missing packages==========${NC}"
 sudo apt update
 sudo apt-get install libavcodec58 subversion btop 
+
+# ======  disabling terminal auto-login =====================================================
+echo -e "${RED}==========disabling terminal/desktop auto-login==========${NC}"
+sudo auto_login_cli.sh -d
+# sudo auto_login_cli.sh orangepi
+# sudo auto_login_cli.sh root
+sudo disable_desktop_autologin.sh
+# sudo desktop_login.sh root
+# sudo desktop_login.sh orangepi
 
 # ======  installing VScode =================================================================
 #printf "${RED}installing VScode...{NC}\n"
