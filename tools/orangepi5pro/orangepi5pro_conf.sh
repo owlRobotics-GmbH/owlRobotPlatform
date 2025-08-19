@@ -5,7 +5,9 @@
 # - changes to German keyboard layout
 # - changes OrangePi power button to directly shutdown Linux (disables XFCE UI panel)
 # - adds GPIO command to rc.local   for owlRobotics hardware
-# - compiles and installs CAN-SPI driver for owlRobotics hardware
+# - activates MIPI cam driver
+# - activates I2C driver
+# - activates CAN-SPI driver for owlRobotics hardware
 
 # assumptions:
 #  Ubuntu Jammy Image:   https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
