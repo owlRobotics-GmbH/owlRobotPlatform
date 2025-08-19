@@ -22,7 +22,7 @@ echo "[OK] Orange Pi 5 Pro detected."
 
 # installing missing packages...
 sudo apt update
-sudo apt-get install -y libavcodec58 avahi-daemon libnss-mdns  
+sudo apt-get install libavcodec58 avahi-daemon libnss-mdns  
 
 # activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' 
 sudo systemctl enable avahi-daemon
