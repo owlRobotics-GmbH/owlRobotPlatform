@@ -218,5 +218,8 @@ fi
 
 echo -e "${RED}[DONE] Configuration script completed successfully.  ${NC}"
 
+echo "next steps:"
+echo "  nmtui  (configure WiFi)"
+echo "  orangepi-config  (misc)"
 
 
