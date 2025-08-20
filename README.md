@@ -1,7 +1,7 @@
 # owlRobotPlatform
 'owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
 
-1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **Raspberry PI** (the 'brain'). The Raspberry, the Pico and your own hardware can use the CAN bus for communication.
+1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **RaspberryPi/OrangePi** (the 'brain'). The RaspberryPi/OrangePi, the Pico and your own hardware can use the CAN bus for communication.
    
 2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface (More details: https://owlrobotics-store.company.site/products/) 
 
@@ -32,7 +32,7 @@ https://www.youtube.com/watch?v=J3IJpunduYg
 
 
 Supported/tested hardware:
-1. owlRobotics motor drivers, RP2040 controller, Raspberry PI etc. connected via CAN bus:
+1. owlRobotics motor drivers, RP2040 controller, Raspberry Pi5/OrangePi5Pro etc. connected via CAN bus:
    
 https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smart-brushless-driver
 
@@ -46,7 +46,7 @@ Used Python libraries:
 * Camera person detection (follow-me): https://github.com/opencv/opencv-python
 
 
-1. On your Raspberry PI, verify that the CAN driver is installed:
+1. On your Raspberry Pi5, verify that the CAN driver is installed:
 ```
 ## edit boot config ##
 sudo nano /boot/firmware/config.txt
@@ -54,7 +54,13 @@ sudo nano /boot/firmware/config.txt
 ## and add this line ##
 dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=6
 ```
-   
+
+2. On your Orange Pi5Pro, run the CAN installation script:
+```
+cd tools/orangepi5pro
+./orangepi5pro_conf.sh
+```
+     
 2. Install Dabble App:  
 
 * [Android](https://play.google.com/store/apps/details?id=io.dabbleapp)
