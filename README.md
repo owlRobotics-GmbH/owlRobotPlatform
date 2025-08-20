@@ -46,7 +46,7 @@ Used Python libraries:
 * Camera person detection (follow-me): https://github.com/opencv/opencv-python
 
 
-1. On your Raspberry Pi5, verify that the CAN driver is installed:
+1. On your Raspberry Pi5/OrangePi5Pro, verify that the CAN driver is installed:
 ```
 ## edit boot config ##
 sudo nano /boot/firmware/config.txt
@@ -66,7 +66,7 @@ cd tools/orangepi5pro
 * [Android](https://play.google.com/store/apps/details?id=io.dabbleapp)
 * [iOS](https://apps.apple.com/ch/app/dabble-bluetooth-controller/id1472734455)
 
-3. Run in Raspberry PI terminal (will install all required Python libs etc.):
+3. Run in Raspberry Pi5/OrangePi5Pro terminal (will install all required Python libs etc.):
 
 ```
 ## checkout repository ##
@@ -90,7 +90,7 @@ The extra buttons have the following actions:
 triangle: high motor speed
 cross: low motor speed
 circle: toggle tool motor speed
-rectangle: shutdown Raspberry PI
+rectangle: shutdown Raspberry Pi5/OrangePi5Pro
 select: camera-based follow-me mode on/off
 start: toggle between sideways motion and rotation (only Mecanum platform)
 ```
