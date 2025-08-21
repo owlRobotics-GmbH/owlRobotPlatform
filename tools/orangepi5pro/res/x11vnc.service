@@ -1,0 +1,12 @@
+[Unit]
+Description=Start X11vnc at boot
+After=graphical.target
+
+[Service]
+ExecStart=/usr/bin/x11vnc -auth guess -forever -loop -noxdamage -repeat -rfbauth /home/orangepi/.vnc/passwd -display :0
+User=orangepi
+Group=orangepi
+
+[Install]
+WantedBy=graphical.target
+

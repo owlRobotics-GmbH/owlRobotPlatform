@@ -1,30 +1,137 @@
 #!/bin/bash
 
 # OrangePi5PRO script:
-# 1. compiles and installs CAN-SPI driver for owlRobotics hardware
-# 2. adds GPIO command to rc.local   for owlRobotics hardware
+# - installs mDNS, VNC
+# - changes to German keyboard layout
+# - disables terminal autologin so power button allows to directly shutdown Linux
+# - adds GPIO command to rc.local   for owlRobotics hardware
+# - activates MIPI cam driver
+# - activates I2C driver
+# - activates CAN-SPI driver for owlRobotics hardware
+
+# assumptions:
+#  Ubuntu Jammy Image:   https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
+
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
 
 # === Step 1: Detect Orange Pi 5 Pro ===
 if [ -f /etc/orangepi-release ]; then
     source /etc/orangepi-release
 else
-    echo "Error: /etc/orangepi-release not found."
+    echo -e "${RED}Error: /etc/orangepi-release not found.${NC}"
     exit 1
 fi
 
 if [[ "$BOARD" != "orangepi5pro" ]]; then
-    echo "Error: This script is only for Orange Pi 5 Pro. Detected: $BOARD"
+    echo -e "${RED}Error: This script is only for Orange Pi 5 Pro. Detected: $BOARD${NC}"
     exit 1
 fi
 
-echo "[OK] Orange Pi 5 Pro detected."
+echo -e "${RED}[OK] Orange Pi 5 Pro detected.${NC}"
+
 
 # installing missing packages...
-sudo apt-get install -y libavcodec58
+echo -e "${RED}==========installing missing packages==========${NC}"
+sudo apt update
+sudo apt-get install libavcodec58 subversion btop 
+
+# ======  disabling terminal auto-login =====================================================
+echo -e "${RED}==========disabling terminal auto-login==========${NC}"
+sudo auto_login_cli.sh -d             # required for shutdown via OrangePI power BUTTON
+# sudo auto_login_cli.sh orangepi
+# sudo auto_login_cli.sh root
+# sudo disable_desktop_autologin.sh
+# sudo desktop_login.sh root
+sudo desktop_login.sh orangepi      # required for VNC
 
 
-# === Step 2: Ensure gpio mode 6 down is in /etc/rc.local ===
+# OrangePI POWER button (Linux shutdown):    
+# xfce4-power-manager-settings
+# systemd-inhibit --list
+#
+# WHO                          UID  USER     PID  COMM            WHAT                                                                       WHY                                                       MODE 
+# NetworkManager               0    root     959  NetworkManager  sleep                                                                      NetworkManager needs to turn off networks                 delay
+# UPower                       0    root     2903 upowerd         sleep                                                                      Pause device polling                                      delay
+# Unattended Upgrades Shutdown 0    root     1587 unattended-upgr shutdown                                                                   Stop ongoing upgrades or perform upgrades before shutdown delay
+# xfce4-power-manager          1000 orangepi 2943 xfce4-power-man handle-power-key:handle-suspend-key:handle-hibernate-key:handle-lid-switch xfce4-power-manager handles these events                  block
+# xscreensaver                 1000 orangepi 2990 xscreensaver-sy sleep                                                                      lock screen on suspend                                    delay
+# 
+# 5 inhibitors listed.
+
+# xfce4: shutdown on power button  (xfce4-power-manager-settings)
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/power-button-action
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/power-button-action -s 4
+
+# ======  installing VScode =================================================================
+#printf "${RED}installing VScode...{NC}\n"
+#sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"
+#sudo apt install code
+
+# ======  change XFCE power button handling (to direct shutdown, no user prompt)
+
+if pgrep -x xfce4-session >/dev/null || pgrep -x xfce4-panel >/dev/null; then
+  echo -e "${RED}XFCE detected ${NC}"
+
+else
+  echo -e  "${RED}No XFCE detected ${NC}"
+fi
+
+# =======  installing x11vnc =================================================================
+# vncpasswd
+echo -e "${RED}==========Installing x11vnc==========${NC}"
+mkdir -p ~/.vnc
+vncpasswd -f <<< "orangepi" > ~/.vnc/passwd
+
+# create VNC xstartup-file
+cat > ~/.vnc/xstartup << 'EOF'
+#!/bin/sh
+xrdb $HOME/.Xresources
+startxfce4 &
+EOF
+
+chmod +x ~/.vnc/xstartup
+
+sudo apt install x11vnc
+
+sudo cp res/x11vnc.service /etc/systemd/system/x11vnc.service 
+sudo chmod 644 /etc/systemd/system/x11vnc.service
+sudo systemctl daemon-reload
+sudo systemctl enable x11vnc
+sudo systemctl start x11vnc
+#sudo systemctl --no-pager status x11vnc
+
+# x11vnc server test in terminal with:
+# x11vnc -storepasswd
+# x11vnc -display :0 -auth guess -forever -usepw
+
+# ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
+echo -e "${RED}==========Installing Avahi mDNS=========${NC}"
+sudo apt-get install avahi-daemon libnss-mdns 
+sudo systemctl enable avahi-daemon
+sudo systemctl start avahi-daemon
+#sudo hostnamectl set-hostname orangepi5pro
+
+
+# ======== change keyboard layout ==============================================================
+echo -e "${RED}==========Changing keyboard layout==========${NC}"
+CURRENT=$(localectl status | grep "Layout" | awk '{print $3}')
+
+if [ "$CURRENT" = "de" ]; then
+    echo "keyboard layout already German"
+else 
+    echo "changing keyboard layout to German..."
+    sudo sed -i 's/XKBLAYOUT=".*"/XKBLAYOUT="de"/' /etc/default/keyboard
+    sudo dpkg-reconfigure -f noninteractive keyboard-configuration
+    sudo service keyboard-setup restart
+    setxkbmap de
+fi
+
+# === owlRobotics PCB:  Ensure gpio mode 6 down is in /etc/rc.local ===
+echo -e "${RED}==========Installing GPIO mode 6 down setting==========${NC}"
+
 RC_LOCAL="/etc/rc.local"
 GPIO_CMD="gpio mode 6 down"
 if grep -q "$GPIO_CMD" "$RC_LOCAL"; then
@@ -34,7 +141,51 @@ else
     sudo sed -i "/^exit 0/i $GPIO_CMD" "$RC_LOCAL"
 fi
 
-# === Step 3: Copy DTS file to /boot ===
+# ============= activate I2C ===============================================================
+# i2c1-m4
+echo -e "${RED}==========Activating I2C==========${NC}"
+
+ENV_FILE="/boot/orangepiEnv.txt"
+OVERLAY_NAME="i2c1-m4"
+
+if grep -q "^overlays=" "$ENV_FILE"; then
+    if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
+    else
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
+        sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
+    fi
+else
+    echo "[INFO] Adding new overlays= line."
+    echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
+fi
+
+# ============= activate MIPI cam ===============================================================
+# opti5pro-cam2
+echo -e  "${RED}==========Activating MIPI cam==========${NC}"
+
+ENV_FILE="/boot/orangepiEnv.txt"
+OVERLAY_NAME="opti5pro-cam2"
+
+if grep -q "^overlays=" "$ENV_FILE"; then
+    if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
+    else
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
+        sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
+    fi
+else
+    echo "[INFO] Adding new overlays= line."
+    echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
+fi
+
+
+# ================= install CAN driver =====================================================
+# spi0-m2-cs0-mcp2515-16mhz
+echo -e "${RED}==========Installing CAN driver==========${NC}"
+
+
+# === Step 1: Copy DTS file to /boot ===
 DTS_FILE="res/rk3588-spi0-m2-cs0-mcp2515-16mhz.dts"
 if [ ! -f "$DTS_FILE" ]; then
     echo "Error: $DTS_FILE not found!"
@@ -44,15 +195,15 @@ fi
 sudo cp "$DTS_FILE" /boot
 echo "[OK] DTS file copied to /boot."
 
-# === Step 4: Install kernel headers ===
+# === Step 2: Install kernel headers ===
 echo "[INFO] Installing kernel headers..."
 sudo apt-get update
 sudo apt-get install -y linux-headers-generic
 
-# === Step 5: Change to /boot directory ===
+# === Step 3: Change to /boot directory ===
 cd /boot || { echo "Error: Cannot change directory to /boot."; exit 1; }
 
-# === Step 6: Compile DTS to DTSO ===
+# === Step 4: Compile DTS to DTSO ===
 DTS_BASENAME="rk3588-spi0-m2-cs0-mcp2515-16mhz"
 KERNEL_HEADERS=$(find /usr/src -name "linux-headers-*" | grep "5.15.0" | head -n 1)
 INCLUDE_PATH="$KERNEL_HEADERS/include"
@@ -70,7 +221,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "[OK] DTS compiled to DTSO."
 
-# === Step 7: Compile DTSO to DTBO ===
+# === Step 5: Compile DTSO to DTBO ===
 DTB_OUTPUT_DIR="/boot/dtb/rockchip/overlay"
 sudo mkdir -p "$DTB_OUTPUT_DIR"
 
@@ -82,15 +233,15 @@ if [ $? -ne 0 ]; then
 fi
 echo "[OK] DTSO compiled to DTBO."
 
-# === Step 8: Activate DTBO in orangepiEnv.txt ===
+# === Step 6: Activate DTBO in orangepiEnv.txt ===
 ENV_FILE="/boot/orangepiEnv.txt"
 OVERLAY_NAME="spi0-m2-cs0-mcp2515-16mhz"
 
 if grep -q "^overlays=" "$ENV_FILE"; then
     if grep -q "$OVERLAY_NAME" "$ENV_FILE"; then
-        echo "[OK] Overlay already present in orangepiEnv.txt."
+        echo "[OK] Overlay $OVERLAY_NAME already present in orangepiEnv.txt."
     else
-        echo "[INFO] Adding overlay to existing overlays= line."
+        echo "[INFO] Adding overlay $OVERLAY_NAME to existing overlays= line."
         sudo sed -i "s/^overlays=\(.*\)/overlays=\1 $OVERLAY_NAME/" "$ENV_FILE"
     fi
 else
@@ -98,5 +249,12 @@ else
     echo "overlays=$OVERLAY_NAME" | sudo tee -a "$ENV_FILE" > /dev/null
 fi
 
-echo "[DONE] Configuration script completed successfully."
+# =====================================================================
+
+echo -e "${RED}[DONE] Configuration script completed successfully.  ${NC}"
+
+echo "next steps:"
+echo "  nmtui  (configure WiFi)"
+echo "  orangepi-config  (misc)"
+
 
