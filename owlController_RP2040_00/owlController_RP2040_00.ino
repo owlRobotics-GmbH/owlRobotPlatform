@@ -268,8 +268,8 @@ void loop() {
     
    }
 
-   //ultraSchallLinks.printInfo();
-   //ultraSchallRechts.printInfo();
+   ultraSchallLinks.printInfo();
+   ultraSchallRechts.printInfo();
    /*
    uint16_t dist = ultraSchallLinks.getDistance();
     if (dist != 0xFFFF) {
