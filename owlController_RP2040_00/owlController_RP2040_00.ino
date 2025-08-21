@@ -50,6 +50,7 @@ OUT pin 1:
 #include "Funkt.h"
 #include "config.h"
 #include "oledDisp.h"
+#include "DYP_A22.h"
 #include "joystick.h"
 #include "robot.h"
 #include "comparser.h"
@@ -78,12 +79,17 @@ long unsigned  MotorStatTimer;
 Funkt myF;
 //MotorContr myMCtr;
 oledDisp  oled;
+//ultraSensor us;
 joystick joystk;
 robot robot;
 NeoPix neopix ;
 extern owlDrive owlDrive;
 Watchdog watchdog;
 
+DYP_A22 ultraSchallLinks(dyp1_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
+DYP_A22 ultraSchallRechts(dyp1_I2CMuxChn, DYP2_A22_I2C_ADDRESS);
+//DYP_A22 ultraSchallLinks(dyp1_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
+//DYP_A22 ultraSchallRechts(dyp2_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
 ComParser comParser(&Serial);
 //mpu mpu;
 volatile unsigned long motorLeftTicksTimeout = 0;
@@ -122,8 +128,9 @@ void setup() {
   Wire.begin();
   delay (100);
   pinMode(blueLED,OUTPUT);
-  myF.begin();
+  myF.begin();                            // initialize owlController PCB
   oled.begin();
+  //us.begin();
   joystk.begin();
   robot.begin();
   neopix.begin();
@@ -131,6 +138,14 @@ void setup() {
   delay (50);
   myF.extPieper(0);
   myF.anaMux(8);
+  ultraSchallLinks.begin();
+  ultraSchallRechts.begin();
+  /*if (ultraSchallLinks.begin()){
+    Serial.println("DYP_A22 sensor initialized successfully.");
+  } else {
+    Serial.println("Failed to initialize DYP_A22 sensor.");
+  }
+    */
   //Serial.println("Setup done");
   // default: 10 bit
   analogReadResolution(ADC_Resulution);
@@ -251,8 +266,20 @@ void loop() {
       //Serial.println("run done");
       stateTimer[8]=millis()+5000;
     
-   } 
+   }
 
+   //ultraSchallLinks.printInfo();
+   //ultraSchallRechts.printInfo();
+   /*
+   uint16_t dist = ultraSchallLinks.getDistance();
+    if (dist != 0xFFFF) {
+        Serial.print("Entfernung: ");
+        Serial.print(dist);
+        Serial.println(" mm");
+    } else {
+        Serial.println("Messfehler");
+    }
+        */
 /*   if (stateTimer[9]<millis()){
      if(yxc++>2)  while(1){           // WD Test
         Serial.println ("WD Trap!! ");
@@ -303,7 +330,6 @@ void loop() {
     }
   }
   */
-
 
 }
 

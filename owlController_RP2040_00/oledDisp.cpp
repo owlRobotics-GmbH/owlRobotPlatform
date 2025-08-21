@@ -8,6 +8,7 @@
 #include "Funkt.h"
 #include <TCA9548A.h>
 #include "config.h"
+#include "owlcontrol.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -18,10 +19,15 @@
 extern Funkt myF;
 extern TCA9548A I2CMux;
 
-
  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-oledDisp::oledDisp(){}
+
+oledDisp::oledDisp() : raspberryPiIP("No IP") {}
+
+void oledDisp::setIP(const String &ip) {
+  raspberryPiIP = ip;
+}
+
 
 void oledDisp::begin(){
   I2CMux.openChannel(oled_I2CMuxChn);
@@ -43,16 +49,26 @@ void oledDisp::status(){
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.fillRect(0,3,5,5,WHITE); 
-  display.fillRect(3,1,15,10,WHITE); 
-  display.setCursor(30, 5);
+  display.fillRect(3,1,15,10,WHITE);
+  display.setCursor(30, 1); // (30, 5)
   if( volt>5) {
-    display.setCursor(45, 5);
+    display.setCursor(45, 1); // (45, 5)
     display.print(volt,1);  // to be adjusted 
     display.print("V");
    } else  display.print("USB");
   display.setCursor(110, 1);
    if (myF.rain())display.print(char(0xB0));
      else display.print(char(0x0F));
-  display.display();
+  
 
+  // show Raspberry Pi IP address
+  display.setTextColor(WHITE);
+  //String raspberryPiIP = "192.168.100.100"; // Beispiel-IP-Adresse
+  display.setTextSize(1);
+  display.setCursor(0, 25);
+  display.print("IP: ");
+  display.print(raspberryPiIP);
+  display.setTextSize(2);
+
+  display.display();
 }  

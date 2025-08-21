@@ -23,5 +23,9 @@
 //OLED Display, define I²C MUX Port
 #define oled_I2CMuxChn 0
 
+// DYP_A22, define I²C MUX Port
+#define dyp1_I2CMuxChn 1
+#define dyp2_I2CMuxChn 2
+
 //RGB LED WS2812 Neopixel
 #define LED_COUNT  144

@@ -12,12 +12,13 @@
 #define X_0 170
 #define Y_0 130
 
-
 class oledDisp {
   public:
    oledDisp(); 
    void begin();
    void status();
-  private:
 
+   void setIP(const String &ip);
+  private:
+   String raspberryPiIP; // Raspberry Pi IP address to show on display
 };

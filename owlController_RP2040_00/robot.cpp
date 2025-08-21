@@ -6,6 +6,8 @@
 #include "comparser.h"
 #include "config.h"
 #include "cmd.h"
+#include "owlcontrol.h"
+#include "oledDisp.h"
 
 //#define DEBUG 1
 
@@ -20,6 +22,8 @@
 
 extern Funkt myF;
 cmd cmdAT;
+owlControl control; // owlControl PCB (CAN node)
+extern oledDisp oled;
 //extern MotorContr myMCtr;
 
 extern joystick joystk;
@@ -64,7 +68,13 @@ class MyCanDriver: public owlDriveCAN {
       while (can.read(rx)){	
         //Serial.print("New frame from ID: ");
         //Serial.println(rx.can_id);
+        
         onPacketReceived(rx.can_id, rx.can_dlc, rx.data);
+        control.rcvIpAddressTimeout = millis() + 3000;
+      }
+      if (control.rcvIpAddressTimeout < millis()){
+        control.raspberryPiIP = "No IP";
+        oled.setIP(control.raspberryPiIP); // update OLED display with new IP address
       }
     }
     void setRobot(robot *aRobot){

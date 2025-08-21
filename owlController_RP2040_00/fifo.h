@@ -11,7 +11,7 @@
 //   FiFo<char, 1000> myFifo;
 
 // TData: The data type of the fifo.
-// len: The length of the fifo.
+// TLen: The length of the fifo.
  
 template<typename TData, uint16_t TLen>
 class FiFo

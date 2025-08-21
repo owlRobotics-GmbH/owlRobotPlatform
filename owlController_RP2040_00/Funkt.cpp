@@ -89,7 +89,7 @@ float Funkt::getBatteryVoltage(){
   float adcVolt = ADC_read(7);  // returns millivolt
   batteryVoltage = adcVolt/10.0 * 340.0 / 1000.0;  // 3v ADC input equals 100v sensor value  
     #ifdef DEBUG
-      Serial.print("  batV: ");Serial.print(batteryVoltage);Serial.println("  mV ");
+      Serial.print("  batV: ");Serial.print(batteryVoltage);Serial.println("  V ");
     #endif
   return batteryVoltage; // returns millivolt
 }
@@ -98,7 +98,7 @@ float Funkt::getChargerVoltage(){
   float adcVolt = ADC_read(0); // returns millivolt
   chargerVoltage = adcVolt/10.0 * 100.0 / 1000.0;  // 3v ADC input equals 30V sensor value
     #ifdef DEBUG
-      Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  mV ");
+      Serial.print("  chgV: ");Serial.print(chargerVoltage);Serial.println("  V ");
     #endif
   return chargerVoltage; // returns millivolt
 }
@@ -187,4 +187,3 @@ void Funkt::extPieper(bool on_off)
       Wire.write(val_1);  
       Wire.endTransmission(); 
   }
-   

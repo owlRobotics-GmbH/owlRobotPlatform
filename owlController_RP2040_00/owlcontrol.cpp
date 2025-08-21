@@ -3,6 +3,10 @@
 */
 
 #include "owlcontrol.h"
+#include "oledDisp.h"
+
+extern oledDisp oled;
+
 
 
 owlControl::owlControl(owlDriveCAN *aCanDriver, int aDriverNodeId, int aOperatorNodeId, int aCanMsgId){
@@ -28,6 +32,8 @@ void owlControl::init(){
   buzzerStateTimeout = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
+  raspberryPiIP = "";
+  rcvIpAddressTimeout = 0;
 }
 
 void owlControl::run(){
@@ -66,20 +72,47 @@ void owlControl::setSlowDownState(bool state){
   slowDownState = state;
 }
 
-void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){    
+void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){  
+  
     if (debug){
       Serial.print("onCanReceived id=");
       Serial.println(id);    
       printCanFrame(canData);
-    }    
-
+      Serial.print("MycanMsgId=");
+      Serial.println(canMsgId);
+      Serial.print("MydriverNodeId=");
+      Serial.println(driverNodeId);
+    }
+    if (id == CAN_RELAIS_MSG_ID){
+      Serial.println(); 
+      Serial.println("onCanReceived:  ");
+      Serial.print("  Raw Data:       ");
+      for (int i = 0; i < len; i++) {
+      Serial.print("[" + String(i) + "]=" + String(canData[i], DEC) + " ");
+      }
+      Serial.println();
+      printCanFrame(canData);
+      Serial.print("  CAN ID:         "); Serial.println(id, DEC);
+      //Serial.print("  CAN Msg ID (expected): "); Serial.println(MY_NODE_ID, DEC);
+      Serial.print("  Driver Node ID: "); Serial.println(driverNodeId, DEC);
+      Serial.print("  Source Node ID: "); Serial.println(canData[0] & 0x3F, DEC); // 6 bits
+      Serial.print("  Dest Node ID:   "); Serial.println(canData[1] & 0x3F, DEC);   // 6 bits    
+      Serial.print("  Command:        "); Serial.println(canData[2], DEC);
+      Serial.print("  Value Type:     "); Serial.println(canData[3], DEC);
+      Serial.print("  Data Bytes:     ");
+      for (int i = 4; i < 8; i++) {
+      Serial.print("[" + String(i) + "]=" + String(canData[i], DEC) + " ");
+      }
+      Serial.println();
+      Serial.println();
+    }
     if (id != canMsgId) return;
     canNodeType_t node;
-    node.byteVal[0] = canData[0];
-    node.byteVal[1] = canData[1];    
+    node.byteVal[0] = canData[0]; // Source node ID (6 bits) and reserved (2 bits)
+    node.byteVal[1] = canData[1]; // Destination node ID (6 bits) and reserved (2 bits)   
     //if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node  
     if (node.sourceAndDest.destNodeID != driverNodeId) return; // message is not for expected owlControl node  
-
+    
     rxPacketCounter++;
     rxPacketTime = millis();
 
@@ -90,7 +123,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
     data.byteVal[1] = canData[5];
     data.byteVal[2] = canData[6];
     data.byteVal[3] = canData[7];    
-        
+
+    
+
     if (cmd == can_cmd_info){
         // info value (volt, velocity, position, ...)
         switch (val){
@@ -160,8 +195,17 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           buzzerState = (bool)data.byteVal[0];
           buzzerStateTimeout = millis() + 2000;
           break;
+        case owlctl::can_val_ip_address:
+          char ipStr[16];
+          snprintf(ipStr, sizeof(ipStr), "%u.%u.%u.%u", data.byteVal[0], data.byteVal[1], data.byteVal[2], data.byteVal[3]);
+          raspberryPiIP = String(ipStr);
+          oled.setIP(raspberryPiIP); // update OLED display with new IP address
+          break;
       }
     }
+  
+  
+  
 }
 
 
@@ -178,11 +222,11 @@ void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueT
     //node.sourceAndDest.sourceNodeID = operatorNodeId;
     node.sourceAndDest.sourceNodeID = driverNodeId;    
     node.sourceAndDest.destNodeID = destNodeId;    
-    canData[0] = node.byteVal[0];
-    canData[1] = node.byteVal[1];    
-    canData[2] = cmd;    
-    canData[3] = val;
-    canData[4] = data.byteVal[0];
+    canData[0] = node.byteVal[0];                          // Source node ID (6 bits) and reserved (2 bits)
+    canData[1] = node.byteVal[1];                          // Destination node ID (6 bits) and reserved (2 bits) 
+    canData[2] = cmd;                                      // What to do. broadcast, request, set, save
+    canData[3] = val;                                      // What value to send (battery voltage, error, etc.)
+    canData[4] = data.byteVal[0];                          // Data to send (4 bytes, float, int, etc.)
     canData[5] = data.byteVal[1];
     canData[6] = data.byteVal[2];
     canData[7] = data.byteVal[3];
@@ -342,3 +386,8 @@ void owlControl::requestSlowDownState(){
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_slow_down_state, data);
 }
 
+owlControl::owlControl() {
+  // Platzhalterwerte oder leere Initialisierung
+  this->canDriver = nullptr;
+  this->driverNodeId = 0;
+}

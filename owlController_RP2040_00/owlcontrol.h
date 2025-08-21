@@ -9,22 +9,23 @@
 #include "owlcan.h"
 
 
-
 // -----CAN frame data types----------------
 
 namespace owlctl {
 
   // which variable to use for the action...
   enum canValueType_t: uint8_t {
-      can_val_error             = 1, // error status
-      can_val_battery_voltage   = 2, // battery voltage
-      can_val_bumper_state      = 3, // bumper state
-      can_val_stop_button_state = 4, // STOP button state
-      can_val_buzzer_state      = 5, // buzzer state
-      can_val_rain_state        = 6, // rain state
-      can_val_charger_voltage   = 7, // charger voltage
-      can_val_lift_state        = 8, // lift state
-      can_val_slow_down_state   = 9, // slow-down state
+      can_val_error             = 1,  // error status
+      can_val_battery_voltage   = 2,  // battery voltage
+      can_val_bumper_state      = 3,  // bumper state
+      can_val_stop_button_state = 4,  // STOP button state
+      can_val_buzzer_state      = 5,  // buzzer state
+      can_val_rain_state        = 6,  // rain state
+      can_val_charger_voltage   = 7,  // charger voltage
+      can_val_lift_state        = 8,  // lift state
+      can_val_slow_down_state   = 9,  // slow-down state
+      can_val_ip_address        = 10, // show Raspberry Pi IP address on display 
+      can_val_relais_state      = 11, // relais state
   };
 
   // motor driver error values
@@ -60,11 +61,15 @@ class owlControl
     bool slowDownState;    // slow-down state
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
+    String raspberryPiIP; // Raspberry Pi IP address (if available)
+    unsigned long rcvIpAddressTimeout;
 
     owlDriveCAN *canDriver; // driver to send/receive data
 
     owlControl(owlDriveCAN *aCanDriver, int driverNodeId, int aOperatorNodeId = MY_NODE_ID, int aCanMsgId = CAN_CONTROL_MSG_ID);
-
+    
+    owlControl();
+    
     // call this for any CAN packet received via your CAN interface
     void onCanReceived(int id, int len, unsigned char canData[8]);    
 
@@ -98,7 +103,9 @@ class owlControl
   protected:
     unsigned long buzzerStateTimeout;
     unsigned long stopButtonStateTimeout;
-    unsigned long bumperStateTimeout;         
+    unsigned long bumperStateTimeout;
+    
+             
     void init();    
     void sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data);
     void printCanFrame(unsigned char canData[8]);

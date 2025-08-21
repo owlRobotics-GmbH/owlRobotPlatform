@@ -14,8 +14,10 @@
 // The lower the numerical ID, the higher the message priority. 
 #define CAN_MOTOR_MSG_ID       300
 
+// The lower the numerical ID, the higher the message priority.
+#define CAN_RELAIS_MSG_ID      128    // relais control ID
 
-#define MY_NODE_ID 60 
+#define MY_NODE_ID 60
 
 
 // -----CAN frame data types----------------
