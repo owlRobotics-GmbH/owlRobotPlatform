@@ -58,6 +58,7 @@ Also, for the Raspberry4, if the RP2040 doesn't switch on, you may have to chang
 <img width="640" height="310" alt="image" src="https://github.com/user-attachments/assets/9ca7d786-0350-4581-ba37-8033cb14f252" />
 
 Physical pin12 = 0V (GND) : RP2040 switched on
+
 Physical pin12 = 3.3V : RP2040 switched off
 
 
