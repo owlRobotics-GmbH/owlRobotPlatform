@@ -51,7 +51,9 @@ dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=6
 Also, for the Raspberry4, if the RP2040 doesn't switch on, you may have to change the default pin behavior for physical pin 12 to 'input pull-down':
 1. install wiring-pi:   sudo apt install wiringpi
 2. sudo nano /etc/rc.local  and add this line:     gpio mode 1 down
-3. you can see the physical pin state (physical pin 12 = wiring_pin 1) using the command 'gpio readall'.  It should be 'input, V=0'
+3. make it executable:     sudo chmod +x /etc/rc.local
+4. reboot:  sudo reboot now
+5. you can see the actual physical pin state (physical pin 12 = wiring_pin 1) using the command 'gpio readall'.  It should be 'input, V=0'
 
 
 ###  OrangePi5Pro:
