@@ -37,16 +37,10 @@ Supported/tested hardware:
 https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smart-brushless-driver
 
 
+## CAN bus driver installation etc. 
 
-## Dabble App/Python interface demo
-
-Used Python libraries:
-* CAN bus communication: https://github.com/hardbyte/python-can
-* Bluetooth Low Energery communication (Dabble App): https://github.com/google/bumble
-* Camera person detection (follow-me): https://github.com/opencv/opencv-python
-
-
-1. On your Raspberry Pi5/OrangePi5Pro, verify that the CAN driver is installed:
+### Raspberry4 / Raspberry5:
+On your Raspberry Pi4/5, verify that the CAN driver is installed:
 ```
 ## edit boot config ##
 sudo nano /boot/firmware/config.txt
@@ -55,18 +49,26 @@ sudo nano /boot/firmware/config.txt
 dtoverlay=mcp2515-can0,oscillator=16000000,interrupt=6
 ```
 
-2. On your Orange Pi5Pro, run the CAN installation script:
+###  OrangePi5Pro:
+On your Orange Pi5Pro, run the CAN installation script:
 ```
 cd tools/orangepi5pro
 ./orangepi5pro_conf.sh
 ```
+
+## Dabble App/Python interface demo
+
+Used Python libraries:
+* CAN bus communication: https://github.com/hardbyte/python-can
+* Bluetooth Low Energery communication (Dabble App): https://github.com/google/bumble
+* Camera person detection (follow-me): https://github.com/opencv/opencv-python
      
-2. Install Dabble App:  
+1. Install Dabble App:  
 
 * [Android](https://play.google.com/store/apps/details?id=io.dabbleapp)
 * [iOS](https://apps.apple.com/ch/app/dabble-bluetooth-controller/id1472734455)
 
-3. Run in Raspberry Pi5/OrangePi5Pro terminal (will install all required Python libs etc.):
+2. Run in Raspberry Pi5/OrangePi5Pro terminal (will install all required Python libs etc.):
 
 ```
 ## checkout repository ##
@@ -79,10 +81,10 @@ cd owlRobotPlatform/python
 sudo ./run_ble_server.sh
 ```
 
-4. Start Dabble App, connect with 'owlRobot'and choose button 'Gamedpad' to steer robot (you can switch between digital mode, joystick mode and accelerometer mode)
+3. Start Dabble App, connect with 'owlRobot'and choose button 'Gamedpad' to steer robot (you can switch between digital mode, joystick mode and accelerometer mode)
 ![Screenshot from 2024-04-10 18-26-50](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/3485eaab-0ced-49aa-adff-f4493f62f156)
 
-5. Verify that the Python script receives commands via Bluetooth when pressing buttons (up, down, left, right) in the Dabble App. Also verify (using 'candump can0') that the Python script triggers CAN packets on the CAN bus:
+4. Verify that the Python script receives commands via Bluetooth when pressing buttons (up, down, left, right) in the Dabble App. Also verify (using 'candump can0') that the Python script triggers CAN packets on the CAN bus:
 ![Screenshot from 2024-04-10 19-16-11](https://github.com/owlRobotics-GmbH/owlRobotPlatform/assets/11735886/6996b1b3-0524-40ae-a002-4195df0f0372)
 
 The extra buttons have the following actions:
@@ -95,7 +97,7 @@ select: camera-based follow-me mode on/off
 start: toggle between sideways motion and rotation (only Mecanum platform)
 ```
 
-6. In order to install/uninstall the demo Python script as a Linux (autostart) service:
+5. In order to install/uninstall the demo Python script as a Linux (autostart) service:
 
 ```
 sudo ./service.sh
