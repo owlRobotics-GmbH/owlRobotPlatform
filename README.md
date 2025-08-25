@@ -56,8 +56,10 @@ Also, for the Raspberry4, if the RP2040 doesn't switch on, you may have to chang
 5. you can see the actual physical pin state (physical pin 12 = wiring_pin 1) using the command 'gpio readall'.  It should be 'input, V=0'
 
 <img width="640" height="310" alt="image" src="https://github.com/user-attachments/assets/9ca7d786-0350-4581-ba37-8033cb14f252" />
+
 Physical pin12 = 0V (GND) : RP2040 switched on
 Physical pin12 = 3.3V : RP2040 switched off
+
 
 ###  OrangePi5Pro:
 On your Orange Pi5Pro, run the CAN installation script:
