@@ -1,4 +1,12 @@
 # owlRobotPlatform
+
+# Table of contents
+1. [Description](#description)
+2. [owlPlatform installation](#installation)
+3. [Sunray for owlPlatform](#sunray_owl)
+   
+
+## Description <a name="description"></a>
 'owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
 
 1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **RaspberryPi/OrangePiPro** (the 'brain'). The RaspberryPi/OrangePiPro, the Pico and your own hardware can use the CAN bus for communication.
@@ -36,8 +44,7 @@ Supported/tested hardware:
    
 https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smart-brushless-driver
 
-
-## CAN bus driver installation etc. 
+## owlPlatform installation (CAN bus driver installation etc.) <a name="installation"></a>
 
 ### Raspberry4 / Raspberry5:
 On your Raspberry Pi4/5, verify that the CAN driver is installed:
@@ -169,9 +176,14 @@ rostopic pub /cmd_vel geometry_msgs/Twist -r 3 -- '[0.1,0.0,0.0]' '[0.0, 0.0, 0.
 The motors should rotate forward (0.1 m/s).
 
 
-## Ardumower Sunray firmware
-The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. More details: https://github.com/Ardumower/Sunray
+## Sunray for owlPlatform <a name="sunray_owl"></a>
 
+The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. 
+
+1. Install owlPlatform drivers (see section owlPlatform installation above) 
+2. Install Sunray firmware: https://github.com/Ardumower/Sunray
+
+   
 
 
 
