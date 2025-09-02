@@ -4,6 +4,8 @@
 1. [Description](#description)
 2. [owlPlatform installation](#installation)
 3. [Sunray for owlPlatform](#sunray_owl)
+4. [Dabble App/Python interface demo for owlPlatform](#dabble)
+5. [ROS for owlPlatform](#ros)
    
 
 ## Description <a name="description"></a>
@@ -85,7 +87,15 @@ cd tools/orangepi5pro
 ./orangepi5pro_conf.sh
 ```
 
-## Dabble App/Python interface demo
+## Sunray for owlPlatform <a name="sunray_owl"></a>
+
+The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. 
+
+1. Install owlPlatform drivers (see section owlPlatform installation above) 
+2. Install Sunray firmware: https://github.com/Ardumower/Sunray
+
+
+## Dabble App/Python interface demo <a name="dabble"></a>
 
 Used Python libraries:
 * CAN bus communication: https://github.com/hardbyte/python-can
@@ -139,7 +149,7 @@ Please enter your choice:
 and choose point 1   ('Start ble_server service') to start the service or point 2 ('Stop ble_server service') to stop the service. 
 
 
-## ROS interface
+## ROS for owlPlatform <a name="sunray_owl"></a>
 
 The ROS node driver uses the Python library to drive the motors. How to try out the ROS node driver:
 
@@ -176,14 +186,6 @@ rostopic pub /cmd_vel geometry_msgs/Twist -r 3 -- '[0.1,0.0,0.0]' '[0.0, 0.0, 0.
 The motors should rotate forward (0.1 m/s).
 
 
-## Sunray for owlPlatform <a name="sunray_owl"></a>
-
-The owlRobotPlatform is compatible with the Ardumower Sunray firmware. Sunray is a firmware for your Do-It-Yourself robot mower. 
-
-1. Install owlPlatform drivers (see section owlPlatform installation above) 
-2. Install Sunray firmware: https://github.com/Ardumower/Sunray
-
-   
 
 
 
