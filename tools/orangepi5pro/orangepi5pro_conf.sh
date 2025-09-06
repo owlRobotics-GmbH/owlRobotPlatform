@@ -36,7 +36,7 @@ echo -e "${RED}[OK] Orange Pi 5 Pro detected.${NC}"
 # installing missing packages...
 echo -e "${RED}==========installing missing packages==========${NC}"
 sudo apt update
-sudo apt-get install libavcodec58 subversion btop 
+sudo apt-get -y install libavcodec58 subversion btop 
 
 # ======  disabling terminal auto-login =====================================================
 echo -e "${RED}==========disabling terminal auto-login==========${NC}"
@@ -68,7 +68,7 @@ xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/power-button-action 
 # ======  installing VScode =================================================================
 #printf "${RED}installing VScode...{NC}\n"
 #sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"
-#sudo apt install code
+#sudo apt-get -y install code
 
 # ======  change XFCE power button handling (to direct shutdown, no user prompt)
 
@@ -94,7 +94,7 @@ EOF
 
 chmod +x ~/.vnc/xstartup
 
-sudo apt install x11vnc
+sudo apt-get -y install x11vnc
 
 sudo cp res/x11vnc.service /etc/systemd/system/x11vnc.service 
 sudo chmod 644 /etc/systemd/system/x11vnc.service
@@ -109,7 +109,7 @@ sudo systemctl start x11vnc
 
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
 echo -e "${RED}==========Installing Avahi mDNS=========${NC}"
-sudo apt-get install avahi-daemon libnss-mdns 
+sudo apt-get -y install avahi-daemon libnss-mdns 
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
 #sudo hostnamectl set-hostname orangepi5pro
@@ -198,7 +198,7 @@ echo "[OK] DTS file copied to /boot."
 # === Step 2: Install kernel headers ===
 echo "[INFO] Installing kernel headers..."
 sudo apt-get update
-sudo apt-get install -y linux-headers-generic
+sudo apt-get -y install -y linux-headers-generic
 
 # === Step 3: Change to /boot directory ===
 cd /boot || { echo "Error: Cannot change directory to /boot."; exit 1; }
