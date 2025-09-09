@@ -256,5 +256,5 @@ echo -e "${RED}[DONE] Configuration script completed successfully.  ${NC}"
 echo "next steps:"
 echo "  nmtui  (configure WiFi)"
 echo "  orangepi-config  (misc)"
-
+echo "  vnc-client  (port: 5900, user:orangepi, pw: orangepi)"
 
