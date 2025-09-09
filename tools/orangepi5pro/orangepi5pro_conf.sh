@@ -251,7 +251,7 @@ fi
 
 # =====================================================================
 
-echo -e "${RED}[DONE] Configuration script completed successfully.  ${NC}"
+echo -e "${RED}[DONE] Configuration script completed successfully. Reboot to activate added Linux overlay drivers. ${NC}"
 
 echo "next steps:"
 echo "  nmtui  (configure WiFi)"
