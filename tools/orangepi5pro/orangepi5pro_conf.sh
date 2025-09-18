@@ -110,6 +110,8 @@ sudo systemctl start x11vnc
 # ============  activate Avahi ( mDNS) so you can resolve 'orangepi5pro.local' =============== 
 echo -e "${RED}==========Installing Avahi mDNS=========${NC}"
 sudo apt-get -y install avahi-daemon libnss-mdns 
+sudo cp res/http.service /etc/avahi/services/http.service 
+sudo chmod 644 /etc/avahi/services/http.service
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
 #sudo hostnamectl set-hostname orangepi5pro
@@ -257,4 +259,5 @@ echo "next steps:"
 echo "  nmtui  (configure WiFi)"
 echo "  orangepi-config  (misc)"
 echo "  vnc-client  (port: 5900, user:orangepi, pw: orangepi)"
+echo "  to find out orangepi IP: ping orangepi5pro.local" 
 
