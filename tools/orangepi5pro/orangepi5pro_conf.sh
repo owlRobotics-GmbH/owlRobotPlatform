@@ -259,5 +259,5 @@ echo "next steps:"
 echo "  nmtui  (configure WiFi)"
 echo "  orangepi-config  (misc)"
 echo "  vnc-client  (port: 5900, user:orangepi, pw: orangepi)"
-echo "  to find out orangepi IP: ping orangepi5pro.local" 
+echo "  to find out orangepi IP: ping orangepi5pro.local (or scan network for mDNS service: http)" 
 
