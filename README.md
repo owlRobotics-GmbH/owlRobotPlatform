@@ -48,6 +48,19 @@ https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smar
 
 ## owlPlatform installation (CAN bus driver installation etc.) <a name="installation"></a>
 
+
+###  OrangePi5Pro:
+1. Download and install Ubuntu Jammy (22.04, with Xfce window manager and Linux kernel 6.1)  https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
+2. On your Orange Pi5Pro, run the CAN installation script in a terminal:
+
+```
+cd ~
+git clone https://github.com/owlRobotics-GmbH/owlRobotPlatform
+##  (optionally, as developer):  git clone git@github.com:owlRobotics-GmbH/owlRobotPlatform
+cd tools/orangepi5pro
+./orangepi5pro_conf.sh
+```
+
 ### Raspberry4 / Raspberry5:
 On your Raspberry Pi4/5, verify that the CAN driver is installed:
 ```
@@ -74,18 +87,6 @@ Physical pin12 = 0V (GND) : RP2040 switched on
 
 Physical pin12 = 3.3V : RP2040 switched off
 
-
-###  OrangePi5Pro:
-1. Download and install Ubuntu Jammy (22.04, with Xfce window manager and Linux kernel 6.1)  https://drive.google.com/file/d/1CrvjhITZV2vE1qJ_pcYZjjQi0JqQDwxP/view?usp=drive_link
-2. On your Orange Pi5Pro, run the CAN installation script in a terminal:
-
-```
-cd ~
-git clone https://github.com/owlRobotics-GmbH/owlRobotPlatform
-##  (optionally, as developer):  git clone git@github.com:owlRobotics-GmbH/owlRobotPlatform
-cd tools/orangepi5pro
-./orangepi5pro_conf.sh
-```
 
 ## Sunray for owlPlatform <a name="sunray_owl"></a>
 
