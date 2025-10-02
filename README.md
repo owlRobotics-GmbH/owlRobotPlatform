@@ -1,4 +1,4 @@
-# owlRobotPlatform
+# SMARTMOW DIY/owlRobotics Plattform (owlRobotPlatform)
 
 # Table of contents
 1. [Description](#description)
