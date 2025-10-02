@@ -1,4 +1,4 @@
-# SMARTMOW DIY/owlRobotics Plattform (owlRobotPlatform)
+# SMARTMOW-DIY/owlRobotics Plattform (owlRobotPlatform)
 
 # Table of contents
 1. [Description](#description)
@@ -9,7 +9,7 @@
    
 
 ## Description <a name="description"></a>
-'owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
+'SMARTMOW-DIY/owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
 
 1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **RaspberryPi/OrangePiPro** (the 'brain'). The RaspberryPi/OrangePiPro, the Pico and your own hardware can use the CAN bus for communication.
    
