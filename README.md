@@ -11,7 +11,7 @@
 ## Description <a name="description"></a>
 'SMARTMOW-DIY/owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
 
-1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **OrangePi5Pro/RaspberryPi** (the 'brain'). The OrangePi5Pro/RaspberryPi, the Pico and your own hardware can use the CAN bus for communication.
+1. owlControl: a PCB with an integrated **Raspberry Pico (RP2040)** with sockets for GPIO, UART, I2C, SPI etc. and an integrated **CAN bus** interface. Optionally, it contains a breakout for a **OrangePi5Pro (highly recommended)/RaspberryPi** (the 'brain'). The OrangePi5Pro/RaspberryPi, the Pico and your own hardware can use the CAN bus for communication.
    
 2. owlDrive (optional): motor drivers for **brushless motors** (BLDC) - it has an intetgrated CAN bus interface (More details: https://owlrobotics-store.company.site/products/) 
 
@@ -42,7 +42,7 @@ https://www.youtube.com/watch?v=J3IJpunduYg
 
 
 Supported/tested hardware:
-1. owlRobotics motor drivers, RP2040 controller, Raspberry Pi5/OrangePi5Pro etc. connected via CAN bus:
+1. owlRobotics motor drivers, RP2040 controller, OrangePi5Pro/Raspberry Pi5 etc. connected via CAN bus:
    
 https://owlrobotics.de/index.php/en/products/hardware-products/owldrive-the-smart-brushless-driver
 
@@ -108,7 +108,7 @@ Used Python libraries:
 * [Android](https://play.google.com/store/apps/details?id=io.dabbleapp)
 * [iOS](https://apps.apple.com/ch/app/dabble-bluetooth-controller/id1472734455)
 
-2. Run in Raspberry Pi5/OrangePi5Pro terminal (will install all required Python libs etc.):
+2. Run in OrangePi5Pro/Raspberry Pi5 terminal (will install all required Python libs etc.):
 
 ```
 ## checkout repository ##
@@ -132,7 +132,7 @@ The extra buttons have the following actions:
 triangle: high motor speed
 cross: low motor speed
 circle: toggle tool motor speed
-rectangle: shutdown Raspberry Pi5/OrangePi5Pro
+rectangle: shutdown OrangePi5Pro/Raspberry Pi5
 select: camera-based follow-me mode on/off
 start: toggle between sideways motion and rotation (only Mecanum platform)
 ```
