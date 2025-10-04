@@ -142,9 +142,14 @@ function copy_file() {
 }
 
 
-echo "This script will flash 'owlController firmware' onto  RP2040 (Raspberry Pico)"
+echo "This script will flash 'owlController/owlDrive firmware' onto  RP2040 (Raspberry Pico)"
+echo "NOTE for owlDrive: In most cases, it is NOT required to flash the owlDrive"
+echo "hardware, and we don't recommend so. Please only perform this step if "
+echo "your driver really requires an updated firmware. You will have to "
+echo "reconfigure your motor driver after the update. So it's highly recommended"
+echo "to take a photo of your current motor driver settings before upgrading."
 echo 
-echo "NOTE: Skip the following steps - Only use below steps to manually activate the RP2040 bootloader."
+echo "NOTE: Skip the following steps for now (Only use below steps to manually activate the RP2040 bootloader)"
 echo "1. Disconnect owlController's RP2040 USB"
 echo "2. Press and hold button 'Boot Set' on owlController PCB"
 echo "3. Press button 'Reset RP2040' on owlController PCB" 
