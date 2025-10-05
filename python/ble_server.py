@@ -51,7 +51,8 @@ while True:
 
     time.sleep(0.01)
 
-    if not dabble.connected: 
+    #if ((not dabble.connected) or (app.gameControlDataAge() > 1.0)): 
+    if (not dabble.connected): 
         nextTerminalTime = time.time() + 2.0 
         continue    
     #print('.', end="", flush=True)

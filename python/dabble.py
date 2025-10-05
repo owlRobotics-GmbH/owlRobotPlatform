@@ -36,6 +36,7 @@ from bumble.gatt import (
 from bumble.snoop import BtSnooper
 
 connected = False 
+gameControlDataTime = 0
 currConnection = None
 
 
@@ -113,6 +114,9 @@ class Dabble():
         self.proc.start()
         
         #asyncio.run(self.start(bluetooth_transport))    
+
+    def gameControlDataAge(self):
+        return (time.time()  - gameControlDataTime)
 
     def startAsync(self, bluetooth_transport, name, address, snoop_file):
         print('startAsync')
@@ -253,6 +257,8 @@ class Dabble():
 
 
     def parseGameControl(self, value):
+        global gameControlDataTime
+        gameControlDataTime = time.time()
         if value[5] == 0x01:
             self.extraButton = 'start'
             print('extra: start')
