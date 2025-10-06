@@ -84,6 +84,15 @@ else
     echo "installed CAN driver"
 fi
 
+# ============  activate Avahi ( mDNS) so you can resolve 'raspberrypi.local' =============== 
+echo -e "${RED}==========Installing Avahi mDNS=========${NC}"
+sudo apt-get -y install avahi-daemon libnss-mdns 
+sudo cp res/http.service /etc/avahi/services/http.service 
+sudo chmod 644 /etc/avahi/services/http.service
+sudo systemctl enable avahi-daemon
+sudo systemctl start avahi-daemon
+#sudo hostnamectl set-hostname raspberrypi
+
 # =====================================================================
 
 echo -e "${RED}[DONE] Configuration script completed successfully. Reboot to activate added Linux overlay drivers. ${NC}"
