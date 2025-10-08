@@ -33,7 +33,14 @@ echo -e "${RED}[OK] Raspberry detected.${NC}"
 # installing missing packages...
 echo -e "${RED}==========installing missing packages==========${NC}"
 sudo apt update
-sudo apt-get -y install libavcodec58 subversion btop wiringpi
+sudo apt-get -y install libavcodec58 subversion btop 
+
+#sudo apt-get wiringpi
+git clone https://github.com/WiringPi/WiringPi
+cd WiringPi/
+sudo ./build
+cd ..
+#gpio readall
 
 # === owlRobotics PCB:  Ensure gpio mode 1 down is in /etc/rc.local ===
 echo -e "${RED}==========Installing GPIO mode 1 down setting==========${NC}"
