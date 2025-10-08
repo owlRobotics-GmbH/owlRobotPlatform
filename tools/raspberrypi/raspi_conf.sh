@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Raspberry 2/3/4/5 script:
+# Raspberry script:
 # - adds GPIO command to rc.local   for owlRobotics hardware
 # - activates I2C driver
 # - activates CAN-SPI driver for owlRobotics hardware
@@ -22,8 +22,8 @@ else
     exit 1
 fi
 
-if [[ "$ID" != "raspbian" ]]; then
-    echo -e "${RED}Error: This script is only for Raspberry 2/3/4/5. Detected: $BOARD${NC}"
+if [[ "$ID" != "raspbian" ]] && [[ "$ID" != "debian" ]]; then
+    echo -e "${RED}Error: This script is only for Raspberry. Detected: $ID${NC}"
     exit 1
 fi
 
