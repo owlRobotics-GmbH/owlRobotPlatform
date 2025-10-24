@@ -27,6 +27,7 @@ Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
     pinMode(anaMUX_Adr0,OUTPUT);
     pinMode(anaMUX_Adr1,OUTPUT);
     pinMode(anaMUX_Adr2,OUTPUT);
+    pinMode(PowerOff_Pin,INPUT_PULLUP);
     digitalWrite (PIon_off,0);    // HIGH = PI Power on 
     digitalWrite (anaMUX_Adr0,0);
     digitalWrite (anaMUX_Adr1,0);
@@ -123,6 +124,10 @@ void Funkt::CAN_Power(bool on_off){         //ok
 void Funkt::PIpwr (bool val){
     digitalWrite (PIon_off,val);
   }   
+
+bool Funkt::powerOffPinActive(){
+  return (digitalRead(PowerOff_Pin) == POWER_OFF_PIN_ACTIVE_LEVEL);
+}
 
 void Funkt::extPieper(bool on_off)
    { 

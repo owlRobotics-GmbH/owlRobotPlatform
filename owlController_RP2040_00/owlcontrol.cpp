@@ -3,9 +3,20 @@
 */
 
 #include "owlcontrol.h"
+#include "config.h"
+#include "Funkt.h"
 #include "oledDisp.h"
 
 extern oledDisp oled;
+extern Funkt myF;
+
+#ifndef POWER_OFF_PIN_ACTIVE_MS
+#define POWER_OFF_PIN_ACTIVE_MS 3000
+#endif
+
+#ifndef POWER_OFF_CUTOFF_DELAY_SEC
+#define POWER_OFF_CUTOFF_DELAY_SEC 30
+#endif
 
 
 
@@ -34,6 +45,12 @@ void owlControl::init(){
   rxPacketCounter = 0;
   raspberryPiIP = "";
   rcvIpAddressTimeout = 0;
+  powerOffPinState = false;
+  powerOffPinChangedTime = 0;
+  powerOffState = owlctl::power_off_inactive;
+  shutdownScheduledTime = 0;
+  shutdownCommandAccepted = false;
+  shutdownDelaySeconds = POWER_OFF_CUTOFF_DELAY_SEC;
 }
 
 void owlControl::run(){
@@ -47,8 +64,40 @@ void owlControl::run(){
   if ((stopButtonState) && (millis() > stopButtonStateTimeout)) {
     stopButtonState = false;
   }
-}    
+  // Track how long the power-off input stays active so we only latch long presses.
+  if (powerOffPinState){
+    if ((powerOffState == owlctl::power_off_inactive) && (millis() - powerOffPinChangedTime >= POWER_OFF_PIN_ACTIVE_MS)){
+      powerOffState = owlctl::power_off_active;
+      Serial.println("owlControl: power-off pin latched active");
+    }
+  } else if (powerOffState != owlctl::power_off_shutdown_pending){
+    if (powerOffState != owlctl::power_off_inactive){
+      Serial.println("owlControl: power-off pin released");
+      powerOffState = owlctl::power_off_inactive;
+    }
+  }
+  // Once a shutdown command was accepted we wait and then drop the power hold line.
+  if (shutdownCommandAccepted){
+    if (millis() >= shutdownScheduledTime){
+      shutdownCommandAccepted = false;
+      Serial.println("owlControl: shutdown delay expired, cutting power-hold");
+      myF.SW_Power_off();
+    }
+  }
+}
 
+
+void owlControl::setPowerOffPinState(bool state){
+  if (state != powerOffPinState){
+    powerOffPinState = state;
+    powerOffPinChangedTime = millis();
+    Serial.print("owlControl: power-off pin raw level=");
+    Serial.println(state ? "HIGH" : "LOW");
+    if (!state && (powerOffState != owlctl::power_off_shutdown_pending)){
+      powerOffState = owlctl::power_off_inactive;
+    }
+  }
+}
 
 void owlControl::setStopButtonState(bool state){
   if (state) stopButtonStateTimeout = millis() + 500; 
@@ -187,6 +236,9 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_charger_voltage:
             sendChargerVoltage(node.sourceAndDest.sourceNodeID, chargerVoltage);
             break;
+          case owlctl::can_val_power_off_state:
+            sendPowerOffState(node.sourceAndDest.sourceNodeID);
+            break;
         }
     }
     else if (cmd == can_cmd_set){
@@ -201,6 +253,32 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           raspberryPiIP = String(ipStr);
           oled.setIP(raspberryPiIP); // update OLED display with new IP address
           break;
+        case owlctl::can_val_power_off_command:
+        {
+          uint8_t requestedDelay = data.byteVal[0];
+          uint8_t requesterId = node.sourceAndDest.sourceNodeID;
+          if (!shutdownCommandAccepted){
+            shutdownDelaySeconds = requestedDelay;
+            shutdownScheduledTime = millis() + (unsigned long)shutdownDelaySeconds * 1000UL;
+            shutdownCommandAccepted = true;
+            Serial.print("owlControl: shutdown command accepted, delay=");
+            Serial.print(shutdownDelaySeconds);
+            Serial.print("s (pin latched: ");
+            Serial.print(powerOffState >= owlctl::power_off_active ? "yes" : "no");
+            Serial.println(")");
+          } else {
+            shutdownDelaySeconds = requestedDelay;
+            shutdownScheduledTime = millis() + (unsigned long)shutdownDelaySeconds * 1000UL;
+            Serial.print("owlControl: shutdown command updated, delay=");
+            Serial.print(shutdownDelaySeconds);
+            Serial.print("s (pin latched: ");
+            Serial.print(powerOffState >= owlctl::power_off_active ? "yes" : "no");
+            Serial.println(")");
+          }
+          powerOffState = owlctl::power_off_shutdown_pending;
+          sendPowerOffCommandAck(requesterId, true, shutdownDelaySeconds);
+          break;
+        }
       }
     }
   
@@ -327,6 +405,37 @@ void owlControl::sendSlowDownState(int destNodeId, bool value){
   canDataType_t data;
   data.byteVal[0] = (byte)value;
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_slow_down_state, data);
+}
+
+void owlControl::sendPowerOffState(int destNodeId){
+  canDataType_t data;
+  data.byteVal[0] = (uint8_t)powerOffState;
+  if (powerOffPinState){
+    unsigned long activeMs = millis() - powerOffPinChangedTime;
+    data.byteVal[1] = (uint8_t)min((unsigned long)255, activeMs / 1000UL);
+  } else {
+    data.byteVal[1] = 0;
+  }
+  data.byteVal[2] = shutdownDelaySeconds;
+  data.byteVal[3] = 0;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_power_off_state, data);
+  Serial.print("owlControl: send power-off state ");
+  Serial.print(powerOffState);
+  Serial.print(" to node ");
+  Serial.println(destNodeId);
+}
+
+void owlControl::sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t delaySeconds){
+  canDataType_t data;
+  data.byteVal[0] = accepted ? 1 : 0;
+  data.byteVal[1] = delaySeconds;
+  data.byteVal[2] = 0;
+  data.byteVal[3] = 0;
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_power_off_command, data);
+  Serial.print("owlControl: send shutdown ACK ");
+  Serial.print(accepted ? "OK" : "NOK");
+  Serial.print(" to node ");
+  Serial.println(destNodeId);
 }
 
 

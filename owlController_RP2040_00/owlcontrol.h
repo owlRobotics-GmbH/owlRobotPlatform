@@ -26,6 +26,8 @@ namespace owlctl {
       can_val_slow_down_state   = 9,  // slow-down state
       can_val_ip_address        = 10, // show Raspberry Pi IP address on display 
       can_val_relais_state      = 11, // relais state
+      can_val_power_off_state   = 12, // power-off GPIO state
+      can_val_power_off_command = 13, // schedule power-off command
   };
 
   // motor driver error values
@@ -35,6 +37,12 @@ namespace owlctl {
       err_undervoltage = 2, // undervoltage triggered
       err_overvoltage  = 3, // overvoltage triggered
       err_overtemp     = 4, // over-temperature triggered    
+  };
+
+  enum powerOffState_t: uint8_t {
+      power_off_inactive = 0,
+      power_off_active = 1,
+      power_off_shutdown_pending = 2,
   };
 
 }  // namespace
@@ -69,6 +77,9 @@ class owlControl
     owlControl(owlDriveCAN *aCanDriver, int driverNodeId, int aOperatorNodeId = MY_NODE_ID, int aCanMsgId = CAN_CONTROL_MSG_ID);
     
     owlControl();
+
+    void setPowerOffPinState(bool state);
+    bool powerOffPinLatched() const { return powerOffState >= owlctl::power_off_active; }
     
     // call this for any CAN packet received via your CAN interface
     void onCanReceived(int id, int len, unsigned char canData[8]);    
@@ -92,6 +103,8 @@ class owlControl
     void sendBuzzerState(int destNodeId, bool value);
     void sendRainState(int destNodeId, bool value);
     void sendSlowDownState(int destNodeId, bool value);
+    void sendPowerOffState(int destNodeId);
+    void sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t delaySeconds);
 
     void run();
     void setStopButtonState(bool state);
@@ -104,6 +117,12 @@ class owlControl
     unsigned long buzzerStateTimeout;
     unsigned long stopButtonStateTimeout;
     unsigned long bumperStateTimeout;
+    bool powerOffPinState;
+    unsigned long powerOffPinChangedTime;
+    owlctl::powerOffState_t powerOffState;
+    unsigned long shutdownScheduledTime;
+    bool shutdownCommandAccepted;
+    uint8_t shutdownDelaySeconds;
     
              
     void init();    

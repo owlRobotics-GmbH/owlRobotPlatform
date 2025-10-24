@@ -212,6 +212,7 @@ void loop() {
    }
 
    if (stateTimer[1]<millis()){
+      robot.control.setPowerOffPinState(myF.powerOffPinActive());
       robot.roboter();
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
            
@@ -268,8 +269,8 @@ void loop() {
     
    }
 
-   ultraSchallLinks.printInfo();
-   ultraSchallRechts.printInfo();
+   //ultraSchallLinks.printInfo();
+   //ultraSchallRechts.printInfo();
    /*
    uint16_t dist = ultraSchallLinks.getDistance();
     if (dist != 0xFFFF) {

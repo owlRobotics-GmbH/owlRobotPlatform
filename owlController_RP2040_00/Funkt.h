@@ -14,6 +14,7 @@
 #define PIon_off 10
 
 #define out1 22
+#define PowerOff_Pin 22
 #define out2 23
 #define out3 24
 #define out4 25
@@ -44,6 +45,7 @@ class Funkt {
    float getChargerVoltage();   
 //   float read_M_Current(int motor);
    void PowerHold(bool holdPWR);
+   bool powerOffPinActive();
    void PIpwr(bool on_off);
    void CAN_Power(bool on_off);
    void readIN_port();
