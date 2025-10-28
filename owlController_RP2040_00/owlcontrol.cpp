@@ -9,6 +9,13 @@
 
 extern oledDisp oled;
 extern Funkt myF;
+extern void triggerHardPowerOff(const char* reason);
+
+#ifndef POWER_OFF_FORCE_HOLD_SECONDS
+#define POWER_OFF_FORCE_HOLD_SECONDS 10
+#endif
+
+static const unsigned long HARD_POWER_OFF_TIMEOUT_MS = (unsigned long)POWER_OFF_FORCE_HOLD_SECONDS * 1000UL;
 
 #ifndef POWER_OFF_PIN_ACTIVE_MS
 #define POWER_OFF_PIN_ACTIVE_MS 3000
@@ -76,12 +83,24 @@ void owlControl::run(){
       powerOffState = owlctl::power_off_inactive;
     }
   }
+  if ((powerOffState == owlctl::power_off_active) && powerOffPinState && !shutdownCommandAccepted){
+    unsigned long now = millis();
+    unsigned long heldMs = now - powerOffPinChangedTime;
+    if (heldMs >= HARD_POWER_OFF_TIMEOUT_MS){
+      Serial.print("owlControl: power-off pin timeout after ");
+      Serial.print(heldMs / 1000UL);
+      Serial.println("s without shutdown ACK, forcing hard power-off");
+      powerOffState = owlctl::power_off_shutdown_pending;
+      triggerHardPowerOff("Power button timeout without shutdown ACK");
+    }
+  }
   // Once a shutdown command was accepted we wait and then drop the power hold line.
   if (shutdownCommandAccepted){
-    if (millis() >= shutdownScheduledTime){
+    unsigned long now = millis();
+    if (now >= shutdownScheduledTime){
       shutdownCommandAccepted = false;
-      Serial.println("owlControl: shutdown delay expired, cutting power-hold");
-      myF.SW_Power_off();
+      Serial.println("owlControl: shutdown delay expired, executing hard power-off");
+      triggerHardPowerOff("Managed shutdown delay elapsed");
     }
   }
 }

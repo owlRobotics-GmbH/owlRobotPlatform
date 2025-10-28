@@ -102,10 +102,40 @@ volatile int odometry_ctrl = 0;
 volatile int odometry_right = 0;  // temporary values for next processing
 
 bool power_on_init = 1;
+bool manualShutdownLatched = false;
+int powerButtonHoldSeconds = 0;
+bool hardPowerOffTriggered = false;
 
 byte ii;
 
 String picoID = "";
+
+
+void triggerHardPowerOff(const char* reason){
+  if (hardPowerOffTriggered){
+    return;
+  }
+  hardPowerOffTriggered = true;
+  manualShutdownLatched = true;
+  Serial.println("Hard Power off!");
+  if (reason && reason[0] != '\0'){
+    Serial.print("Reason: ");
+    Serial.println(reason);
+  }
+  digitalWrite(blueLED,HIGH);
+  watchdog.disable();
+  myF.extPieper(0);
+  myF.LoadPowerPWM(0);
+  myF.CAN_Power(LOW);
+  myF.SW_Power_off();
+  myF.PIpwr(LOW);
+  delay(50);
+  myF.SW_Power_off();
+  Serial.println("Power down");
+  while (true){
+    delay(100);
+  }
+}
 
 
 void setup() {
@@ -212,7 +242,8 @@ void loop() {
    }
 
    if (stateTimer[1]<millis()){
-      robot.control.setPowerOffPinState(myF.powerOffPinActive());
+      bool powerOffButtonActive = myF.powerOffPinActive();
+      robot.control.setPowerOffPinState(powerOffButtonActive);
       robot.roboter();
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
            
@@ -222,6 +253,9 @@ void loop() {
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
       robot.control.setBumperState( (byte)(myF.IN_Pin[4] == LOW) ); 
       robot.control.setStopButtonState( (byte)(myF.IN_Pin[3] == HIGH) );
+      if (robot.control.shutdownPending()){
+        manualShutdownLatched = true;
+      }
       if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);      
       else if (!myF.IN_Pin[3]) neopix.NeoPixel_scene(2,1);
       else neopix.NeoPixel_scene(neopix.scene_default,neopix.default_brightness);
@@ -263,10 +297,44 @@ void loop() {
    // unimportant tasks
    if (stateTimer[8]<millis()){
       //Serial.println("ping");
-      oled.status();
+      if (manualShutdownLatched || myF.powerOffPinActive() || robot.control.shutdownPending()){
+        oled.oledPowerOff();
+      } else {
+        oled.status();
+      }
       //Serial.println("run done");
-      stateTimer[8]=millis()+5000;
+      stateTimer[8]=millis()+2000;
     
+   }
+
+   // hard power switch off tasks
+   if (stateTimer[9]<millis()){
+      bool powerOffButtonActive = myF.powerOffPinActive();
+      if (powerOffButtonActive){
+        if (powerButtonHoldSeconds > 3) manualShutdownLatched = true;
+        int warnSeconds = (POWER_OFF_FORCE_HOLD_SECONDS > 4) ? (POWER_OFF_FORCE_HOLD_SECONDS - 4) : POWER_OFF_FORCE_HOLD_SECONDS;
+        if (powerButtonHoldSeconds == warnSeconds + 1){
+          Serial.println("Power off pressed for >5sec");
+        }
+        if (++powerButtonHoldSeconds >= POWER_OFF_FORCE_HOLD_SECONDS){
+          triggerHardPowerOff("Power button hold timeout");
+        }
+      } else if (powerButtonHoldSeconds >= 1) {
+        if (!hardPowerOffTriggered){
+          myF.PowerHold(HIGH);
+          Serial.print("Hard Power off stopped after ");
+          Serial.print(powerButtonHoldSeconds);
+          Serial.println(" sec.");
+          if (powerButtonHoldSeconds >= 3) Serial.println("Shut down is going on");
+          else if (!robot.control.shutdownPending()){
+            manualShutdownLatched = false;
+          }
+        }
+        powerButtonHoldSeconds = 0;
+      } else if (!robot.control.shutdownPending()){
+        manualShutdownLatched = false;
+      }
+      stateTimer[9]=millis()+1000;
    }
 
    //ultraSchallLinks.printInfo();

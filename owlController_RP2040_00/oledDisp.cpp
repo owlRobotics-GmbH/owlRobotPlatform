@@ -41,6 +41,17 @@ void oledDisp::begin(){
   display.setCursor(5, 5);
   display.print("Setup");
   display.display();
+}  
+
+void oledDisp::oledPowerOff(){
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  display.setTextSize(2);
+  display.setCursor(2, 0);
+  display.print("Shut down");
+  display.setCursor(2, 18);
+  display.print("Power off");
+  display.display();
 }
 
 void oledDisp::status(){

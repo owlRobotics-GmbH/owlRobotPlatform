@@ -17,6 +17,7 @@ class oledDisp {
    oledDisp(); 
    void begin();
    void status();
+   void oledPowerOff();
 
    void setIP(const String &ip);
   private:

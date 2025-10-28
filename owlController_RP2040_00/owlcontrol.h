@@ -80,6 +80,8 @@ class owlControl
 
     void setPowerOffPinState(bool state);
     bool powerOffPinLatched() const { return powerOffState >= owlctl::power_off_active; }
+    bool shutdownPending() const { return powerOffState == owlctl::power_off_shutdown_pending; }
+    owlctl::powerOffState_t getPowerOffState() const { return powerOffState; }
     
     // call this for any CAN packet received via your CAN interface
     void onCanReceived(int id, int len, unsigned char canData[8]);    

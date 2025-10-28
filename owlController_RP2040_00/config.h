@@ -20,6 +20,7 @@
 #define POWER_OFF_PIN_ACTIVE_MS 3000        // power-off pin must stay active for this time before a shutdown is requested
 #define POWER_OFF_CUTOFF_DELAY_SEC 30       // owlController keeps power enabled for this many seconds after accepting shutdown
 #define POWER_OFF_PIN_ACTIVE_LEVEL LOW      // define if the external signal pulls LOW or HIGH while active
+#define POWER_OFF_FORCE_HOLD_SECONDS 7      // hold duration before triggering a hard power cut if no shutdown command arrives
 
 #define PCF8591_default  0x48  // default
 #define PCF8591_modified 0x4A
