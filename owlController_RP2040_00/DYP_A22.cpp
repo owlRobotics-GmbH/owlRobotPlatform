@@ -4,34 +4,56 @@
 
 extern TCA9548A I2CMux;
 
-DYP_A22::DYP_A22(uint8_t mux_channel, uint8_t i2c_address) : _mux_channel(mux_channel), _i2c_address(i2c_address) {}
+DYP_A22::DYP_A22(uint8_t mux_channel, uint8_t i2c_address)
+    : _mux_channel(mux_channel), _i2c_address(i2c_address), _isConnected(false) {}
 
-void DYP_A22::begin() {
-    I2CMux.openChannel(_mux_channel);
+bool DYP_A22::begin() {
+    resetMeasurement();
+    const uint8_t maxAttempts = 5;
+    for (uint8_t attempt = 0; attempt < maxAttempts; ++attempt) {
+        if (probeSensor()) {
+            return true;
+        }
+        delay(30);
+    }
+    return false;
 }
 
 bool DYP_A22::triggerMeasurement(uint8_t level) {
     static const uint8_t cmd[] = { 0xBD, 0xBC, 0xBB, 0xB4 };
     if (level < 1 || level > 4) level = 1;
+    if (!ensureConnected()) return false;
     I2CMux.openChannel(_mux_channel);
-
-    delayMicroseconds(10);
+    delayMicroseconds(150);
     
     Wire.beginTransmission(_i2c_address);
     Wire.write(0x10);     // Control register
     Wire.write(cmd[level - 1]);     // Trigger range level
-    return Wire.endTransmission() == 0;
+    int result = Wire.endTransmission();
+    if (result != 0) {
+        _isConnected = false;
+        resetMeasurement();
+        return false;
+    }
+    return true;
 }
 
 uint16_t DYP_A22::readRegister16(uint8_t reg) {
+    if (!ensureConnected()) return 0xFFFF;
     I2CMux.openChannel(_mux_channel);
+    delayMicroseconds(150);
 
     Wire.beginTransmission(_i2c_address);
     Wire.write(reg);
-    if (Wire.endTransmission() != 0) return 0xFFFF;
+    if (Wire.endTransmission() != 0) {
+        _isConnected = false;
+        return 0xFFFF;
+    }
 
     Wire.requestFrom(_i2c_address, (uint8_t)2);
-    if (Wire.available() < 2) return 0xFFFF;
+    if (Wire.available() < 2) {
+        return 0xFFFF;
+    }
 
     uint8_t high = Wire.read();
     uint8_t low  = Wire.read();
@@ -40,36 +62,148 @@ uint16_t DYP_A22::readRegister16(uint8_t reg) {
 }
 
 bool DYP_A22::writeRegister8(uint8_t reg, uint8_t value) {
+    if (!ensureConnected()) return false;
     I2CMux.openChannel(_mux_channel);
+    delayMicroseconds(150);
 
     Wire.beginTransmission(_i2c_address);
     Wire.write(reg);
     Wire.write(value);
-    return Wire.endTransmission() == 0;
+    int result = Wire.endTransmission();
+    if (result != 0) {
+        _isConnected = false;
+        resetMeasurement();
+        return false;
+    }
+    return true;
+}
+
+void DYP_A22::resetMeasurement() {
+    _measurementInProgress = false;
+    _measurementStartMs = 0;
+}
+
+bool DYP_A22::startMeasurement(uint8_t angleLevel, uint8_t rangeLevel) {
+    if (!ensureConnected()) {
+        resetMeasurement();
+        return false;
+    }
+    if (angleLevel < 1 || angleLevel > 4) angleLevel = 4;
+    if (rangeLevel < 1 || rangeLevel > 4) rangeLevel = 1;
+    if (!writeRegister8(0x07, angleLevel)) {
+        if (_isConnected) {
+            Serial.println("Fehler: Winkellevel setzen");
+        }
+        resetMeasurement();
+        return false;
+    }
+    if (!triggerMeasurement(rangeLevel)) {
+        if (_isConnected) {
+            Serial.println("Fehler: Messung ausloesen");
+        }
+        resetMeasurement();
+        return false;
+    }
+    _measurementStartMs = millis();
+    _measurementInProgress = true;
+    return true;
+}
+
+bool DYP_A22::pollDistance(uint8_t angleLevel, uint16_t &distance, uint8_t rangeLevel) {
+    if (!ensureConnected()) {
+        resetMeasurement();
+        return false;
+    }
+
+    unsigned long now = millis();
+
+    if (!_measurementInProgress) {
+        startMeasurement(angleLevel, rangeLevel);
+        return false;
+    }
+
+    if ((unsigned long)(now - _measurementStartMs) < kMeasurementDelayMs) {
+        return false;
+    }
+
+    uint16_t value = readRegister16(RO_Distance_value);
+    _measurementInProgress = false;
+
+    if (value == 0xFFFF) {
+        startMeasurement(angleLevel, rangeLevel);
+        return false;
+    }
+
+    distance = value;
+    startMeasurement(angleLevel, rangeLevel);
+    return true;
+}
+
+bool DYP_A22::ensureConnected() {
+    if (_isConnected) return true;
+    unsigned long now = millis();
+    if (now - _lastProbeMs < 50) {
+        return false;
+    }
+    _lastProbeMs = now;
+    if (probeSensor()) {
+        return true;
+    }
+    resetMeasurement();
+    return false;
+}
+
+bool DYP_A22::probeSensor() {
+    I2CMux.openChannel(_mux_channel);
+    delay(5); // give the mux and sensor a moment to settle
+
+    int result = 0;
+    _lastProbeMs = millis();
+
+    Wire.beginTransmission(_i2c_address);
+    Wire.write(RO_Software_version);
+    result = Wire.endTransmission();
+
+    if (result != 0) {
+        Wire.beginTransmission(_i2c_address);
+        result = Wire.endTransmission();
+    }
+
+    if (result != 0) {
+        _isConnected = false;
+        return false;
+    }
+
+    int received = Wire.requestFrom(_i2c_address, (uint8_t)2);
+    if (received >= 1) {
+        while (Wire.available()) {
+            (void)Wire.read();
+        }
+    }
+
+    _isConnected = true;
+    return true;
 }
 
 uint16_t DYP_A22::getDistance(uint8_t angleLevel) {
-    // 1) Winkellevel setzen (Register 0x07, Werte 1..4)
-    if (angleLevel < 1 || angleLevel > 4) angleLevel = 4;
-    if (!writeRegister8(0x07, angleLevel)) {
-        Serial.println("Fehler: Winkellevel setzen");
+    resetMeasurement();
+    if (!startMeasurement(angleLevel, 1)) {
         return 0xFFFF;
     }
 
-    // 2) Messung auslösen
-    if (!triggerMeasurement(1)) {
-        Serial.println("Fehler: Messung ausloesen");
-        return 0xFFFF;
+    while ((unsigned long)(millis() - _measurementStartMs) < kMeasurementDelayMs) {
+        delay(5);
     }
 
-    // 3) Wartezeit lt. Datenblatt 50–80ms
-    delay(90);
-
-    // 4) Distanz auslesen
-    return readRegister16(RO_Distance_value);
+    uint16_t value = readRegister16(RO_Distance_value);
+    _measurementInProgress = false;
+    return value;
 }
 
 void DYP_A22::printInfo() {
+    if (!ensureConnected()) {
+        return;
+    }
     if(_i2c_address == 0x74) {
         Serial.print("Sensor: L");
         //Serial.println();

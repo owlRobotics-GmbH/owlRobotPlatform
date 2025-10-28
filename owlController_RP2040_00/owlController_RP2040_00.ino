@@ -87,10 +87,10 @@ extern owlDrive owlDrive;
 Watchdog watchdog;
 
 DYP_A22 ultraSchallLinks(dyp1_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
-DYP_A22 ultraSchallRechts(dyp1_I2CMuxChn, DYP2_A22_I2C_ADDRESS);
-//DYP_A22 ultraSchallLinks(dyp1_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
-//DYP_A22 ultraSchallRechts(dyp2_I2CMuxChn, DYP1_A22_I2C_ADDRESS);
+DYP_A22 ultraSchallRechts(dyp2_I2CMuxChn, DYP2_A22_I2C_ADDRESS);
 ComParser comParser(&Serial);
+bool ultraSchallLinksPresent = false;
+bool ultraSchallRechtsPresent = false;
 //mpu mpu;
 volatile unsigned long motorLeftTicksTimeout = 0;
 volatile unsigned long motorRightTicksTimeout = 0;
@@ -168,14 +168,14 @@ void setup() {
   delay (50);
   myF.extPieper(0);
   myF.anaMux(8);
-  ultraSchallLinks.begin();
-  ultraSchallRechts.begin();
-  /*if (ultraSchallLinks.begin()){
-    Serial.println("DYP_A22 sensor initialized successfully.");
-  } else {
-    Serial.println("Failed to initialize DYP_A22 sensor.");
+  ultraSchallLinksPresent = ultraSchallLinks.begin();
+  ultraSchallRechtsPresent = ultraSchallRechts.begin();
+  if (!ultraSchallLinksPresent) {
+    Serial.println("DYP_A22 links nicht gefunden.");
   }
-    */
+  if (!ultraSchallRechtsPresent) {
+    Serial.println("DYP_A22 rechts nicht gefunden.");
+  }
   //Serial.println("Setup done");
   // default: 10 bit
   analogReadResolution(ADC_Resulution);
@@ -337,18 +337,44 @@ void loop() {
       stateTimer[9]=millis()+1000;
    }
 
-   //ultraSchallLinks.printInfo();
-   //ultraSchallRechts.printInfo();
-   /*
-   uint16_t dist = ultraSchallLinks.getDistance();
-    if (dist != 0xFFFF) {
-        Serial.print("Entfernung: ");
-        Serial.print(dist);
-        Serial.println(" mm");
-    } else {
-        Serial.println("Messfehler");
-    }
-        */
+   // Nicht-blockierende Ultraschallabfrage: Ergebnisse lesen, neue Messung sofort starten
+   if (ultraSchallLinksPresent || ultraSchallRechtsPresent) {
+     const uint8_t angleLevel = 4;
+     bool anyOutput = false;
+     if (ultraSchallLinksPresent) {
+       uint16_t distL = 0xFFFF;
+       if (ultraSchallLinks.pollDistance(angleLevel, distL)) {
+         Serial.print("US L: ");
+         if (distL != 0xFFFF) {
+           Serial.print(distL);
+           Serial.print(" mm");
+         } else {
+           Serial.print("Messfehler");
+         }
+         anyOutput = true;
+       }
+     }
+     if (ultraSchallRechtsPresent) {
+       uint16_t distR = 0xFFFF;
+       if (ultraSchallRechts.pollDistance(angleLevel, distR)) {
+         if (anyOutput) {
+           Serial.print("  ");
+         }
+         Serial.print("US R: ");
+         if (distR != 0xFFFF) {
+           Serial.print(distR);
+           Serial.print(" mm");
+         } else {
+           Serial.print("Messfehler");
+         }
+         anyOutput = true;
+       }
+     }
+     if (anyOutput) {
+       Serial.println();
+     }
+   }
+
 /*   if (stateTimer[9]<millis()){
      if(yxc++>2)  while(1){           // WD Test
         Serial.println ("WD Trap!! ");
