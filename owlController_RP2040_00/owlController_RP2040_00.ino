@@ -62,6 +62,7 @@ OUT pin 1:
 #include "owlcontrol.h"
 #include "watchdog.h"
 #include "can.h"
+#include "RunningMedian.h"
 
 /*
 extern "C" {
@@ -91,6 +92,22 @@ DYP_A22 ultraSchallRechts(dyp2_I2CMuxChn, DYP2_A22_I2C_ADDRESS);
 ComParser comParser(&Serial);
 bool ultraSchallLinksPresent = false;
 bool ultraSchallRechtsPresent = false;
+
+struct UltrasonicChannelState {
+  RunningMedian<uint16_t, 10> filter;
+  bool valid = false;
+  uint16_t lastMedian = 0xFFFF;
+  uint16_t lastRaw = 0xFFFF;
+  unsigned long lastSampleMs = 0;
+  unsigned long lastValidMs = 0;
+};
+
+static UltrasonicChannelState ultrasonicLeftState;
+static UltrasonicChannelState ultrasonicRightState;
+static const unsigned long kUltrasonicStaleMs = 500;
+
+static void processUltrasonicMeasurement(bool isLeft, uint16_t distanceMm);
+static void checkUltrasonicStale(bool isLeft);
 //mpu mpu;
 volatile unsigned long motorLeftTicksTimeout = 0;
 volatile unsigned long motorRightTicksTimeout = 0;
@@ -137,6 +154,49 @@ void triggerHardPowerOff(const char* reason){
   }
 }
 
+static UltrasonicChannelState& ultrasonicStateFor(bool isLeft){
+  return isLeft ? ultrasonicLeftState : ultrasonicRightState;
+}
+
+static void publishUltrasonicMedian(bool isLeft, uint16_t median, bool valid){
+  if (isLeft) {
+    robot.control.setUltrasonicDistanceLeft(median, valid);
+  } else {
+    robot.control.setUltrasonicDistanceRight(median, valid);
+  }
+}
+
+static void processUltrasonicMeasurement(bool isLeft, uint16_t distanceMm){
+  UltrasonicChannelState &state = ultrasonicStateFor(isLeft);
+  unsigned long now = millis();
+  state.lastRaw = distanceMm;
+  state.lastSampleMs = now;
+
+  if (distanceMm == 0 || distanceMm == 0xFFFF) {
+    return;
+  }
+
+  state.filter.add(distanceMm);
+  uint16_t median = distanceMm;
+  if (state.filter.getMedian(median) == RunningMedian<uint16_t, 10>::OK) {
+    state.lastMedian = median;
+    state.lastValidMs = now;
+    state.valid = true;
+
+    publishUltrasonicMedian(isLeft, median, true);
+  }
+}
+
+static void checkUltrasonicStale(bool isLeft){
+  UltrasonicChannelState &state = ultrasonicStateFor(isLeft);
+  if (!state.valid) return;
+  unsigned long now = millis();
+  if ((now - state.lastValidMs) > kUltrasonicStaleMs){
+    state.valid = false;
+    publishUltrasonicMedian(isLeft, 0, false);
+  }
+}
+
 
 void setup() {
   delay (150);
@@ -176,6 +236,8 @@ void setup() {
   if (!ultraSchallRechtsPresent) {
     Serial.println("DYP_A22 rechts nicht gefunden.");
   }
+  publishUltrasonicMedian(true, 0, false);
+  publishUltrasonicMedian(false, 0, false);
   //Serial.println("Setup done");
   // default: 10 bit
   analogReadResolution(ADC_Resulution);
@@ -340,38 +402,19 @@ void loop() {
    // Nicht-blockierende Ultraschallabfrage: Ergebnisse lesen, neue Messung sofort starten
    if (ultraSchallLinksPresent || ultraSchallRechtsPresent) {
      const uint8_t angleLevel = 4;
-     bool anyOutput = false;
      if (ultraSchallLinksPresent) {
        uint16_t distL = 0xFFFF;
        if (ultraSchallLinks.pollDistance(angleLevel, distL)) {
-         Serial.print("US L: ");
-         if (distL != 0xFFFF) {
-           Serial.print(distL);
-           Serial.print(" mm");
-         } else {
-           Serial.print("Messfehler");
-         }
-         anyOutput = true;
+         processUltrasonicMeasurement(true, distL);
        }
+       checkUltrasonicStale(true);
      }
      if (ultraSchallRechtsPresent) {
        uint16_t distR = 0xFFFF;
        if (ultraSchallRechts.pollDistance(angleLevel, distR)) {
-         if (anyOutput) {
-           Serial.print("  ");
-         }
-         Serial.print("US R: ");
-         if (distR != 0xFFFF) {
-           Serial.print(distR);
-           Serial.print(" mm");
-         } else {
-           Serial.print("Messfehler");
-         }
-         anyOutput = true;
+         processUltrasonicMeasurement(false, distR);
        }
-     }
-     if (anyOutput) {
-       Serial.println();
+       checkUltrasonicStale(false);
      }
    }
 

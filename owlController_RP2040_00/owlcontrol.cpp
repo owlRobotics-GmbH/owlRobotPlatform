@@ -47,6 +47,12 @@ void owlControl::init(){
   buzzerState = false;
   rainState = false;
   slowDownState = false;
+  ultrasonicLeftValid = false;
+  ultrasonicRightValid = false;
+  ultrasonicDistanceLeft = 0xFFFF;
+  ultrasonicDistanceRight = 0xFFFF;
+  ultrasonicLeftUpdated = 0;
+  ultrasonicRightUpdated = 0;
   buzzerStateTimeout = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
@@ -138,6 +144,18 @@ void owlControl::setLiftState(bool state){
 
 void owlControl::setSlowDownState(bool state){
   slowDownState = state;
+}
+
+void owlControl::setUltrasonicDistanceLeft(uint16_t distanceMm, bool valid){
+  ultrasonicLeftValid = valid;
+  ultrasonicDistanceLeft = valid ? distanceMm : 0xFFFF;
+  ultrasonicLeftUpdated = millis();
+}
+
+void owlControl::setUltrasonicDistanceRight(uint16_t distanceMm, bool valid){
+  ultrasonicRightValid = valid;
+  ultrasonicDistanceRight = valid ? distanceMm : 0xFFFF;
+  ultrasonicRightUpdated = millis();
 }
 
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){  
@@ -257,6 +275,12 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             break;
           case owlctl::can_val_power_off_state:
             sendPowerOffState(node.sourceAndDest.sourceNodeID);
+            break;
+          case owlctl::can_val_ultrasonic_left:
+            sendUltrasonicDistance(node.sourceAndDest.sourceNodeID, owlctl::can_val_ultrasonic_left, ultrasonicDistanceLeft, ultrasonicLeftValid);
+            break;
+          case owlctl::can_val_ultrasonic_right:
+            sendUltrasonicDistance(node.sourceAndDest.sourceNodeID, owlctl::can_val_ultrasonic_right, ultrasonicDistanceRight, ultrasonicRightValid);
             break;
         }
     }
@@ -455,6 +479,21 @@ void owlControl::sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t d
   Serial.print(accepted ? "OK" : "NOK");
   Serial.print(" to node ");
   Serial.println(destNodeId);
+}
+
+void owlControl::sendUltrasonicDistance(int destNodeId, owlctl::canValueType_t val, uint16_t distanceMm, bool valid){
+  canDataType_t data;
+  if (valid){
+    data.byteVal[0] = (uint8_t)(distanceMm & 0xFF);
+    data.byteVal[1] = (uint8_t)((distanceMm >> 8) & 0xFF);
+    data.byteVal[2] = 1;
+  } else {
+    data.byteVal[0] = 0xFF;
+    data.byteVal[1] = 0xFF;
+    data.byteVal[2] = 0;
+  }
+  data.byteVal[3] = 0;
+  sendCanData(destNodeId, can_cmd_info, val, data);
 }
 
 

@@ -28,6 +28,8 @@ namespace owlctl {
       can_val_relais_state      = 11, // relais state
       can_val_power_off_state   = 12, // power-off GPIO state
       can_val_power_off_command = 13, // schedule power-off command
+      can_val_ultrasonic_left   = 14, // distance from left ultrasonic sensor (mm)
+      can_val_ultrasonic_right  = 15, // distance from right ultrasonic sensor (mm)
   };
 
   // motor driver error values
@@ -67,6 +69,12 @@ class owlControl
     bool liftState;        // lift state
     bool rainState;        // rain state
     bool slowDownState;    // slow-down state
+    bool ultrasonicLeftValid;
+    bool ultrasonicRightValid;
+    uint16_t ultrasonicDistanceLeft;
+    uint16_t ultrasonicDistanceRight;
+    unsigned long ultrasonicLeftUpdated;
+    unsigned long ultrasonicRightUpdated;
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
     String raspberryPiIP; // Raspberry Pi IP address (if available)
@@ -107,6 +115,8 @@ class owlControl
     void sendSlowDownState(int destNodeId, bool value);
     void sendPowerOffState(int destNodeId);
     void sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t delaySeconds);
+    void setUltrasonicDistanceLeft(uint16_t distanceMm, bool valid);
+    void setUltrasonicDistanceRight(uint16_t distanceMm, bool valid);
 
     void run();
     void setStopButtonState(bool state);
@@ -125,6 +135,7 @@ class owlControl
     unsigned long shutdownScheduledTime;
     bool shutdownCommandAccepted;
     uint8_t shutdownDelaySeconds;
+    void sendUltrasonicDistance(int destNodeId, owlctl::canValueType_t val, uint16_t distanceMm, bool valid);
     
              
     void init();    
