@@ -8,8 +8,10 @@ DEV=""
 # flash file path
 FLASH_FILE=""
 
-# RP2040 mounted volume path
-RPI_VOL_PATH="/media/$USER/RPI-RP2"
+# RP2040 volume label and derived paths
+RPI_LABEL="RPI-RP2"
+RPI_BY_LABEL="/dev/disk/by-label/$RPI_LABEL"
+RPI_VOL_PATH="/media/$USER/$RPI_LABEL"
 
 # RP2040 disk device
 RPI_DISK=""
@@ -85,18 +87,50 @@ function reset_pico() {
 }
 
 
+function try_mount_rpi_rp2() {
+	# attempt to manually mount the Pico mass-storage by label
+	echo "attempting manual mount via $RPI_BY_LABEL"
+	if [ -e "$RPI_BY_LABEL" ]; then
+		# ensure mount point exists
+		sudo mkdir -p "$RPI_VOL_PATH"
+		# attempt mount (vfat), set ownership to current user for write access
+		sudo mount -t vfat -o uid=$(id -u),gid=$(id -g),umask=022 "$RPI_BY_LABEL" "$RPI_VOL_PATH" 2>/dev/null || true
+		# verify mount succeeded
+		if df | grep -q " $RPI_VOL_PATH$"; then
+			echo "mounted $RPI_LABEL at $RPI_VOL_PATH"
+			return 0
+		else
+			echo "failed to mount $RPI_LABEL manually; please ensure the device is in bootloader mode."
+			return 1
+		fi
+	else
+		echo "$RPI_BY_LABEL not found."
+		return 1
+	fi
+}
+
+function is_rpi_mounted() {
+	# returns 0 if the pico volume is mounted at $RPI_VOL_PATH
+	df | grep -q " $RPI_VOL_PATH$"
+}
+
+
 function wait_for_disk() {
 	# wait until pico has mounted as mass storage device
 	count=0
-	while [ ! -d $RPI_VOL_PATH ]
+	while ! is_rpi_mounted
 	do 
 		sleep 0.5
 		echo .
 		count=$((count+1))
-		# exit script if pico did not mount as mass storage device
+		# if not mounted after timeout, attempt manual mount via by-label
 		if [ $count -ge 30 ]; then 
-			echo pico did not reboot - try again!
-			exit
+			if try_mount_rpi_rp2; then
+				break
+			else
+				echo "pico did not reboot - try again!"
+				exit
+			fi
 		fi
 	done
 	# give pico some time to mount fully
@@ -119,14 +153,14 @@ function remove_fs_dirty_bit() {
 function copy_file() {
 	# copy flash-file to pico
 	echo copy flash-file to pico...
-	#sudo find -type f -name '*.uf2' -exec cp -prv {} /media/$USER/RPI-RP2 \;
+	#sudo find -type f -name '*.uf2' -exec cp -prv {} "$RPI_VOL_PATH" \;
 	echo "$FLASH_FILE -> $RPI_VOL_PATH" 
     sudo cp $FLASH_FILE $RPI_VOL_PATH
 	sudo sync
 
-	# check if flash has been successful
+	# check if flash has been successful (device should unmount)
 	count=0
-	while [ -d $RPI_VOL_PATH ]
+	while df | grep -q " $RPI_VOL_PATH$"
 	do 
 		sleep 0.5
 		echo .
@@ -184,10 +218,3 @@ wait_for_disk
 choose_flash_file
 copy_file
 replug_usb
-
-
-
-
-
-
-
