@@ -58,7 +58,7 @@ function choose_flash_file() {
 
 function wait_for_serial() {
 	# wait for serial device to mount	
-	echo "waiting for pico to mount ($DEV)"
+	echo "waiting for pico to mount ($DEV)..."
 	count=0
 	while [ ! -e $DEV ]
 	do 
@@ -96,7 +96,9 @@ function try_mount_rpi_rp2() {
 		# ensure mount point exists
 		sudo mkdir -p "$RPI_VOL_PATH"
 		# attempt mount (vfat), set ownership to current user for write access
-		sudo mount -t vfat -o uid=$(id -u),gid=$(id -g),umask=022 "$RPI_BY_LABEL" "$RPI_VOL_PATH" 2>/dev/null || true
+		#sudo mount -t vfat -o uid=$(id -u),gid=$(id -g),umask=022 "$RPI_BY_LABEL" "$RPI_VOL_PATH" 2>/dev/null || true
+		echo "mounting $RPI_BY_LABEL to $RPI_VOL_PATH..." 
+		sudo mount "$RPI_BY_LABEL" "$RPI_VOL_PATH" 
 		# verify mount succeeded
 		if df | grep -q " $RPI_VOL_PATH$"; then
 			echo "mounted $RPI_LABEL at $RPI_VOL_PATH"
@@ -119,6 +121,7 @@ function is_rpi_mounted() {
 
 function wait_for_disk() {
 	# wait until pico has mounted as mass storage device
+	echo "waiting for device to appear as mass storage device..."
 	count=0
 	while ! is_rpi_mounted
 	do 
@@ -158,11 +161,23 @@ function copy_file() {
 	# copy flash-file to pico
 	echo copy flash-file to pico...
 	#sudo find -type f -name '*.uf2' -exec cp -prv {} "$RPI_VOL_PATH" \;
-	echo "$FLASH_FILE -> $RPI_VOL_PATH" 
+	echo copying "$FLASH_FILE -> $RPI_VOL_PATH" 
     sudo cp $FLASH_FILE $RPI_VOL_PATH
-	sudo sync
+	if [ $? -eq 0 ]; then
+		echo "copy successful - pico flashed"
+	else
+		echo "copy failed - pico could not be flashed - please drag and drop .uf2-file manually!"
+	fi
+	#sudo sync
+}
 
-	# check if flash has been successful (device should unmount)
+function unmount_volume() {
+	echo unmounting volume...
+	sudo umount "$RPI_VOL_PATH" 
+}
+
+function wait_volume_disappear() {
+	echo "waiting for device to disappear..."
 	count=0
 	while df | grep -q " $RPI_VOL_PATH$"
 	do 
@@ -177,8 +192,6 @@ function copy_file() {
 		fi
 	done
 	echo
-
-	echo flash successful - black magic happened ~\\\(o.O~\\\)
 }
 
 
@@ -210,7 +223,7 @@ else
   #exit
   choose_serial_device
   wait_for_serial
-  delete_old_relics
+  #delete_old_relics
   reset_pico
   sleep 8.0
 fi
@@ -223,4 +236,5 @@ fi
 wait_for_disk
 choose_flash_file
 copy_file
-replug_usb
+unmount_volume
+#replug_usb
