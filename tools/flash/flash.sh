@@ -64,14 +64,16 @@ function wait_for_serial() {
 	do 
 		sleep 0.5
 		count=$((count+1))
-		echo .
+		echo -n .
 		# exit script if no serial device could be found
 		if [ $count -ge 30 ]
 		then 
+			echo
 			echo No device found on serial port $1 - Aborting process.
 			exit
 		fi
 	done
+	echo
 }
 
 function delete_old_relics() {
@@ -121,18 +123,20 @@ function wait_for_disk() {
 	while ! is_rpi_mounted
 	do 
 		sleep 0.5
-		echo .
+		echo -n .
 		count=$((count+1))
 		# if not mounted after timeout, attempt manual mount via by-label
 		if [ $count -ge 30 ]; then 
 			if try_mount_rpi_rp2; then
 				break
 			else
+				echo
 				echo "pico did not reboot - try again!"
 				exit
 			fi
 		fi
 	done
+	echo
 	# give pico some time to mount fully
 	sleep 2.0
 }
@@ -163,14 +167,16 @@ function copy_file() {
 	while df | grep -q " $RPI_VOL_PATH$"
 	do 
 		sleep 0.5
-		echo .
+		echo -n .
 		count=$((count+1))
 		# exit script if flash was not successful (pico is still mounted as mass storage device)
 		if [ $count -ge 30 ]; then 
+			echo
 			echo pico was reset but could not be flashed - please drag and drop .uf2-file manually!
 			return
 		fi
 	done
+	echo
 
 	echo flash successful - black magic happened ~\\\(o.O~\\\)
 }
