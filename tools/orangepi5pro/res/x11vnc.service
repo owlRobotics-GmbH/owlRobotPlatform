@@ -4,8 +4,10 @@ After=graphical.target
 
 [Service]
 ExecStart=/usr/bin/x11vnc -auth guess -forever -loop -noxdamage -repeat -rfbauth /home/orangepi/.vnc/passwd -display :0
-User=orangepi
-Group=orangepi
+#User=orangepi
+#Group=orangepi
+User=root
+Group=root
 
 [Install]
 WantedBy=graphical.target
