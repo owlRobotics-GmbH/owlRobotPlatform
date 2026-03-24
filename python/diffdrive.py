@@ -7,6 +7,7 @@ import sys
 import math
 import time
 import owlrobot as owl
+import cfg
 
 
 class DifferentialDriveRobot(owl.Robot):
@@ -20,8 +21,12 @@ class DifferentialDriveRobot(owl.Robot):
 
         self.leftMotor = owl.Motor(self, owl.LEFT_MOTOR_NODE_ID, 'leftMotor', aSwapLeftMotor, aGearRatio)  
         self.rightMotor = owl.Motor(self, owl.RIGHT_MOTOR_NODE_ID, 'rightMotor', aSwapRightMotor, aGearRatio)   
-    
-      
+
+    def sendPID(self, motorP, motorI, motorD, motorRamp, motorTf):
+        self.leftMotor.sendPID(motorP, motorI, motorD, motorRamp, motorTf)
+        self.rightMotor.sendPID(motorP, motorI, motorD, motorRamp, motorTf)
+
+
     # compute forward kinematics based on motor sensors
     def forwardKinematics(self):      
         # compute forward kinematics (measured motor velocitities => body velocities)
@@ -91,7 +96,10 @@ class DifferentialDriveRobot(owl.Robot):
 
 if __name__ == "__main__":
 
-    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False)   # wheel-center-x,  wheel-dia, gear-ratio, swap-left, swap-right
+    # wheel-center-x,  wheel-dia, gear-ratio, swap-left, swap-right
+    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False)  
+    #robot = DifferentialDriveRobot(cfg.NAME, cfg.WHEEL_CENTER_X, cfg.WHEEL_DIA, cfg.GEAR_RATIO, cfg.SWAP_LEFT, cfg.SWAP_RIGHT)         
+    #robot.sendPID(0.01, 0.1, 0.0, 100, 0.3)
 
     try:
         while True:

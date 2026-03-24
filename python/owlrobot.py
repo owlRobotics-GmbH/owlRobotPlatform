@@ -125,6 +125,19 @@ class Motor():
     def enable(self, flag):
         self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_motor_enable, struct.pack('B', flag))
     
+    def sendPID(self, motorP, motorI, motorD, motorRamp, motorTf):
+        print('sendPID nodeId=', self.nodeId, 'P,I,D,ramp,Tf: ', motorP, motorI, motorD, motorRamp, motorTf)
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_pidVelocityP, struct.pack('<f', motorP))
+        time.sleep(0.02)
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_pidVelocityI, struct.pack('<f', motorI))
+        time.sleep(0.02)
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_pidVelocityD, struct.pack('<f', motorD))
+        time.sleep(0.02)
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_pidVelocityRamp, struct.pack('<f', motorRamp))
+        time.sleep(0.02)
+        self.robot.sendCanData(OWL_DRIVE_MSG_ID, self.nodeId, can_cmd_set, can_val_lpfVelocityTf, struct.pack('<f', motorTf))
+        time.sleep(0.02)
+
 
 # abstract robot class with forward and backward kinematics
 # forward kinematics: obtains position and velocity of end effector (here: robot body), given the known joint angles 
