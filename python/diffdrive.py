@@ -102,11 +102,18 @@ if __name__ == "__main__":
     #robot.sendPID(0.01, 0.1, 0.0, 100, 0.3)
 
     try:
+        nextVelTime = 0
+        v = 0
         while True:
             time.sleep(1.0)
             print('----')
-            robot.setRobotSpeed(0.1, 0, 0.02)  # vx, vy, oz
-            robot.forwardKinematics()
+            if time.time() > nextVelTime:
+                nextVelTime = time.time() + 2.0
+                if v > 0: v = 0
+                else: v = 0.2
+                print('v', v)
+            robot.setRobotSpeed(v, 0, 0.02)  # vx, vy, oz
+            robot.forwardKinematics()            
             robot.log()
     finally:
         robot.enableMotors(False)
