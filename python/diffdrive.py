@@ -7,11 +7,12 @@ import sys
 import math
 import time
 import owlrobot as owl
-import cfg
+#import cfg
 
 
 class DifferentialDriveRobot(owl.Robot):
-    def __init__(self, aName, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, aSwapLeftMotor, aSwapRightMotor):        
+    def __init__(self, aName, aWheelToBodyCenterY, aWheelDiameter, aGearRatio, 
+                 aSwapLeftMotor, aSwapRightMotor, aSwapSides):        
         owl.Robot.__init__(self, aName)
         
         # wheel diameter (m)
@@ -19,8 +20,14 @@ class DifferentialDriveRobot(owl.Robot):
         self.wheelToBodyCenterX = 0
         self.wheelToBodyCenterY = aWheelToBodyCenterY 
 
-        self.leftMotor = owl.Motor(self, owl.LEFT_MOTOR_NODE_ID, 'leftMotor', aSwapLeftMotor, aGearRatio)  
-        self.rightMotor = owl.Motor(self, owl.RIGHT_MOTOR_NODE_ID, 'rightMotor', aSwapRightMotor, aGearRatio)   
+        leftId = owl.LEFT_MOTOR_NODE_ID
+        rightId = owl.RIGHT_MOTOR_NODE_ID
+        if aSwapSides: 
+            rightId = owl.LEFT_MOTOR_NODE_ID
+            leftId = owl.RIGHT_MOTOR_NODE_ID
+
+        self.leftMotor = owl.Motor(self, leftId, 'leftMotor', aSwapLeftMotor, aGearRatio)  
+        self.rightMotor = owl.Motor(self, rightId, 'rightMotor', aSwapRightMotor, aGearRatio)   
 
     def sendPID(self, motorP, motorI, motorD, motorRamp, motorTf):
         self.leftMotor.sendPID(motorP, motorI, motorD, motorRamp, motorTf)
@@ -96,24 +103,17 @@ class DifferentialDriveRobot(owl.Robot):
 
 if __name__ == "__main__":
 
-    # wheel-center-x,  wheel-dia, gear-ratio, swap-left, swap-right
-    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False)  
-    #robot = DifferentialDriveRobot(cfg.NAME, cfg.WHEEL_CENTER_X, cfg.WHEEL_DIA, cfg.GEAR_RATIO, cfg.SWAP_LEFT, cfg.SWAP_RIGHT)         
-    #robot.sendPID(0.01, 0.1, 0.0, 100, 0.3)
+    # wheel-center-x,  wheel-dia, gear-ratio, swap-left-dir, swap-right-dir, swap-sides
+    robot = DifferentialDriveRobot('test', 0.2, 0.2, 20.0, True, False, False)  
+    #robot = DifferentialDriveRobot(cfg.NAME, cfg.WHEEL_CENTER_X, cfg.WHEEL_DIA, cfg.GEAR_RATIO, 
+    #                               cfg.SWAP_LEFT, cfg.SWAP_RIGHT, cfg.SWAP_SIDES)         
 
     try:
-        nextVelTime = 0
-        v = 0
         while True:
             time.sleep(1.0)
             print('----')
-            if time.time() > nextVelTime:
-                nextVelTime = time.time() + 2.0
-                if v > 0: v = 0
-                else: v = 0.2
-                print('v', v)
-            robot.setRobotSpeed(v, 0, 0.02)  # vx, vy, oz
-            robot.forwardKinematics()            
+            robot.setRobotSpeed(0.1, 0, 0.02)  # vx, vy, oz
+            robot.forwardKinematics()
             robot.log()
     finally:
         robot.enableMotors(False)
