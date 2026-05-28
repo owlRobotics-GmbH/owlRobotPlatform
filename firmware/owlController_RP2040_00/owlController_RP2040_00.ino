@@ -1,5 +1,5 @@
 /*
-Only tested with legacy Arduino IDE v1.8.19 
+Only tested with legacy Arduino IDE v1.8.19
 Arduino boards to install:
 + Raspberry Pi Pico/RP2040 by Earle F. Philhower, III version 2.0.3
   https://github.com/earlephilhower/arduino-pico
@@ -13,7 +13,7 @@ Arduino libraries to install:
 + MCP342x by Steve Marple Version 1.0.4
 + Adafruit ILI9341 by Adafruit Version 1.5.12
 + Adafruit SSD1306 by Adafruit Version 2.5.7
-+ Adafruit GFX by Adafruit Version 1.11.3 
++ Adafruit GFX by Adafruit Version 1.11.3
 + Adafruit NeoPixel by Adafruit 1.10.6
 + NeoPixelConnect by Alan Yorinks 1.2.0
 + RP2040_PWM by Khoi Hoang Version 1.3.1
@@ -27,7 +27,7 @@ ADC pin 3:
 ADC pin 2:
 ADC pin 1: charger voltage divider (charger detection - use a 75K resistor in series to reduce the voltage divider)
            (code assumes:  3v ADC input equals 30V sensor value)
-IN pin 4:  BUMPER  (active-low)       -  PCB already contains a pull-up 
+IN pin 4:  BUMPER  (active-low)       -  PCB already contains a pull-up
 IN pin 3:  STOP BUTTON  (active-high) -  PCB already contains a pull-up
 IN pin 2:  LIFT SENSOR (active-low)   -  PCB already contains a pull-up
 IN pin 1:  SLOW-DOWN request (active-low) -  PCB already contains a pull-up
@@ -122,6 +122,7 @@ bool power_on_init = 1;
 bool manualShutdownLatched = false;
 int powerButtonHoldSeconds = 0;
 bool hardPowerOffTriggered = false;
+bool remoteLedControlActive = false;
 
 byte ii;
 
@@ -161,8 +162,10 @@ static UltrasonicChannelState& ultrasonicStateFor(bool isLeft){
 static void publishUltrasonicMedian(bool isLeft, uint16_t median, bool valid){
   if (isLeft) {
     robot.control.setUltrasonicDistanceLeft(median, valid);
+    robot.control.setUltrasonicDistanceGeneric(dyp1_I2CMuxChn, DYP1_A22_I2C_ADDRESS, median, valid);
   } else {
     robot.control.setUltrasonicDistanceRight(median, valid);
+    robot.control.setUltrasonicDistanceGeneric(dyp2_I2CMuxChn, DYP2_A22_I2C_ADDRESS, median, valid);
   }
 }
 
@@ -214,7 +217,7 @@ void setup() {
 
   can.begin();
   //Wire.setClock(400000);
-  Wire.setClock(100000);  
+  Wire.setClock(100000);
   Wire.begin();
   delay (100);
   pinMode(blueLED,OUTPUT);
@@ -245,32 +248,32 @@ void setup() {
   //mpu.begin();  //does not work jet
 
 
-  // ---------------------------- get pico id --------------------------------    
+  // ---------------------------- get pico id --------------------------------
   const int BOARD_ID_MESSAGE_LEN = 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1;
   char boardIDDesc[BOARD_ID_MESSAGE_LEN];
   pico_get_unique_board_id_string(boardIDDesc, BOARD_ID_MESSAGE_LEN);
   // E6616407E38B9125
   // E660C0D1C7268934
-  // E4638C729F2E4821 
+  // E4638C729F2E4821
   pico_unique_board_id_t uid;
   pico_get_unique_board_id(&uid);
   unsigned short hash = 0;
   for (int i=0; i < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; i++){
-      hash = hash * 37 + uid.id[i];    
+      hash = hash * 37 + uid.id[i];
   }
-  /*Serial.print("pico id:");  
+  /*Serial.print("pico id:");
   Serial.print(boardIDDesc);
   Serial.print(" ");
   Serial.print(hash);
   Serial.println();*/
   picoID = boardIDDesc;
-  // ------------------------------------------------------------------    
+  // ------------------------------------------------------------------
 
-  delay(3000);  
+  delay(3000);
   //watchdog.dumpInfo();
-  // start 2nd core 
+  // start 2nd core
   //Serial.print("starting 2nd core...");
-  multicore_launch_core1(core1_entry); 
+  multicore_launch_core1(core1_entry);
   watchdog.enable();
 }
 
@@ -287,7 +290,7 @@ void loop() {
     if ( millis()>PI_PWRon_delay+1000){
       myF.CAN_Power(1);
       power_on_init=0;  // set init bit to 0, no more IF
-    } 
+    }
   }
 
    startTimer=micros();
@@ -295,11 +298,11 @@ void loop() {
    // important tasks
    if (stateTimer[0]<millis()){
 
-      
+
       if (robot.control.buzzerState) myF.extPieper(1);
         else myF.extPieper(0);
 
-      stateTimer[0]=millis()+1; 
+      stateTimer[0]=millis()+1;
       //Serial.print(".");
    }
 
@@ -307,23 +310,59 @@ void loop() {
       bool powerOffButtonActive = myF.powerOffPinActive();
       robot.control.setPowerOffPinState(powerOffButtonActive);
       robot.roboter();
-    //  myF.readIn_port();          //Port ext!! If(readIn_port .......     
-           
+    //  myF.readIn_port();          //Port ext!! If(readIn_port .......
+
       myF.OUT_Pin[1]=!myF.IN_Pin[1];
       myF.OUT_Pin[2]=!myF.IN_Pin[2];
       myF.OUT_Pin[3]=!myF.IN_Pin[3];
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
-      robot.control.setBumperState( (byte)(myF.IN_Pin[4] == LOW) ); 
+      robot.control.setBumperState( (byte)(myF.IN_Pin[4] == LOW) );
       robot.control.setStopButtonState( (byte)(myF.IN_Pin[3] == HIGH) );
       if (robot.control.shutdownPending()){
         manualShutdownLatched = true;
       }
-      if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);      
+      if (robot.control.ledCommandUpdated){
+        switch (robot.control.ledCommandType){
+          case owlctl::can_val_led_solid:
+            neopix.solidSegment(robot.control.ledStart,
+                                robot.control.ledCount,
+                                robot.control.ledColorId,
+                                robot.control.ledBrightness);
+            remoteLedControlActive = true;
+            break;
+          case owlctl::can_val_led_anim_single:
+            neopix.startAnimSingle(robot.control.ledAnimId,
+                                   robot.control.ledCount,
+                                   robot.control.ledColorId,
+                                   robot.control.ledBrightness);
+            remoteLedControlActive = true;
+            break;
+          case owlctl::can_val_led_anim_multi:
+            neopix.startAnimMulti(robot.control.ledAnimId,
+                                  robot.control.ledCount,
+                                  robot.control.ledBrightness);
+            remoteLedControlActive = true;
+            break;
+          case owlctl::can_val_led_off:
+            if (robot.control.ledOffMode == 0){
+              neopix.offAll();
+              remoteLedControlActive = false;
+            } else if (robot.control.ledOffMode == 1){
+              neopix.offSegment(robot.control.ledStart, robot.control.ledCount);
+              remoteLedControlActive = true;
+            }
+            break;
+        }
+        robot.control.ledCommandUpdated = false;
+      }
+      if (remoteLedControlActive){
+        neopix.tick();
+      } else if (!myF.IN_Pin[4])  neopix.NeoPixel_scene(1,1);
       else if (!myF.IN_Pin[3]) neopix.NeoPixel_scene(2,1);
       else neopix.NeoPixel_scene(neopix.scene_default,neopix.default_brightness);
-      myF.refreshIOports(); 
-      stateTimer[1]=millis()+100;      
-   } 
+      myF.refreshIOports();
+      stateTimer[1]=millis()+100;
+   }
 
    if (stateTimer[5]<millis()){
       watchdog.resetTimeout();
@@ -332,17 +371,17 @@ void loop() {
       robot.control.setRainState( myF.rain() );
       robot.control.setLiftState( (byte)(myF.IN_Pin[2] == LOW) );
       robot.control.setSlowDownState( (byte)(myF.IN_Pin[1] == LOW) );
-      digitalWrite(blueLED,!digitalRead(blueLED)); 
+      digitalWrite(blueLED,!digitalRead(blueLED));
       stateTimer[5]=millis()+1000;
 
       /*
       Serial.print("IN:");
       Serial.print(myF.IN_Pin[1]);
-      Serial.print(",");      
+      Serial.print(",");
       Serial.print(myF.IN_Pin[2]);
-      Serial.print(",");      
+      Serial.print(",");
       Serial.print(myF.IN_Pin[3]);
-      Serial.print(",");      
+      Serial.print(",");
       Serial.print(myF.IN_Pin[4]);
       Serial.print(" batV:");
       Serial.print(myF.getBatteryVoltage());
@@ -351,11 +390,11 @@ void loop() {
       Serial.print(" rain:");
       Serial.print(myF.rain());
       Serial.print(" mV:");
-      Serial.print(myF.mVrain);    
-      Serial.println();    
+      Serial.print(myF.mVrain);
+      Serial.println();
       */
    }
-   
+
    // unimportant tasks
    if (stateTimer[8]<millis()){
       //Serial.println("ping");
@@ -366,7 +405,7 @@ void loop() {
       }
       //Serial.println("run done");
       stateTimer[8]=millis()+2000;
-    
+
    }
 
    // hard power switch off tasks
@@ -424,7 +463,7 @@ void loop() {
       }
       stateTimer[9]=millis()+15000;
    }
- */  
+ */
    endTimer=micros();
    if(maxTime<=(endTimer-startTimer)) maxTime=endTimer-startTimer;
    //Serial.print ("max Time in uSek.: "); Serial.print (maxTime);
@@ -434,8 +473,8 @@ void loop() {
 
   /*
   //NeoPixel example
-  
-  if (millis()> MotorStatTimer){  
+
+  if (millis()> MotorStatTimer){
     MotorStatTimer = millis() + 750;
     //Serial.print("left :  ");
     robot.leftMotor.requestVelocity();
@@ -445,7 +484,7 @@ void loop() {
     robot.rightMotor.requestVelocity();
     //delay(7);   // no delays here to speed-up CAN packet receive processing
     //Serial.println(robot.rightMotor.velocity);
-    
+
     if ((-1*robot.rightMotor.velocity)==0 && robot.leftMotor.velocity==0){   //Robot stops
       neopix.NeoPixel_scene(2,0.1);
       neopix.scene_default=2;
@@ -461,7 +500,7 @@ void loop() {
     else if ((-1*robot.leftMotor.velocity)>= robot.rightMotor.velocity*1.10){  //Robot right turn
       neopix.NeoPixel_scene(7,0.1);
       neopix.scene_default=7;
-    }    
+    }
     else{
       neopix.NeoPixel_scene(0,0.1);
       neopix.scene_default=0;
@@ -472,7 +511,7 @@ void loop() {
 }
 
 
-// 2nd core loop 
+// 2nd core loop
 // https://github.com/arduino/ArduinoCore-mbed/issues/217
 // https://forums.raspberrypi.com/viewtopic.php?t=302472
 // https://hackaday.io/page/9880-raspberry-pi-pico-multicore-adventures
@@ -480,24 +519,24 @@ void loop() {
 void core1_entry(){
   unsigned long nextMiscTime = 0;
   while (true){
-    
+
     // ---- handling for Linux CAN-USB bridge (SLCAN) -------------
     robot.slcan.fillRxFifo(); // USB packet receiver (FIFO)
     can.fillRxFifo(); // CAN packet receiver (FIFO)
-    can.processTxFifo();  // CAN packet sender (FIFO)    
+    can.processTxFifo();  // CAN packet sender (FIFO)
 
-    robot.slcan.run();     // process CAN-USB-bridge 
+    robot.slcan.run();     // process CAN-USB-bridge
     robot.processReceivedPackets();  // process received CAN packets
     // ----------------------------------------------------------
 
     /*if (millis() > nextMiscTime){
       nextMiscTime = millis() + 500;
       //watchdog_update();
-      watchdog.resetTimeout();                               
+      watchdog.resetTimeout();
     }*/
     //delay(1);
   }
 }
 
-  
+
 

@@ -1,4 +1,4 @@
-/* 
+/*
     owlControl SDK (CAN)
 */
 
@@ -38,7 +38,7 @@ owlControl::owlControl(owlDriveCAN *aCanDriver, int aDriverNodeId, int aOperator
 
 void owlControl::init(){
   debug = false;
-  error = owlctl::err_no_comm; 
+  error = owlctl::err_no_comm;
   batteryVoltage = 0;
   chargerVoltage = 0;
   bumperState = 0;
@@ -53,6 +53,21 @@ void owlControl::init(){
   ultrasonicDistanceRight = 0xFFFF;
   ultrasonicLeftUpdated = 0;
   ultrasonicRightUpdated = 0;
+  for (uint8_t i = 0; i < kUltrasonicCacheSize; ++i){
+    ultrasonicBus[i] = 0xFF;
+    ultrasonicAddr7[i] = 0xFF;
+    ultrasonicDistance[i] = 0xFFFF;
+    ultrasonicValid[i] = false;
+    ultrasonicUpdated[i] = 0;
+  }
+  ledCommandUpdated = false;
+  ledCommandType = 0;
+  ledAnimId = 0;
+  ledStart = 0;
+  ledCount = 0;
+  ledColorId = 0;
+  ledBrightness = 100;
+  ledOffMode = 0;
   buzzerStateTimeout = 0;
   rxPacketTime = 0;
   rxPacketCounter = 0;
@@ -67,7 +82,7 @@ void owlControl::init(){
 }
 
 void owlControl::run(){
-   //robot.control.buzzerState = !robot.control.buzzerState;  
+   //robot.control.buzzerState = !robot.control.buzzerState;
   if ((buzzerState) && (millis() > buzzerStateTimeout)) {
     buzzerState = false;
   }
@@ -125,12 +140,12 @@ void owlControl::setPowerOffPinState(bool state){
 }
 
 void owlControl::setStopButtonState(bool state){
-  if (state) stopButtonStateTimeout = millis() + 500; 
+  if (state) stopButtonStateTimeout = millis() + 500;
   if (state) stopButtonState = state;
 }
 
 void owlControl::setBumperState(byte state){
-  if (state != 0) bumperStateTimeout = millis() + 500; 
+  if (state != 0) bumperStateTimeout = millis() + 500;
   if (state) bumperState = state;
 }
 
@@ -158,11 +173,42 @@ void owlControl::setUltrasonicDistanceRight(uint16_t distanceMm, bool valid){
   ultrasonicRightUpdated = millis();
 }
 
-void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){  
-  
+int owlControl::findUltrasonicCacheSlot(uint8_t i2cBus, uint8_t sensorAddr7){
+  for (uint8_t i = 0; i < kUltrasonicCacheSize; ++i){
+    if (ultrasonicBus[i] == i2cBus && ultrasonicAddr7[i] == sensorAddr7){
+      return (int)i;
+    }
+  }
+  for (uint8_t i = 0; i < kUltrasonicCacheSize; ++i){
+    if (ultrasonicBus[i] == 0xFF){
+      return (int)i;
+    }
+  }
+  return -1;
+}
+
+uint8_t owlControl::normalizeSensorAddr7(uint8_t sensorIdRaw){
+  return (sensorIdRaw >= 0x80) ? (sensorIdRaw >> 1) : sensorIdRaw;
+}
+
+void owlControl::setUltrasonicDistanceGeneric(uint8_t i2cBus, uint8_t sensorAddr7, uint16_t distanceMm, bool valid){
+  const uint8_t addr7 = normalizeSensorAddr7(sensorAddr7);
+  int slot = findUltrasonicCacheSlot(i2cBus, addr7);
+  if (slot < 0){
+    return;
+  }
+  ultrasonicBus[slot] = i2cBus;
+  ultrasonicAddr7[slot] = addr7;
+  ultrasonicValid[slot] = valid;
+  ultrasonicDistance[slot] = valid ? distanceMm : 0xFFFF;
+  ultrasonicUpdated[slot] = millis();
+}
+
+void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
+
     if (debug){
       Serial.print("onCanReceived id=");
-      Serial.println(id);    
+      Serial.println(id);
       printCanFrame(canData);
       Serial.print("MycanMsgId=");
       Serial.println(canMsgId);
@@ -170,7 +216,7 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
       Serial.println(driverNodeId);
     }
     if (id == CAN_RELAIS_MSG_ID){
-      Serial.println(); 
+      Serial.println();
       Serial.println("onCanReceived:  ");
       Serial.print("  Raw Data:       ");
       for (int i = 0; i < len; i++) {
@@ -182,7 +228,7 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
       //Serial.print("  CAN Msg ID (expected): "); Serial.println(MY_NODE_ID, DEC);
       Serial.print("  Driver Node ID: "); Serial.println(driverNodeId, DEC);
       Serial.print("  Source Node ID: "); Serial.println(canData[0] & 0x3F, DEC); // 6 bits
-      Serial.print("  Dest Node ID:   "); Serial.println(canData[1] & 0x3F, DEC);   // 6 bits    
+      Serial.print("  Dest Node ID:   "); Serial.println(canData[1] & 0x3F, DEC);   // 6 bits
       Serial.print("  Command:        "); Serial.println(canData[2], DEC);
       Serial.print("  Value Type:     "); Serial.println(canData[3], DEC);
       Serial.print("  Data Bytes:     ");
@@ -195,28 +241,28 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
     if (id != canMsgId) return;
     canNodeType_t node;
     node.byteVal[0] = canData[0]; // Source node ID (6 bits) and reserved (2 bits)
-    node.byteVal[1] = canData[1]; // Destination node ID (6 bits) and reserved (2 bits)   
-    //if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node  
-    if (node.sourceAndDest.destNodeID != driverNodeId) return; // message is not for expected owlControl node  
-    
+    node.byteVal[1] = canData[1]; // Destination node ID (6 bits) and reserved (2 bits)
+    //if (node.sourceAndDest.sourceNodeID != driverNodeId) return; // message is not from expected owlControl node
+    if (node.sourceAndDest.destNodeID != driverNodeId) return; // message is not for expected owlControl node
+
     rxPacketCounter++;
     rxPacketTime = millis();
 
-    int cmd = canData[2];     
-    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);            
+    int cmd = canData[2];
+    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);
     canDataType_t data;
     data.byteVal[0] = canData[4];
     data.byteVal[1] = canData[5];
     data.byteVal[2] = canData[6];
-    data.byteVal[3] = canData[7];    
+    data.byteVal[3] = canData[7];
 
-    
+
 
     if (cmd == can_cmd_info){
         // info value (volt, velocity, position, ...)
         switch (val){
           case owlctl::can_val_error:
-            error = (owlctl::errorType_t)data.byteVal[0]; 
+            error = (owlctl::errorType_t)data.byteVal[0];
             break;
           case owlctl::can_val_lift_state:
             liftState = data.byteVal[0];
@@ -226,7 +272,7 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             break;
           case owlctl::can_val_battery_voltage:
             batteryVoltage = data.floatVal;
-            break;          
+            break;
           case owlctl::can_val_stop_button_state:
             stopButtonState = data.byteVal[0];
             break;
@@ -243,15 +289,15 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             chargerVoltage = data.floatVal;
             break;
         }
-    } 
+    }
     else if (cmd == can_cmd_request){
         switch (val){
           case owlctl::can_val_error:
-            sendError(node.sourceAndDest.sourceNodeID, error); 
+            sendError(node.sourceAndDest.sourceNodeID, error);
             break;
           case owlctl::can_val_lift_state:
             sendLiftState(node.sourceAndDest.sourceNodeID, liftState);
-            break;          
+            break;
           case owlctl::can_val_bumper_state:
             sendBumperState(node.sourceAndDest.sourceNodeID, bumperState);
             break;
@@ -282,6 +328,23 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_ultrasonic_right:
             sendUltrasonicDistance(node.sourceAndDest.sourceNodeID, owlctl::can_val_ultrasonic_right, ultrasonicDistanceRight, ultrasonicRightValid);
             break;
+          case owlctl::can_val_ultrasonic_generic:
+          {
+            if (len < 6) {
+              sendUltrasonicDistanceGeneric(node.sourceAndDest.sourceNodeID, 0xFF, 0xFF, 0xFFFF);
+              break;
+            }
+            const uint8_t i2cBus = data.byteVal[0];
+            const uint8_t sensorIdRaw = data.byteVal[1];
+            const uint8_t sensorAddr7 = normalizeSensorAddr7(sensorIdRaw);
+            uint16_t distanceMm = 0xFFFF;
+            const int slot = findUltrasonicCacheSlot(i2cBus, sensorAddr7);
+            if (slot >= 0 && ultrasonicBus[slot] == i2cBus && ultrasonicAddr7[slot] == sensorAddr7 && ultrasonicValid[slot]){
+              distanceMm = ultrasonicDistance[slot];
+            }
+            sendUltrasonicDistanceGeneric(node.sourceAndDest.sourceNodeID, i2cBus, sensorIdRaw, distanceMm);
+            break;
+          }
         }
     }
     else if (cmd == can_cmd_set){
@@ -295,6 +358,46 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           snprintf(ipStr, sizeof(ipStr), "%u.%u.%u.%u", data.byteVal[0], data.byteVal[1], data.byteVal[2], data.byteVal[3]);
           raspberryPiIP = String(ipStr);
           oled.setIP(raspberryPiIP); // update OLED display with new IP address
+          break;
+        case owlctl::can_val_led_solid:
+          ledCommandType = (uint8_t)owlctl::can_val_led_solid;
+          ledAnimId = 0;
+          ledStart = data.byteVal[0];
+          ledCount = data.byteVal[1];
+          ledColorId = data.byteVal[2];
+          ledBrightness = data.byteVal[3];
+          ledOffMode = 0;
+          ledCommandUpdated = true;
+          break;
+        case owlctl::can_val_led_anim_single:
+          ledCommandType = (uint8_t)owlctl::can_val_led_anim_single;
+          ledAnimId = data.byteVal[0];
+          ledStart = 0;
+          ledCount = data.byteVal[1];
+          ledColorId = data.byteVal[2];
+          ledBrightness = data.byteVal[3];
+          ledOffMode = 0;
+          ledCommandUpdated = true;
+          break;
+        case owlctl::can_val_led_anim_multi:
+          ledCommandType = (uint8_t)owlctl::can_val_led_anim_multi;
+          ledAnimId = data.byteVal[0];
+          ledStart = 0;
+          ledCount = data.byteVal[1];
+          ledColorId = 0;
+          ledBrightness = data.byteVal[2];
+          ledOffMode = 0;
+          ledCommandUpdated = true;
+          break;
+        case owlctl::can_val_led_off:
+          ledCommandType = (uint8_t)owlctl::can_val_led_off;
+          ledAnimId = 0;
+          ledOffMode = data.byteVal[0];
+          ledStart = data.byteVal[1];
+          ledCount = data.byteVal[2];
+          ledColorId = 0;
+          ledBrightness = 0;
+          ledCommandUpdated = true;
           break;
         case owlctl::can_val_power_off_command:
         {
@@ -324,15 +427,15 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
         }
       }
     }
-  
-  
-  
+
+
+
 }
 
 
-void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data){        
+void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data){
     unsigned char canData[8];
-    int id = canMsgId;    
+    int id = canMsgId;
     int len;
     if (cmd == can_cmd_request){
       len = 4;
@@ -341,10 +444,10 @@ void owlControl::sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueT
     }
     canNodeType_t node;
     //node.sourceAndDest.sourceNodeID = operatorNodeId;
-    node.sourceAndDest.sourceNodeID = driverNodeId;    
-    node.sourceAndDest.destNodeID = destNodeId;    
+    node.sourceAndDest.sourceNodeID = driverNodeId;
+    node.sourceAndDest.destNodeID = destNodeId;
     canData[0] = node.byteVal[0];                          // Source node ID (6 bits) and reserved (2 bits)
-    canData[1] = node.byteVal[1];                          // Destination node ID (6 bits) and reserved (2 bits) 
+    canData[1] = node.byteVal[1];                          // Destination node ID (6 bits) and reserved (2 bits)
     canData[2] = cmd;                                      // What to do. broadcast, request, set, save
     canData[3] = val;                                      // What value to send (battery voltage, error, etc.)
     canData[4] = data.byteVal[0];                          // Data to send (4 bytes, float, int, etc.)
@@ -360,32 +463,32 @@ void owlControl::printCanFrame(unsigned char canData[8]){
     canNodeType_t node;
     node.byteVal[0] = canData[0];
     node.byteVal[1] = canData[1];
-    int cmd = canData[2];     
-    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);            
+    int cmd = canData[2];
+    owlctl::canValueType_t val = ((owlctl::canValueType_t)canData[3]);
     canDataType_t data;
     data.byteVal[0] = canData[4];
     data.byteVal[1] = canData[5];
     data.byteVal[2] = canData[6];
-    data.byteVal[3] = canData[7];    
-    Serial.print("CAN cmd=");    
+    data.byteVal[3] = canData[7];
+    Serial.print("CAN cmd=");
     Serial.print(cmd);
     Serial.print("(");
     switch (cmd){
         case can_cmd_info: Serial.print("can_cmd_info"); break;
         case can_cmd_set: Serial.print("can_cmd_set"); break;
         case can_cmd_save: Serial.print("can_cmd_save"); break;
-        case can_cmd_request: Serial.print("can_cmd_request"); break;        
+        case can_cmd_request: Serial.print("can_cmd_request"); break;
         default: Serial.print("can_cmd_unknown"); break;
-    }   
+    }
     Serial.print("): srcId=");
-    Serial.print(node.sourceAndDest.sourceNodeID);    
+    Serial.print(node.sourceAndDest.sourceNodeID);
     Serial.print(" dstId=");
     Serial.print(node.sourceAndDest.destNodeID);
     Serial.print(" val=");
     Serial.print(val);
-    Serial.print(" data=");        
-    Serial.print(data.floatVal);        
-    Serial.print(" (");            
+    Serial.print(" data=");
+    Serial.print(data.floatVal);
+    Serial.print(" (");
     for (int i=0; i < sizeof(data); i++){
         Serial.print(data.byteVal[i], HEX);
         Serial.print(" ");
@@ -496,60 +599,69 @@ void owlControl::sendUltrasonicDistance(int destNodeId, owlctl::canValueType_t v
   sendCanData(destNodeId, can_cmd_info, val, data);
 }
 
+void owlControl::sendUltrasonicDistanceGeneric(int destNodeId, uint8_t i2cBus, uint8_t sensorId, uint16_t distanceMm){
+  canDataType_t data;
+  data.byteVal[0] = i2cBus;
+  data.byteVal[1] = sensorId;
+  data.byteVal[2] = (uint8_t)(distanceMm & 0xFF);
+  data.byteVal[3] = (uint8_t)((distanceMm >> 8) & 0xFF);
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_ultrasonic_generic, data);
+}
+
 
 
 
 void owlControl::requestError(){
-  canDataType_t data;  
-  data.floatVal = 0;  
+  canDataType_t data;
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_error, data);
 }
 
 void owlControl::requestBumperState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_bumper_state, data);
 }
 
 void owlControl::requestLiftState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_lift_state, data);
 }
 
 void owlControl::requestBatteryVoltage(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_battery_voltage, data);
 }
 
 void owlControl::requestChargerVoltage(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_charger_voltage, data);
 }
 
 void owlControl::requestStopButtonState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_stop_button_state, data);
 }
 
 void owlControl::requestBuzzerState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_buzzer_state, data);
 }
 
 void owlControl::requestRainState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_rain_state, data);
 }
 
 void owlControl::requestSlowDownState(){
   canDataType_t data;
-  data.floatVal = 0;    
+  data.floatVal = 0;
   sendCanData(driverNodeId, can_cmd_request, owlctl::can_val_slow_down_state, data);
 }
 

@@ -24,12 +24,17 @@ namespace owlctl {
       can_val_charger_voltage   = 7,  // charger voltage
       can_val_lift_state        = 8,  // lift state
       can_val_slow_down_state   = 9,  // slow-down state
-      can_val_ip_address        = 10, // show Raspberry Pi IP address on display 
+      can_val_ip_address        = 10, // show Raspberry Pi IP address on display
       can_val_relais_state      = 11, // relais state
       can_val_power_off_state   = 12, // power-off GPIO state
       can_val_power_off_command = 13, // schedule power-off command
       can_val_ultrasonic_left   = 14, // distance from left ultrasonic sensor (mm)
       can_val_ultrasonic_right  = 15, // distance from right ultrasonic sensor (mm)
+      can_val_ultrasonic_generic = 16, // Git-safe extension: arbitrary ultrasonic sensor by bus/address
+      can_val_led_solid         = 17, // LED solid segment
+      can_val_led_anim_single   = 18, // LED single-color animation
+      can_val_led_anim_multi    = 19, // LED multi-color animation
+      can_val_led_off           = 20, // LED off
   };
 
   // motor driver error values
@@ -38,7 +43,7 @@ namespace owlctl {
       err_no_comm      = 1, // no CAN communication
       err_undervoltage = 2, // undervoltage triggered
       err_overvoltage  = 3, // overvoltage triggered
-      err_overtemp     = 4, // over-temperature triggered    
+      err_overtemp     = 4, // over-temperature triggered
   };
 
   enum powerOffState_t: uint8_t {
@@ -58,7 +63,7 @@ class owlControl
   public:
     bool debug;          // output debug info?
     int canMsgId;        // CAN message ID used for owlControl PCB
-    int driverNodeId;    // node ID used in your owlControl PCB     
+    int driverNodeId;    // node ID used in your owlControl PCB
     int operatorNodeId;  // node ID used for operator
     owlctl::errorType_t error;     // error status (see error constants above)
     float batteryVoltage;  // volts
@@ -75,30 +80,44 @@ class owlControl
     uint16_t ultrasonicDistanceRight;
     unsigned long ultrasonicLeftUpdated;
     unsigned long ultrasonicRightUpdated;
+    static const uint8_t kUltrasonicCacheSize = 8;
+    uint8_t ultrasonicBus[kUltrasonicCacheSize];
+    uint8_t ultrasonicAddr7[kUltrasonicCacheSize];
+    uint16_t ultrasonicDistance[kUltrasonicCacheSize];
+    bool ultrasonicValid[kUltrasonicCacheSize];
+    unsigned long ultrasonicUpdated[kUltrasonicCacheSize];
     unsigned long rxPacketCounter;    // number of received CAN packets for this node
     unsigned long rxPacketTime;       // last time we received a CAN packet for this node
     String raspberryPiIP; // Raspberry Pi IP address (if available)
     unsigned long rcvIpAddressTimeout;
+    bool ledCommandUpdated;
+    uint8_t ledCommandType;
+    uint8_t ledAnimId;
+    uint8_t ledStart;
+    uint8_t ledCount;
+    uint8_t ledColorId;
+    uint8_t ledBrightness;
+    uint8_t ledOffMode;
 
     owlDriveCAN *canDriver; // driver to send/receive data
 
     owlControl(owlDriveCAN *aCanDriver, int driverNodeId, int aOperatorNodeId = MY_NODE_ID, int aCanMsgId = CAN_CONTROL_MSG_ID);
-    
+
     owlControl();
 
     void setPowerOffPinState(bool state);
     bool powerOffPinLatched() const { return powerOffState >= owlctl::power_off_active; }
     bool shutdownPending() const { return powerOffState == owlctl::power_off_shutdown_pending; }
     owlctl::powerOffState_t getPowerOffState() const { return powerOffState; }
-    
+
     // call this for any CAN packet received via your CAN interface
-    void onCanReceived(int id, int len, unsigned char canData[8]);    
+    void onCanReceived(int id, int len, unsigned char canData[8]);
 
     void requestError();
     void requestBatteryVoltage();
-    void requestChargerVoltage();    
+    void requestChargerVoltage();
     void requestBumperState();
-    void requestLiftState();    
+    void requestLiftState();
     void requestStopButtonState();
     void requestBuzzerState();
     void requestRainState();
@@ -106,9 +125,9 @@ class owlControl
 
     void sendError(int destNodeId, owlctl::errorType_t error);
     void sendBatteryVoltage(int destNodeId, float value);
-    void sendChargerVoltage(int destNodeId, float value);   
+    void sendChargerVoltage(int destNodeId, float value);
     void sendBumperState(int destNodeId, byte value);
-    void sendLiftState(int destNodeId, bool value);    
+    void sendLiftState(int destNodeId, bool value);
     void sendStopButtonState(int destNodeId, bool value);
     void sendBuzzerState(int destNodeId, bool value);
     void sendRainState(int destNodeId, bool value);
@@ -117,6 +136,8 @@ class owlControl
     void sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t delaySeconds);
     void setUltrasonicDistanceLeft(uint16_t distanceMm, bool valid);
     void setUltrasonicDistanceRight(uint16_t distanceMm, bool valid);
+    void setUltrasonicDistanceGeneric(uint8_t i2cBus, uint8_t sensorAddr7, uint16_t distanceMm, bool valid);
+    void sendUltrasonicDistanceGeneric(int destNodeId, uint8_t i2cBus, uint8_t sensorId, uint16_t distanceMm);
 
     void run();
     void setStopButtonState(bool state);
@@ -136,9 +157,11 @@ class owlControl
     bool shutdownCommandAccepted;
     uint8_t shutdownDelaySeconds;
     void sendUltrasonicDistance(int destNodeId, owlctl::canValueType_t val, uint16_t distanceMm, bool valid);
-    
-             
-    void init();    
+    int findUltrasonicCacheSlot(uint8_t i2cBus, uint8_t sensorAddr7);
+    static uint8_t normalizeSensorAddr7(uint8_t sensorIdRaw);
+
+
+    void init();
     void sendCanData(int destNodeId, canCmdType_t cmd, owlctl::canValueType_t val, canDataType_t data);
     void printCanFrame(unsigned char canData[8]);
 
