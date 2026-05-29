@@ -49,6 +49,9 @@ void owlControl::init(){
   slowDownState = false;
   ultrasonicLeftValid = false;
   ultrasonicRightValid = false;
+  for (uint8_t i = 0; i < kUltrasonicWarningLevelCount; ++i){
+    ultrasonicWarningLevel[i] = 0;
+  }
   ultrasonicDistanceLeft = 0xFFFF;
   ultrasonicDistanceRight = 0xFFFF;
   ultrasonicLeftUpdated = 0;
@@ -204,6 +207,13 @@ void owlControl::setUltrasonicDistanceGeneric(uint8_t i2cBus, uint8_t sensorAddr
   ultrasonicUpdated[slot] = millis();
 }
 
+void owlControl::setUltrasonicWarningLevel(uint8_t sensorIndex, uint8_t warningLevel){
+  if (sensorIndex >= kUltrasonicWarningLevelCount){
+    return;
+  }
+  ultrasonicWarningLevel[sensorIndex] = warningLevel & 0x0F;
+}
+
 void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
 
     if (debug){
@@ -329,22 +339,8 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
             sendUltrasonicDistance(node.sourceAndDest.sourceNodeID, owlctl::can_val_ultrasonic_right, ultrasonicDistanceRight, ultrasonicRightValid);
             break;
           case owlctl::can_val_ultrasonic_generic:
-          {
-            if (len < 6) {
-              sendUltrasonicDistanceGeneric(node.sourceAndDest.sourceNodeID, 0xFF, 0xFF, 0xFFFF);
-              break;
-            }
-            const uint8_t i2cBus = data.byteVal[0];
-            const uint8_t sensorIdRaw = data.byteVal[1];
-            const uint8_t sensorAddr7 = normalizeSensorAddr7(sensorIdRaw);
-            uint16_t distanceMm = 0xFFFF;
-            const int slot = findUltrasonicCacheSlot(i2cBus, sensorAddr7);
-            if (slot >= 0 && ultrasonicBus[slot] == i2cBus && ultrasonicAddr7[slot] == sensorAddr7 && ultrasonicValid[slot]){
-              distanceMm = ultrasonicDistance[slot];
-            }
-            sendUltrasonicDistanceGeneric(node.sourceAndDest.sourceNodeID, i2cBus, sensorIdRaw, distanceMm);
+            sendUltrasonicWarningLevels(node.sourceAndDest.sourceNodeID);
             break;
-          }
         }
     }
     else if (cmd == can_cmd_set){
@@ -605,6 +601,15 @@ void owlControl::sendUltrasonicDistanceGeneric(int destNodeId, uint8_t i2cBus, u
   data.byteVal[1] = sensorId;
   data.byteVal[2] = (uint8_t)(distanceMm & 0xFF);
   data.byteVal[3] = (uint8_t)((distanceMm >> 8) & 0xFF);
+  sendCanData(destNodeId, can_cmd_info, owlctl::can_val_ultrasonic_generic, data);
+}
+
+void owlControl::sendUltrasonicWarningLevels(int destNodeId){
+  canDataType_t data;
+  data.byteVal[0] = (ultrasonicWarningLevel[0] & 0x0F) | ((ultrasonicWarningLevel[1] & 0x0F) << 4);
+  data.byteVal[1] = (ultrasonicWarningLevel[2] & 0x0F) | ((ultrasonicWarningLevel[3] & 0x0F) << 4);
+  data.byteVal[2] = (ultrasonicWarningLevel[4] & 0x0F) | ((ultrasonicWarningLevel[5] & 0x0F) << 4);
+  data.byteVal[3] = (ultrasonicWarningLevel[6] & 0x0F) | ((ultrasonicWarningLevel[7] & 0x0F) << 4);
   sendCanData(destNodeId, can_cmd_info, owlctl::can_val_ultrasonic_generic, data);
 }
 

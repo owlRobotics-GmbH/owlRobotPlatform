@@ -7,6 +7,12 @@
 
 #define DYP1_A22_I2C_ADDRESS 0x74  // 7-Bit I2C-Adresse (entspricht 0xE8)
 #define DYP2_A22_I2C_ADDRESS 0x75  // 7-Bit I2C-Adresse (entspricht 0xE8)
+#define DYP_A22_FRONT_CENTER_ADDRESS 0x74
+#define DYP_A22_FRONT_LEFT_ADDRESS   0x75
+#define DYP_A22_FRONT_RIGHT_ADDRESS  0x76
+#define DYP_A22_REAR_CENTER_ADDRESS  0x73
+#define DYP_A22_REAR_LEFT_ADDRESS    0x72
+#define DYP_A22_REAR_RIGHT_ADDRESS   0x71
 // Read-only Register
 #define RO_Software_version 0x00   // Register für Softwareversion
 #define RO_Temperature_value 0x0A  // Register für Temperaturmessung
@@ -18,6 +24,8 @@ public:
     bool begin();
     uint16_t getDistance(uint8_t angleLevel = 4);    // Abstand in mm
     bool isConnected() const { return _isConnected; }
+    bool startMeasurement(uint8_t angleLevel, uint8_t rangeLevel);
+    bool readDistanceIfReady(uint16_t &distance);
     bool pollDistance(uint8_t angleLevel, uint16_t &distance, uint8_t rangeLevel = 1);
     void resetMeasurement();
     
@@ -39,6 +47,5 @@ private:
     bool probeSensor();
     uint16_t readRegister16(uint8_t reg);
     bool writeRegister8(uint8_t reg, uint8_t value);
-    bool startMeasurement(uint8_t angleLevel, uint8_t rangeLevel);
 };
 #endif

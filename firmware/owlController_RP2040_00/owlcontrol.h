@@ -28,9 +28,9 @@ namespace owlctl {
       can_val_relais_state      = 11, // relais state
       can_val_power_off_state   = 12, // power-off GPIO state
       can_val_power_off_command = 13, // schedule power-off command
-      can_val_ultrasonic_left   = 14, // distance from left ultrasonic sensor (mm)
-      can_val_ultrasonic_right  = 15, // distance from right ultrasonic sensor (mm)
-      can_val_ultrasonic_generic = 16, // Git-safe extension: arbitrary ultrasonic sensor by bus/address
+      can_val_ultrasonic_left   = 14, // legacy distance from left ultrasonic sensor (mm)
+      can_val_ultrasonic_right  = 15, // legacy distance from right ultrasonic sensor (mm)
+      can_val_ultrasonic_generic = 16, // packed ultrasonic warning levels, 4 bit per sensor
       can_val_led_solid         = 17, // LED solid segment
       can_val_led_anim_single   = 18, // LED single-color animation
       can_val_led_anim_multi    = 19, // LED multi-color animation
@@ -80,6 +80,8 @@ class owlControl
     uint16_t ultrasonicDistanceRight;
     unsigned long ultrasonicLeftUpdated;
     unsigned long ultrasonicRightUpdated;
+    static const uint8_t kUltrasonicWarningLevelCount = 8;
+    uint8_t ultrasonicWarningLevel[kUltrasonicWarningLevelCount];
     static const uint8_t kUltrasonicCacheSize = 8;
     uint8_t ultrasonicBus[kUltrasonicCacheSize];
     uint8_t ultrasonicAddr7[kUltrasonicCacheSize];
@@ -138,6 +140,8 @@ class owlControl
     void setUltrasonicDistanceRight(uint16_t distanceMm, bool valid);
     void setUltrasonicDistanceGeneric(uint8_t i2cBus, uint8_t sensorAddr7, uint16_t distanceMm, bool valid);
     void sendUltrasonicDistanceGeneric(int destNodeId, uint8_t i2cBus, uint8_t sensorId, uint16_t distanceMm);
+    void setUltrasonicWarningLevel(uint8_t sensorIndex, uint8_t warningLevel);
+    void sendUltrasonicWarningLevels(int destNodeId);
 
     void run();
     void setStopButtonState(bool state);

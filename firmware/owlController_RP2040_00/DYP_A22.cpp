@@ -109,20 +109,11 @@ bool DYP_A22::startMeasurement(uint8_t angleLevel, uint8_t rangeLevel) {
     return true;
 }
 
-bool DYP_A22::pollDistance(uint8_t angleLevel, uint16_t &distance, uint8_t rangeLevel) {
-    if (!ensureConnected()) {
-        resetMeasurement();
-        return false;
-    }
-
-    unsigned long now = millis();
-
+bool DYP_A22::readDistanceIfReady(uint16_t &distance) {
     if (!_measurementInProgress) {
-        startMeasurement(angleLevel, rangeLevel);
         return false;
     }
-
-    if ((unsigned long)(now - _measurementStartMs) < kMeasurementDelayMs) {
+    if ((unsigned long)(millis() - _measurementStartMs) < kMeasurementDelayMs) {
         return false;
     }
 
@@ -130,11 +121,28 @@ bool DYP_A22::pollDistance(uint8_t angleLevel, uint16_t &distance, uint8_t range
     _measurementInProgress = false;
 
     if (value == 0xFFFF) {
-        startMeasurement(angleLevel, rangeLevel);
         return false;
     }
 
     distance = value;
+    return true;
+}
+
+bool DYP_A22::pollDistance(uint8_t angleLevel, uint16_t &distance, uint8_t rangeLevel) {
+    if (!ensureConnected()) {
+        resetMeasurement();
+        return false;
+    }
+
+    if (!_measurementInProgress) {
+        startMeasurement(angleLevel, rangeLevel);
+        return false;
+    }
+
+    if (!readDistanceIfReady(distance)) {
+        return false;
+    }
+
     startMeasurement(angleLevel, rangeLevel);
     return true;
 }
