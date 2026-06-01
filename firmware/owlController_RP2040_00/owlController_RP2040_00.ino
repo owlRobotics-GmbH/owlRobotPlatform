@@ -308,6 +308,7 @@ void setup() {
   //Wire.setClock(400000);
   Wire.setClock(100000);
   Wire.begin();
+  Wire.setTimeout(25);
   delay (100);
   pinMode(blueLED,OUTPUT);
   myF.begin();                            // initialize owlController PCB

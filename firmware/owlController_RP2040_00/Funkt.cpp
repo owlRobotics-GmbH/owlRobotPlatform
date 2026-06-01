@@ -17,6 +17,10 @@ TCA9548A I2CMux;
 RP2040_PWM* PWM_load;
 Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
 
+void selectI2CMuxChannel(uint8_t channel){
+    I2CMux.writeRegister(1 << channel);
+}
+
  Funkt::Funkt(){}
  void Funkt::begin()
    { 
@@ -39,7 +43,7 @@ Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
     delay(2);
 
     // init PCA9555 for IO Ports IN  ports 1.0-1.3  OUT; Ports 0.0-0.3
-    I2CMux.openChannel(6);   // switch I2C Adr.
+    selectI2CMuxChannel(6);   // switch I2C Adr.
     IOext_writeReg(0x20,0x6,0b11110000,0b11111111);  //Init Port 0 bit 0-3 putput Port 1 as input
     IOext_writeReg(0x20,0x2,0b00001111,0b00000000);  // Set all outputs to 0
 
@@ -171,7 +175,7 @@ void Funkt::extPieper(bool on_off)
      return(INport);
   }    */
   int Funkt::IOext_readReg(byte adr, byte reg){
-      I2CMux.openChannel(6);
+      selectI2CMuxChannel(6);
       Wire.beginTransmission(adr);
         Wire.write(reg);  // pointer
       if(Wire.endTransmission()!=0)Serial.println ("init error PCA9555"); 
@@ -185,7 +189,7 @@ void Funkt::extPieper(bool on_off)
   }
 
     void Funkt::IOext_writeReg(byte adr, byte reg, byte val_0,byte val_1){
-      I2CMux.openChannel(6);
+      selectI2CMuxChannel(6);
       Wire.beginTransmission(adr);  
       Wire.write(reg);  // pointer
       Wire.write(val_0);

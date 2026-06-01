@@ -30,7 +30,7 @@ void oledDisp::setIP(const String &ip) {
 
 
 void oledDisp::begin(){
-  I2CMux.openChannel(oled_I2CMuxChn);
+  selectI2CMuxChannel(oled_I2CMuxChn);
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
     //for(;;); // Don't proceed, loop forever
@@ -55,7 +55,7 @@ void oledDisp::oledPowerOff(){
 }
 
 void oledDisp::status(){
-  I2CMux.openChannel(oled_I2CMuxChn);
+  selectI2CMuxChannel(oled_I2CMuxChn);
   float volt= myF.ADC_read(7)/1000*34.0;
   display.clearDisplay();
   display.setTextColor(WHITE);

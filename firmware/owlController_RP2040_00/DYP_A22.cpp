@@ -23,7 +23,7 @@ bool DYP_A22::triggerMeasurement(uint8_t level) {
     static const uint8_t cmd[] = { 0xBD, 0xBC, 0xBB, 0xB4 };
     if (level < 1 || level > 4) level = 1;
     if (!ensureConnected()) return false;
-    I2CMux.openChannel(_mux_channel);
+    selectI2CMuxChannel(_mux_channel);
     delayMicroseconds(150);
     
     Wire.beginTransmission(_i2c_address);
@@ -40,7 +40,7 @@ bool DYP_A22::triggerMeasurement(uint8_t level) {
 
 uint16_t DYP_A22::readRegister16(uint8_t reg) {
     if (!ensureConnected()) return 0xFFFF;
-    I2CMux.openChannel(_mux_channel);
+    selectI2CMuxChannel(_mux_channel);
     delayMicroseconds(150);
 
     Wire.beginTransmission(_i2c_address);
@@ -63,7 +63,7 @@ uint16_t DYP_A22::readRegister16(uint8_t reg) {
 
 bool DYP_A22::writeRegister8(uint8_t reg, uint8_t value) {
     if (!ensureConnected()) return false;
-    I2CMux.openChannel(_mux_channel);
+    selectI2CMuxChannel(_mux_channel);
     delayMicroseconds(150);
 
     Wire.beginTransmission(_i2c_address);
@@ -162,7 +162,7 @@ bool DYP_A22::ensureConnected() {
 }
 
 bool DYP_A22::probeSensor() {
-    I2CMux.openChannel(_mux_channel);
+    selectI2CMuxChannel(_mux_channel);
     delay(5); // give the mux and sensor a moment to settle
 
     int result = 0;

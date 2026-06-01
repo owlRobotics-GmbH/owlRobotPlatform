@@ -25,6 +25,7 @@
 
 #pragma once
 
+void selectI2CMuxChannel(uint8_t channel);
 
 class Funkt {
   public:
