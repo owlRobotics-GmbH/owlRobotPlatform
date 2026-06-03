@@ -21,7 +21,6 @@
 
 #define in1 22
 
-#define NeoPix_Pin 25
 
 #pragma once
 

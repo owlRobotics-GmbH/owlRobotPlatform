@@ -1,11 +1,9 @@
-//#include <Adafruit_NeoPixel.h>
 #include "config.h"
 #include <math.h>
-#include <NeoPixelConnect.h>
+#include <Adafruit_NeoPixel.h>
 #include "NeoPix.h"
 
-//Adafruit_NeoPixel strip(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
-NeoPixelConnect strip(NeoPix_Pin, LED_COUNT);
+Adafruit_NeoPixel strip(LED_COUNT, NeoPix_Pin, NEO_GRB + NEO_KHZ800);
 
 namespace {
 struct NeoPixColor {
@@ -34,6 +32,28 @@ inline uint8_t scaleChannel(uint8_t base, float scale) {
   if (v > 255) v = 255;
   return (uint8_t)v;
 }
+
+inline uint8_t clampChannel(int v) {
+  if (v < 0) return 0;
+  if (v > 255) return 255;
+  return (uint8_t)v;
+}
+
+inline void setStripPixel(int ledNo, int r, int g, int b, bool flush) {
+  if (ledNo < 0 || ledNo >= LED_COUNT) return;
+  strip.setPixelColor((uint16_t)ledNo, strip.Color(clampChannel(r), clampChannel(g), clampChannel(b)));
+  if (flush) strip.show();
+}
+
+inline void fillStrip(int r, int g, int b, bool flush) {
+  strip.fill(strip.Color(clampChannel(r), clampChannel(g), clampChannel(b)), 0, LED_COUNT);
+  if (flush) strip.show();
+}
+
+inline void clearStrip(bool flush) {
+  strip.clear();
+  if (flush) strip.show();
+}
 }  // namespace
 
 NeoPix::NeoPix(){
@@ -51,17 +71,19 @@ NeoPix::NeoPix(){
 
 void NeoPix::begin()
 {
-  strip.neoPixelFill(3,0,0, true);
+  strip.begin();
+  strip.show();
+  fillStrip(3,0,0, true);
   delay(500);
   NeoPixel_scene(11,1);
   NeoPixel_scene(12,1);
   NeoPixel_scene(11,1);
-  strip.neoPixelClear(true);
+  clearStrip(true);
 }
 
 void NeoPix::setNeoPixel(int ledNo,int r,int g,int b){
   runtimeMode = LED_MODE_IDLE;
-  strip.neoPixelSetValue(ledNo,r,g,b,true);
+  setStripPixel(ledNo,r,g,b,true);
   delay(1);
 }
 
@@ -72,76 +94,76 @@ void NeoPix::NeoPixel_scene(int sceneNo,float Pix_brightness ){
     runtimeMode = LED_MODE_IDLE;
     switch (sceneNo) {
       case 0:
-        strip.neoPixelFill(0,0,0, true);
+        fillStrip(0,0,0, true);
         break;
       case 1:
-        strip.neoPixelFill(int(125*Pix_brightness),0,0, true);
+        fillStrip(int(125*Pix_brightness),0,0, true);
         break;
       case 2:
-        strip.neoPixelFill(0,int(125*Pix_brightness),0, true);
+        fillStrip(0,int(125*Pix_brightness),0, true);
         break;
       case 3:
-        strip.neoPixelFill(0,0,int(125*Pix_brightness), true);
+        fillStrip(0,0,int(125*Pix_brightness), true);
         break;
       case 4:
-        strip.neoPixelFill(int(125*Pix_brightness),int(125*Pix_brightness),int(125*Pix_brightness), true);
+        fillStrip(int(125*Pix_brightness),int(125*Pix_brightness),int(125*Pix_brightness), true);
         break;
       case 5:
-        strip.neoPixelFill(int(125*Pix_brightness),int(15*Pix_brightness),int(15*Pix_brightness), true);
+        fillStrip(int(125*Pix_brightness),int(15*Pix_brightness),int(15*Pix_brightness), true);
         break;
       case 6:
-        strip.neoPixelFill(0,int(125*Pix_brightness),0, false);
+        fillStrip(0,int(125*Pix_brightness),0, false);
         if (LED_COUNT == 144){
           for(i=0;i<=56;i++){
-            strip.neoPixelSetValue((LED_COUNT/2-28)+i,int(125*Pix_brightness*0.5),0,0,true);
+            setStripPixel((LED_COUNT/2-28)+i,int(125*Pix_brightness*0.5),0,0,true);
             delayMicroseconds(750);
           }
         } else {
-          strip.neoPixelFill(int(125*Pix_brightness),int(125*Pix_brightness),0, true);
+          fillStrip(int(125*Pix_brightness),int(125*Pix_brightness),0, true);
         }
         break;
       case 7:
         if (LED_COUNT == 144){
-          strip.neoPixelFill(0,int(125*Pix_brightness),0, false);
+          fillStrip(0,int(125*Pix_brightness),0, false);
           for(i=0;i<=28;i++){
-            strip.neoPixelSetValue(i,int(125*Pix_brightness*0.5),0,0,true);
-            strip.neoPixelSetValue(116+i,int(125*Pix_brightness*0.5),0,0,true);
+            setStripPixel(i,int(125*Pix_brightness*0.5),0,0,true);
+            setStripPixel(116+i,int(125*Pix_brightness*0.5),0,0,true);
             delayMicroseconds(750);
           }
         } else {
-          strip.neoPixelFill(int(125*Pix_brightness),0,int(125*Pix_brightness), true);
+          fillStrip(int(125*Pix_brightness),0,int(125*Pix_brightness), true);
         }
         break;
       case 10:
         for(i=0;i<LED_COUNT;i=i+3){
-          strip.neoPixelSetValue(i,int(125*Pix_brightness),0,0,false);
-          if (i + 1 < LED_COUNT) strip.neoPixelSetValue(i+1,int(125*Pix_brightness),0,0,false);
-          if (i + 2 < LED_COUNT) strip.neoPixelSetValue(i+2,int(125*Pix_brightness),0,0,false);
+          setStripPixel(i,int(125*Pix_brightness),0,0,false);
+          if (i + 1 < LED_COUNT) setStripPixel(i+1,int(125*Pix_brightness),0,0,false);
+          if (i + 2 < LED_COUNT) setStripPixel(i+2,int(125*Pix_brightness),0,0,false);
         }
-        strip.neoPixelSetValue(LED_COUNT - 1,0,0,0,true);
+        setStripPixel(LED_COUNT - 1,0,0,0,true);
         break;
       case 11:
-        strip.neoPixelClear(true);
+        clearStrip(true);
         for(i=0;i<LED_COUNT/2;i++){
-          if (i >= 2) strip.neoPixelSetValue(i-2,0,0,0,false);
-          strip.neoPixelSetValue(i,0,0,125*Pix_brightness,true);
-          if ((LED_COUNT - i + 2) < LED_COUNT) strip.neoPixelSetValue(LED_COUNT-i+2,0,0,0,false);
-          if ((LED_COUNT - i) < LED_COUNT) strip.neoPixelSetValue(LED_COUNT-i,0,0,125*Pix_brightness,true);
+          if (i >= 2) setStripPixel(i-2,0,0,0,false);
+          setStripPixel(i,0,0,125*Pix_brightness,true);
+          if ((LED_COUNT - i + 2) < LED_COUNT) setStripPixel(LED_COUNT-i+2,0,0,0,false);
+          if ((LED_COUNT - i) < LED_COUNT) setStripPixel(LED_COUNT-i,0,0,125*Pix_brightness,true);
           delay(1);
         }
         break;
       case 12:
-        strip.neoPixelClear(true);
+        clearStrip(true);
         for(i=LED_COUNT/2;i>0;i--){
-          if (i >= 2) strip.neoPixelSetValue(i-2,0,0,0,false);
-          strip.neoPixelSetValue(i,0,0,125*Pix_brightness,true);
-          if ((LED_COUNT - i + 2) < LED_COUNT) strip.neoPixelSetValue(LED_COUNT-i+2,0,0,0,false);
-          if ((LED_COUNT - i) < LED_COUNT) strip.neoPixelSetValue(LED_COUNT-i,0,0,125*Pix_brightness,true);
+          if (i >= 2) setStripPixel(i-2,0,0,0,false);
+          setStripPixel(i,0,0,125*Pix_brightness,true);
+          if ((LED_COUNT - i + 2) < LED_COUNT) setStripPixel(LED_COUNT-i+2,0,0,0,false);
+          if ((LED_COUNT - i) < LED_COUNT) setStripPixel(LED_COUNT-i,0,0,125*Pix_brightness,true);
           delay(1);
         }
         break;
       default:
-        strip.neoPixelFill(0,0,0, true);
+        fillStrip(0,0,0, true);
         break;
     }
     old_scene = sceneNo;
@@ -170,7 +192,7 @@ void NeoPix::applySolidInternal(int startLed, int endExclusive, uint8_t colorId,
   NeoPixColor base = getModuleColorPreset(colorId);
   for (int idx = startLed; idx < endExclusive; ++idx){
     const bool flush = (idx == (endExclusive - 1));
-    strip.neoPixelSetValue(idx,
+    setStripPixel(idx,
                            scaleChannel(base.r, brightnessScale),
                            scaleChannel(base.g, brightnessScale),
                            scaleChannel(base.b, brightnessScale),
@@ -181,7 +203,7 @@ void NeoPix::applySolidInternal(int startLed, int endExclusive, uint8_t colorId,
 void NeoPix::clearSegmentInternal(int startLed, int endExclusive){
   for (int idx = startLed; idx < endExclusive; ++idx){
     const bool flush = (idx == (endExclusive - 1));
-    strip.neoPixelSetValue(idx, 0, 0, 0, flush);
+    setStripPixel(idx, 0, 0, 0, flush);
   }
 }
 
@@ -229,7 +251,7 @@ void NeoPix::startAnimMulti(uint8_t animId, uint8_t ledCount, uint8_t brightness
 void NeoPix::offAll(){
   runtimeMode = LED_MODE_IDLE;
   old_scene = 0;
-  strip.neoPixelFill(0, 0, 0, true);
+  fillStrip(0, 0, 0, true);
 }
 
 void NeoPix::offSegment(uint8_t startLed, uint8_t ledCount){
@@ -275,7 +297,7 @@ void NeoPix::renderAnimSingle(){
     float level = 0.15f + 0.85f * (0.5f + 0.5f * sinf(phase * 2.0f * 3.14159f));
     for (int idx = start; idx < end; ++idx){
       const bool flush = (idx == (end - 1));
-      strip.neoPixelSetValue(idx,
+      setStripPixel(idx,
                              scaleChannel(base.r, runtimeBrightnessScale * level),
                              scaleChannel(base.g, runtimeBrightnessScale * level),
                              scaleChannel(base.b, runtimeBrightnessScale * level),
@@ -294,7 +316,7 @@ void NeoPix::renderAnimSingle(){
       if (dist == 0) level = 1.0f;
       else if (dist == 1) level = 0.4f;
       const bool flush = (idx == (end - 1));
-      strip.neoPixelSetValue(idx,
+      setStripPixel(idx,
                              scaleChannel(base.r, runtimeBrightnessScale * level),
                              scaleChannel(base.g, runtimeBrightnessScale * level),
                              scaleChannel(base.b, runtimeBrightnessScale * level),
@@ -309,7 +331,7 @@ void NeoPix::renderAnimSingle(){
     int idx = start + p;
     bool on = (p < fillCount);
     const bool flush = (idx == (end - 1));
-    strip.neoPixelSetValue(idx,
+    setStripPixel(idx,
                            on ? scaleChannel(base.r, runtimeBrightnessScale) : 0,
                            on ? scaleChannel(base.g, runtimeBrightnessScale) : 0,
                            on ? scaleChannel(base.b, runtimeBrightnessScale) : 0,
@@ -351,7 +373,7 @@ void NeoPix::renderAnimMulti(){
         r = (uint8_t)(255 - phase * 3);
       }
       const bool flush = (idx == (end - 1));
-      strip.neoPixelSetValue(idx,
+      setStripPixel(idx,
                              scaleChannel(r, runtimeBrightnessScale),
                              scaleChannel(g, runtimeBrightnessScale),
                              scaleChannel(b, runtimeBrightnessScale),
@@ -365,7 +387,7 @@ void NeoPix::renderAnimMulti(){
       int idx = start + p;
       bool on = (((p + runtimePhase) % 3) == 0);
       const bool flush = (idx == (end - 1));
-      strip.neoPixelSetValue(idx,
+      setStripPixel(idx,
                              on ? scaleChannel(125, runtimeBrightnessScale) : 0,
                              on ? scaleChannel(125, runtimeBrightnessScale) : 0,
                              on ? scaleChannel(125, runtimeBrightnessScale) : 0,
@@ -381,7 +403,7 @@ void NeoPix::renderAnimMulti(){
     bool redOn = phaseA ? firstHalf : !firstHalf;
     bool blueOn = !redOn;
     const bool flush = (idx == (end - 1));
-    strip.neoPixelSetValue(idx,
+    setStripPixel(idx,
                            redOn ? scaleChannel(125, runtimeBrightnessScale) : 0,
                            0,
                            blueOn ? scaleChannel(125, runtimeBrightnessScale) : 0,

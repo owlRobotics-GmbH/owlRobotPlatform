@@ -16,7 +16,9 @@ enum NeoPixScene : uint8_t {
   NEOPIX_SCENE_INIT_WIPE_REV = 12,
 };
 
+#ifndef NeoPix_Pin
 #define NeoPix_Pin 25
+#endif
 
 class NeoPix {
   public:

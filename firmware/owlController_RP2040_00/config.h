@@ -34,4 +34,6 @@
 #define dyp2_I2CMuxChn dyp_I2CMuxChn
 
 //RGB LED WS2812 Neopixel
-#define LED_COUNT  144
+#define NeoPix_Pin 25
+#define LED_COUNT  12
+#define FUNKT_NEOPIXEL_ENABLE 0

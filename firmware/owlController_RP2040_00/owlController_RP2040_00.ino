@@ -107,12 +107,12 @@ DYP_A22 ultrasonicSensors[ultrasonic_sensor_count] = {
 };
 
 static const char* ultrasonicSensorName[ultrasonic_sensor_count] = {
-  "vorne mitte",
-  "vorne links",
-  "vorne rechts",
-  "hinten mitte",
-  "hinten links",
-  "hinten rechts"
+  "front center",
+  "front left",
+  "front right",
+  "rear center",
+  "rear left",
+  "rear right"
 };
 
 static const uint8_t ultrasonicMeasurementPairs[3][2] = {
@@ -135,6 +135,7 @@ struct UltrasonicChannelState {
 
 static UltrasonicChannelState ultrasonicState[ultrasonic_sensor_count];
 static const unsigned long kUltrasonicStaleMs = 1000;
+static const uint8_t kUltrasonicMissingWarningLevel = 0x0F;
 static const uint8_t kUltrasonicAngleLevel = 4;
 static const uint8_t kUltrasonicRangeLevel = 2; // 1500 mm range, DYP-A22 command 0xBC
 static const unsigned long kUltrasonicPairDelayMs = 100; // datasheet: range level 2 takes about 20..90 ms
@@ -234,6 +235,13 @@ static void processUltrasonicMeasurement(uint8_t sensorIndex, uint16_t distanceM
 static void checkUltrasonicStale(uint8_t sensorIndex){
   if (sensorIndex >= ultrasonic_sensor_count) return;
 
+  if (!ultrasonicPresent[sensorIndex] || !ultrasonicSensors[sensorIndex].isConnected()){
+    ultrasonicPresent[sensorIndex] = false;
+    ultrasonicState[sensorIndex].valid = false;
+    publishUltrasonicWarning(sensorIndex, kUltrasonicMissingWarningLevel);
+    return;
+  }
+
   UltrasonicChannelState &state = ultrasonicState[sensorIndex];
   if (!state.valid) return;
 
@@ -249,10 +257,16 @@ static void startUltrasonicPair(uint8_t pairIndex){
   const uint8_t second = ultrasonicMeasurementPairs[pairIndex][1];
 
   if (ultrasonicPresent[first]) {
-    ultrasonicSensors[first].startMeasurement(kUltrasonicAngleLevel, kUltrasonicRangeLevel);
+    if (!ultrasonicSensors[first].startMeasurement(kUltrasonicAngleLevel, kUltrasonicRangeLevel)){
+      ultrasonicPresent[first] = false;
+      publishUltrasonicWarning(first, kUltrasonicMissingWarningLevel);
+    }
   }
   if (ultrasonicPresent[second]) {
-    ultrasonicSensors[second].startMeasurement(kUltrasonicAngleLevel, kUltrasonicRangeLevel);
+    if (!ultrasonicSensors[second].startMeasurement(kUltrasonicAngleLevel, kUltrasonicRangeLevel)){
+      ultrasonicPresent[second] = false;
+      publishUltrasonicWarning(second, kUltrasonicMissingWarningLevel);
+    }
   }
   ultrasonicPairStartMs = millis();
   ultrasonicPairInProgress = true;
@@ -276,13 +290,23 @@ static void runUltrasonicSensors(){
   const uint8_t second = ultrasonicMeasurementPairs[ultrasonicActivePair][1];
   uint16_t distance = 0xFFFF;
 
-  if (ultrasonicPresent[first] && ultrasonicSensors[first].readDistanceIfReady(distance)) {
-    processUltrasonicMeasurement(first, distance);
+  if (ultrasonicPresent[first]) {
+    if (ultrasonicSensors[first].readDistanceIfReady(distance)) {
+      processUltrasonicMeasurement(first, distance);
+    } else if (!ultrasonicSensors[first].isConnected()) {
+      ultrasonicPresent[first] = false;
+      publishUltrasonicWarning(first, kUltrasonicMissingWarningLevel);
+    }
   }
 
   distance = 0xFFFF;
-  if (ultrasonicPresent[second] && ultrasonicSensors[second].readDistanceIfReady(distance)) {
-    processUltrasonicMeasurement(second, distance);
+  if (ultrasonicPresent[second]) {
+    if (ultrasonicSensors[second].readDistanceIfReady(distance)) {
+      processUltrasonicMeasurement(second, distance);
+    } else if (!ultrasonicSensors[second].isConnected()) {
+      ultrasonicPresent[second] = false;
+      publishUltrasonicWarning(second, kUltrasonicMissingWarningLevel);
+    }
   }
 
   ultrasonicPairInProgress = false;
@@ -323,12 +347,15 @@ void setup() {
   myF.anaMux(8);
   for (uint8_t i = 0; i < ultrasonic_sensor_count; ++i) {
     ultrasonicPresent[i] = ultrasonicSensors[i].begin();
-    publishUltrasonicWarning(i, 0);
+    publishUltrasonicWarning(i, ultrasonicPresent[i] ? 0 : kUltrasonicMissingWarningLevel);
     if (!ultrasonicPresent[i]) {
       Serial.print("DYP_A22 ");
       Serial.print(ultrasonicSensorName[i]);
-      Serial.println(" nicht gefunden.");
+      Serial.println(" not detected.");
     }
+  }
+  for (uint8_t i = ultrasonic_sensor_count; i < owlControl::kUltrasonicWarningLevelCount; ++i) {
+    publishUltrasonicWarning(i, kUltrasonicMissingWarningLevel);
   }
   //Serial.println("Setup done");
   // default: 10 bit
@@ -527,7 +554,7 @@ void loop() {
       stateTimer[9]=millis()+1000;
    }
 
-   // Nicht-blockierende Ultraschallabfrage: paarweise gegenueberliegende Sensoren triggern.
+   // Non-blocking ultrasonic polling: trigger opposing sensor pairs.
    runUltrasonicSensors();
 
 /*   if (stateTimer[9]<millis()){
@@ -610,6 +637,3 @@ void core1_entry(){
     //delay(1);
   }
 }
-
-
-

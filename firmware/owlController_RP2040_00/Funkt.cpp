@@ -4,7 +4,9 @@
 //#include "MotorContr.h"
 #include <MCP342x.h>
 #include "config.h"
+#if FUNKT_NEOPIXEL_ENABLE
 #include <Adafruit_NeoPixel.h>
+#endif
 #include <RP2040_PWM.h>
 
 //#define DEBUG 1
@@ -15,7 +17,9 @@
  
 TCA9548A I2CMux;
 RP2040_PWM* PWM_load;
-Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRBW + NEO_KHZ800);
+#if FUNKT_NEOPIXEL_ENABLE
+Adafruit_NeoPixel strip2(LED_COUNT, NeoPix_Pin, NEO_GRB + NEO_KHZ800);
+#endif
 
 void selectI2CMuxChannel(uint8_t channel){
     I2CMux.writeRegister(1 << channel);
@@ -49,6 +53,7 @@ void selectI2CMuxChannel(uint8_t channel){
 
     PowerHold(1);
     extPieper(0);   
+#if FUNKT_NEOPIXEL_ENABLE
     strip2.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
     strip2.show();            // Turn OFF all pixels ASAP
     strip2.setPixelColor(0,  strip2.Color(0, 75, 0));
@@ -56,6 +61,7 @@ void selectI2CMuxChannel(uint8_t channel){
     strip2.setPixelColor(1,  strip2.Color(0, 160, 0));
     strip2.setBrightness(24);
     strip2.show();
+#endif
 
     // Init PWM Chan. to controll Akku load power
     PWM_load = new RP2040_PWM(LoadPowerPWM_Pin, 100, 0);
@@ -64,9 +70,17 @@ void selectI2CMuxChannel(uint8_t channel){
 
    
 void Funkt::NeoPixel(int ledNo,int r,int g,int b,int bright){
+#if FUNKT_NEOPIXEL_ENABLE
     strip2.setPixelColor(ledNo,strip2.Color(r, g, b));
     strip2.setBrightness(bright);
     strip2.show();  
+#else
+    (void)ledNo;
+    (void)r;
+    (void)g;
+    (void)b;
+    (void)bright;
+#endif
 }
 
 
