@@ -189,26 +189,11 @@ void Funkt::extPieper(bool on_off)
      return(INport);
   }    */
   int Funkt::IOext_readReg(byte adr, byte reg){
-      static unsigned long nextPca9555DebugMs = 0;
-      static unsigned long pca9555ErrorCount = 0;
       selectI2CMuxChannel(6);
       Wire.beginTransmission(adr);
         Wire.write(reg);  // pointer
       int result = Wire.endTransmission();
-      if(result!=0){
-        pca9555ErrorCount++;
-        if (millis() >= nextPca9555DebugMs){
-          nextPca9555DebugMs = millis() + 5000;
-          Serial.print("PCA9555 debug read fail mux=6 addr=0x");
-          Serial.print(adr, HEX);
-          Serial.print(" reg=0x");
-          Serial.print(reg, HEX);
-          Serial.print(" i2c_result=");
-          Serial.print(result);
-          Serial.print(" errors=");
-          Serial.println(pca9555ErrorCount);
-        }
-      }
+      (void)result;
        // delayMicroseconds (50);
       Wire.requestFrom(adr,2);
       while(Wire.available()){

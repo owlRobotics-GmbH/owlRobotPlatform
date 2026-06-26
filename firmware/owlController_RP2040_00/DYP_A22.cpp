@@ -4,31 +4,18 @@
 
 extern TCA9548A I2CMux;
 
-static unsigned long dypNextProbeDebugMs[256] = {0};
-static bool dypProbeOkLogged[256] = {false};
-
 DYP_A22::DYP_A22(uint8_t mux_channel, uint8_t i2c_address)
     : _mux_channel(mux_channel), _i2c_address(i2c_address), _isConnected(false) {}
 
 bool DYP_A22::begin() {
     resetMeasurement();
     const uint8_t maxAttempts = 5;
-    Serial.print("DYP_A22 debug begin mux=");
-    Serial.print(_mux_channel);
-    Serial.print(" addr=0x");
-    Serial.println(_i2c_address, HEX);
     for (uint8_t attempt = 0; attempt < maxAttempts; ++attempt) {
         if (probeSensor()) {
-            Serial.print("DYP_A22 debug begin ok addr=0x");
-            Serial.print(_i2c_address, HEX);
-            Serial.print(" attempt=");
-            Serial.println((int)(attempt + 1));
             return true;
         }
         delay(30);
     }
-    Serial.print("DYP_A22 debug begin failed addr=0x");
-    Serial.println(_i2c_address, HEX);
     return false;
 }
 
@@ -191,16 +178,6 @@ bool DYP_A22::probeSensor() {
     }
 
     if (result != 0) {
-        unsigned long now = millis();
-        if (now >= dypNextProbeDebugMs[_i2c_address]) {
-            dypNextProbeDebugMs[_i2c_address] = now + 5000;
-            Serial.print("DYP_A22 debug probe fail mux=");
-            Serial.print(_mux_channel);
-            Serial.print(" addr=0x");
-            Serial.print(_i2c_address, HEX);
-            Serial.print(" i2c_result=");
-            Serial.println(result);
-        }
         _isConnected = false;
         return false;
     }
@@ -213,13 +190,6 @@ bool DYP_A22::probeSensor() {
     }
 
     _isConnected = true;
-    if (!dypProbeOkLogged[_i2c_address]) {
-        dypProbeOkLogged[_i2c_address] = true;
-        Serial.print("DYP_A22 debug probe ok mux=");
-        Serial.print(_mux_channel);
-        Serial.print(" addr=0x");
-        Serial.println(_i2c_address, HEX);
-    }
     return true;
 }
 
