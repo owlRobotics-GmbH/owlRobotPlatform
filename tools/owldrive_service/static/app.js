@@ -264,12 +264,11 @@ function renderConfigEditor() {
         input.value = formatConfigValue(value, field);
       }
       input.oninput = () => {
-        let next = input.value;
-        if (field.type === "bool") next = input.value === "true";
-        else if (field.type !== "string") next = Number(input.value);
+        const next = coerceConfigValue(input.value, field);
         state.configDraft[field.path] = next;
         wrap.classList.toggle("changed", !sameConfigValue(state.configValues[field.path], next, field.type));
       };
+      wrap.classList.toggle("changed", !sameConfigValue(state.configValues[field.path], value, field.type));
       wrap.append(document.createTextNode(title), input);
       if (field.reboot) {
         const hint = document.createElement("span");
@@ -443,6 +442,13 @@ function formatConfigValue(value, field) {
   return String(value);
 }
 
+function coerceConfigValue(value, field) {
+  if (field.type === "bool") return value === true || value === "true" || value === 1 || value === "1";
+  if (field.type === "string") return String(value ?? "");
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function sameConfigValue(a, b, type) {
   if (type === "float") return Math.abs(Number(a) - Number(b)) < 0.00001;
   return String(a) === String(b);
@@ -465,6 +471,64 @@ async function writeConfig(save = false, reboot = false) {
   const result = await jsonRequest("PATCH", `/api/devices/${selectedNode()}/config`, { values: changes, save, reboot });
   $("config-status").textContent = `OK, ${result.bytes_changed} bytes changed${result.reboot_required ? ", reboot recommended" : ""}`;
   if (!reboot) await loadConfig();
+}
+
+async function exportConfig() {
+  const node = selectedNode();
+  if (!Object.keys(state.configValues).length) await loadConfig();
+  const exportedAt = new Date();
+  const payload = {
+    format: "owldrive-config",
+    version: 1,
+    exported_at: exportedAt.toISOString(),
+    node_id: node,
+    firmware_version: state.selected?.firmware_version ?? null,
+    values: state.configValues,
+  };
+  const text = JSON.stringify(payload, null, 2);
+  const stamp = exportedAt.toISOString().replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-");
+  downloadTextFile(`owldrive-node${node}-config-${stamp}.json`, text);
+  $("config-status").textContent = `Exported node ${node} config`;
+}
+
+async function importConfigFile(file) {
+  selectedNode();
+  if (!state.configSchema.length) await loadConfigSchema();
+  if (!Object.keys(state.configValues).length) await loadConfig();
+  const raw = JSON.parse(await file.text());
+  const values = raw && typeof raw === "object" && raw.values && typeof raw.values === "object" ? raw.values : raw;
+  if (!values || typeof values !== "object" || Array.isArray(values)) throw new Error("Import file does not contain config values");
+
+  let imported = 0;
+  let skipped = 0;
+  for (const field of state.configSchema) {
+    if (field.visible === false) continue;
+    if (!Object.prototype.hasOwnProperty.call(values, field.path)) continue;
+    state.configDraft[field.path] = coerceConfigValue(values[field.path], field);
+    imported += 1;
+  }
+  for (const path of Object.keys(values)) {
+    const field = state.configSchema.find((item) => item.path === path);
+    if (!field || field.visible === false) skipped += 1;
+  }
+
+  renderConfigSummary();
+  renderConfigEditor();
+  selectPresetCombosByCurrentNames();
+  const changed = Object.keys(changedConfigValues()).length;
+  $("config-status").textContent = `Imported ${imported} fields, ${changed} changed${skipped ? `, ${skipped} skipped` : ""}. Use Write to send them.`;
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function applyPreset() {
@@ -901,6 +965,13 @@ $("flash-all").onclick = () => state.devices.filter((d) => state.flashDevices.ha
 $("refresh-images").onclick = () => loadImages();
 $("flash-image-selected").onclick = () => flashImageNode(selectedNode());
 $("load-config").onclick = () => loadConfig().catch((err) => $("config-status").textContent = err.message);
+$("export-config").onclick = () => exportConfig().catch((err) => $("config-status").textContent = err.message);
+$("import-config").onclick = () => $("import-config-file").click();
+$("import-config-file").onchange = () => {
+  const file = $("import-config-file").files[0];
+  if (file) importConfigFile(file).catch((err) => $("config-status").textContent = err.message);
+  $("import-config-file").value = "";
+};
 $("write-config").onclick = () => writeConfig(false, false).catch((err) => $("config-status").textContent = err.message);
 $("write-save-config").onclick = () => writeConfig(true, false).catch((err) => $("config-status").textContent = err.message);
 $("write-save-reboot").onclick = () => writeConfig(true, true).catch((err) => $("config-status").textContent = err.message);
