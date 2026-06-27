@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>owlDrive</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>owlDrive CAN</h1>
+        <p id="bus-status">Loading SocketCAN...</p>
+      </div>
+      <button id="scan">Scan</button>
+    </header>
+
+    <main>
+      <aside>
+        <h2>Devices</h2>
+        <div id="devices" class="list"></div>
+      </aside>
+
+      <section>
+        <nav class="tabs">
+          <button data-tab="live" class="active">Live Plot</button>
+          <button data-tab="settings">Settings</button>
+          <button data-tab="flash">Multi-Flash</button>
+          <button data-tab="can">CAN</button>
+          <button data-tab="services">Linux Services</button>
+        </nav>
+
+        <div id="live" class="tab active">
+          <div class="toolbar">
+            <button id="start-live">Start</button>
+            <button id="stop-live">Stop</button>
+            <span id="selected-label">No device selected</span>
+          </div>
+          <div class="target-control">
+            <label class="inline-check">
+              <input id="target-enable" type="checkbox" />
+              Enable target control
+            </label>
+            <label>Target
+              <input id="target-slider" type="range" min="-10" max="10" step="0.01" value="0" disabled />
+            </label>
+            <input id="target-value" type="number" step="0.01" value="0" disabled />
+            <button id="target-zero" disabled>Zero</button>
+            <span id="target-status" class="muted">disabled</span>
+          </div>
+          <div id="plot-legend" class="plot-legend"></div>
+          <canvas id="plot" width="960" height="360"></canvas>
+          <div class="metrics" id="metrics"></div>
+        </div>
+
+        <div id="settings" class="tab">
+          <div class="toolbar">
+            <button id="load-config">Load config</button>
+            <button id="write-config">Write changes</button>
+            <button id="write-save-config">Write + save</button>
+            <button id="write-save-reboot">Write + save + reboot</button>
+            <span id="config-status" class="muted"></span>
+          </div>
+          <div id="config-summary" class="config-summary muted">No config loaded</div>
+          <div id="config-editor" class="config-editor"></div>
+
+          <div class="grid">
+            <label>Operation State
+              <select id="operation-state">
+                <option value="1">standby</option>
+                <option value="2">drive</option>
+                <option value="3">config</option>
+                <option value="4">flash</option>
+              </select>
+            </label>
+            <button id="set-state">Set</button>
+            <button id="save-config">Save config</button>
+            <button id="save-reboot">Save + reboot</button>
+          </div>
+          <div class="grid">
+            <label>Motion Mode
+              <select id="motion-mode">
+                <option value="0">torque</option>
+                <option value="1">velocity</option>
+                <option value="2">angle</option>
+                <option value="3">velocity_openloop</option>
+                <option value="4">angle_openloop</option>
+              </select>
+            </label>
+            <button data-send="5" data-input="motion-mode">Send</button>
+            <label>Motor Enable
+              <select id="motor-enable">
+                <option value="0">off</option>
+                <option value="1">on</option>
+              </select>
+            </label>
+            <button data-send="7" data-input="motor-enable">Send</button>
+          </div>
+        </div>
+
+        <div id="flash" class="tab">
+          <div class="toolbar">
+            <select id="firmware-image"></select>
+            <button id="refresh-images">Load images</button>
+            <button id="flash-image-selected">Flash image</button>
+            <input id="firmware" type="file" />
+            <button id="flash-selected">Flash selected device</button>
+            <button id="flash-all">Flash checked devices</button>
+          </div>
+          <div id="flash-device-list" class="flash-device-list"></div>
+          <div id="jobs" class="list"></div>
+        </div>
+
+        <div id="can" class="tab">
+          <div class="grid">
+            <label>Value
+              <select id="can-value">
+                <option value="0">target</option>
+                <option value="1">voltage</option>
+                <option value="2">current</option>
+                <option value="3">velocity</option>
+                <option value="4">angle</option>
+                <option value="28">angle_add</option>
+                <option value="29">pwm_speed</option>
+              </select>
+            </label>
+            <label>Data
+              <input id="can-data" type="number" step="any" value="0" />
+            </label>
+            <button id="send-can">Send set</button>
+          </div>
+        </div>
+
+        <div id="services" class="tab">
+          <div class="toolbar">
+            <button id="refresh-can-users">Refresh</button>
+            <button id="stop-can-services">Stop CAN services</button>
+            <button id="start-stopped-can-services">Start stopped CAN services</button>
+            <label class="inline-check">
+              <input id="filter-can-active" type="checkbox" checked />
+              Active CAN socket detected
+            </label>
+            <span id="can-users-status" class="muted">Not loaded</span>
+          </div>
+          <div id="can-users" class="list"></div>
+          <h2>Kernel receive lists</h2>
+          <div id="can-receive-lists" class="list"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

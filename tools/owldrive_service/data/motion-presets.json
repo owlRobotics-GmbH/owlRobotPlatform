@@ -1,0 +1,111 @@
+{
+  "source": "db.cpp",
+  "count": 7,
+  "presets": [
+    {
+      "id": "motion:0",
+      "index": 0,
+      "name": "high sensor filtering, slowest velocity control",
+      "description": "vlim 20, P 0.01, I 0.1, LPF 0.3",
+      "values": {
+        "motion.pAngleP": 20,
+        "motion.velocityLimit": 20,
+        "motion.pidVelocityP": 0.01,
+        "motion.pidVelocityI": 0.1,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 100,
+        "motion.lpfVelocityTf": 0.3
+      }
+    },
+    {
+      "id": "motion:1",
+      "index": 1,
+      "name": "high sensor filtering, slow velocity control",
+      "description": "vlim 20, P 0.04, I 0.3, LPF 0.3",
+      "values": {
+        "motion.pAngleP": 20,
+        "motion.velocityLimit": 20,
+        "motion.pidVelocityP": 0.04,
+        "motion.pidVelocityI": 0.3,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 200,
+        "motion.lpfVelocityTf": 0.3
+      }
+    },
+    {
+      "id": "motion:2",
+      "index": 2,
+      "name": "high sensor filtering, normal velocity control",
+      "description": "vlim 200, P 0.5, I 0.25, LPF 0.3",
+      "values": {
+        "motion.pAngleP": 20,
+        "motion.velocityLimit": 200,
+        "motion.pidVelocityP": 0.5,
+        "motion.pidVelocityI": 0.25,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 100,
+        "motion.lpfVelocityTf": 0.3
+      }
+    },
+    {
+      "id": "motion:3",
+      "index": 3,
+      "name": "high sensor filtering, fast velocity control",
+      "description": "vlim 200, P 0.5, I 1, LPF 0.3",
+      "values": {
+        "motion.pAngleP": 20,
+        "motion.velocityLimit": 200,
+        "motion.pidVelocityP": 0.5,
+        "motion.pidVelocityI": 1,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 2000,
+        "motion.lpfVelocityTf": 0.3
+      }
+    },
+    {
+      "id": "motion:4",
+      "index": 4,
+      "name": "low sensor filtering, fast velocity control",
+      "description": "vlim 200, P 20, I 1, LPF 0.02",
+      "values": {
+        "motion.pAngleP": 20,
+        "motion.velocityLimit": 200,
+        "motion.pidVelocityP": 20,
+        "motion.pidVelocityI": 1.0,
+        "motion.pidVelocityD": 0.001,
+        "motion.pidVelocityRamp": 5,
+        "motion.lpfVelocityTf": 0.02
+      }
+    },
+    {
+      "id": "motion:5",
+      "index": 5,
+      "name": "no sensor filtering, slow velocity control",
+      "description": "vlim 20, P 0.1, I 0.05, LPF 0",
+      "values": {
+        "motion.pAngleP": 200,
+        "motion.velocityLimit": 20,
+        "motion.pidVelocityP": 0.1,
+        "motion.pidVelocityI": 0.05,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 20,
+        "motion.lpfVelocityTf": 0
+      }
+    },
+    {
+      "id": "motion:6",
+      "index": 6,
+      "name": "no sensor filtering, fast velocity control",
+      "description": "vlim 50, P 5, I 20, LPF 0",
+      "values": {
+        "motion.pAngleP": 4,
+        "motion.velocityLimit": 50,
+        "motion.pidVelocityP": 5,
+        "motion.pidVelocityI": 20,
+        "motion.pidVelocityD": 0,
+        "motion.pidVelocityRamp": 5000,
+        "motion.lpfVelocityTf": 0
+      }
+    }
+  ]
+}
