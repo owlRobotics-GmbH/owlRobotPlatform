@@ -66,16 +66,6 @@ class CanValue(enum.IntEnum):
     misc_sensor2 = 32
     total_current = 33
     voltageLimit = 34
-    operation_state = 35
-
-
-class OperationState(enum.IntEnum):
-    boot = 0
-    standby = 1
-    drive = 2
-    config = 3
-    flash = 4
-    fault = 5
 
 
 FLOAT_VALUES = {
@@ -315,13 +305,9 @@ class OwldriveCanBus:
             "supply_voltage": CanValue.detected_supply_voltage,
             "total_current": CanValue.total_current,
             "error": CanValue.error,
-            "operation_state": CanValue.operation_state,
         }.items():
             values[key] = await self.request(node_id, val, timeout=0.02)
         return values
-
-    async def set_operation_state(self, node_id: int, state: OperationState) -> bool:
-        return await self.set_value(node_id, CanValue.operation_state, int(state), wait_ack=True, timeout=0.2)
 
     async def save_config(self, node_id: int, reboot: bool = False) -> bool:
         data = pack_byte(1 if reboot else 0)
@@ -331,25 +317,20 @@ class OwldriveCanBus:
         return True
 
     async def upload_firmware(self, node_id: int, firmware: bytes, progress_cb=None) -> int:
-        await self.set_operation_state(node_id, OperationState.flash)
         crc = sum(firmware) & 0xFFFFFFFF
-        try:
-            for offset, byte in enumerate(firmware):
-                payload = pack_large_offset_byte(offset, byte)
-                frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.upload_firmware, payload)
-                async with self._lock:
-                    ok = await asyncio.to_thread(self._set_upload_byte_sync, frame, node_id, offset)
-                if not ok:
-                    raise TimeoutError(f"firmware upload ack timeout at offset {offset}")
-                if progress_cb and (offset % 128 == 0 or offset + 1 == len(firmware)):
-                    progress_cb(offset + 1, len(firmware))
+        for offset, byte in enumerate(firmware):
+            payload = pack_large_offset_byte(offset, byte)
+            frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.upload_firmware, payload)
             async with self._lock:
-                save = OwldriveFrame(self.host_node, node_id, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
-                await asyncio.to_thread(self._send, save)
-            return crc
-        except Exception:
-            await self.set_operation_state(node_id, OperationState.standby)
-            raise
+                ok = await asyncio.to_thread(self._set_upload_byte_sync, frame, node_id, offset)
+            if not ok:
+                raise TimeoutError(f"firmware upload ack timeout at offset {offset}")
+            if progress_cb and (offset % 128 == 0 or offset + 1 == len(firmware)):
+                progress_cb(offset + 1, len(firmware))
+        async with self._lock:
+            save = OwldriveFrame(self.host_node, node_id, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
+            await asyncio.to_thread(self._send, save)
+        return crc
 
     def _set_upload_byte_sync(self, frame: OwldriveFrame, node_id: int, offset: int) -> bool:
         for _ in range(3):

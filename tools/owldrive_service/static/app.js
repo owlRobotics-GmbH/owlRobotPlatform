@@ -32,15 +32,6 @@ const PLOT_SERIES = [
   { key: "target", label: "target", unit: "controller target", color: "#f94144" },
 ];
 
-const OPERATION_STATES = {
-  0: "boot",
-  1: "standby",
-  2: "drive",
-  3: "config",
-  4: "flash",
-  5: "fault",
-};
-
 function selectedNode() {
   if (!state.selected) throw new Error("No device selected");
   return state.selected.node_id;
@@ -610,20 +601,12 @@ function formatRange(value) {
 function renderMetrics(sample) {
   const root = $("metrics");
   root.innerHTML = "";
-  for (const key of ["target", "velocity", "angle", "current", "voltage", "supply_voltage", "error", "operation_state"]) {
+  for (const key of ["target", "velocity", "angle", "current", "voltage", "supply_voltage", "error"]) {
     const el = document.createElement("div");
     el.className = "metric";
-    el.innerHTML = `<span class="muted">${key}</span><strong>${formatMetricValue(key, sample[key])}</strong>`;
+    el.innerHTML = `<span class="muted">${key}</span><strong>${typeof sample[key] === "number" ? sample[key].toFixed(3) : sample[key]}</strong>`;
     root.appendChild(el);
   }
-}
-
-function formatMetricValue(key, value) {
-  if (key === "operation_state") {
-    const stateId = Number(value);
-    return `${OPERATION_STATES[stateId] || "unknown"} (${Number.isFinite(stateId) ? stateId : value})`;
-  }
-  return typeof value === "number" ? value.toFixed(3) : value;
 }
 
 function renderCanUsers() {
@@ -910,7 +893,6 @@ $("target-zero").onclick = () => {
   setTargetDraft(0);
   sendTarget().catch((err) => $("target-status").textContent = err.message);
 };
-$("set-state").onclick = () => postJSON(`/api/devices/${selectedNode()}/state`, { state: Number($("operation-state").value) });
 $("save-config").onclick = () => postJSON(`/api/devices/${selectedNode()}/save-config`, { reboot: false });
 $("save-reboot").onclick = () => postJSON(`/api/devices/${selectedNode()}/save-config`, { reboot: true });
 $("send-can").onclick = () => postJSON(`/api/devices/${selectedNode()}/values`, { value: Number($("can-value").value), data: Number($("can-data").value) });

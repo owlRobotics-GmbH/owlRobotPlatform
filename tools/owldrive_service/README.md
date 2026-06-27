@@ -98,12 +98,6 @@ Environment variables:
 
 ## Firmware Compatibility
 
-The service can request `can_val_operation_state = 35`. Older firmware does not answer that value; live plot, config, and flashing can still work, but older firmware relies on its existing FOC pause/stop behavior instead of an explicit operation-state lock.
+The service is intended to work with the existing owlDrive CAN protocol. It does not require an operation-state extension in the firmware.
 
-Operation states used by newer firmware:
-
-- `standby`: motors/FIFO stopped, FOC paused
-- `drive`: motion commands allowed
-- `config`: config/save active, motion commands blocked
-- `flash`: firmware upload active, motion commands blocked
-- `fault`: motors/FIFO stopped, motion commands blocked
+During config and flash jobs, the web service rejects new motion commands sent through this web API. Firmware flashing still relies on the firmware's existing upload path, which pauses/stops the FOC loop when the upload starts.

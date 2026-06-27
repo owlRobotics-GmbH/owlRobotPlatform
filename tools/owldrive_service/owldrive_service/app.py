@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
-from .can_protocol import CanValue, OperationState, OwldriveCanBus, socketcan_interfaces
+from .can_protocol import CanValue, OwldriveCanBus, socketcan_interfaces
 from .config_schema import FIELD_BY_PATH, PROFILE_SIZE, decode_config, encode_field, schema_json
 from .firmware_images import download_url, firmware_payload, list_github_images, list_local_images
 from .presets import (
@@ -52,10 +52,6 @@ class SetValueRequest(BaseModel):
     value: CanValue
     data: Union[float, int]
     wait_ack: bool = False
-
-
-class StateRequest(BaseModel):
-    state: OperationState
 
 
 class SaveConfigRequest(BaseModel):
@@ -584,10 +580,6 @@ async def read_config(node_id: Annotated[int, Path(ge=1, le=62)]):
 @app.patch("/api/devices/{node_id}/config")
 async def patch_config(node_id: Annotated[int, Path(ge=1, le=62)], req: ConfigPatchRequest):
     async with exclusive_job_lock:
-        try:
-            await get_bus().set_operation_state(node_id, OperationState.config)
-        except Exception:
-            pass
         current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
         changes: dict[int, int] = {}
         reboot_required = False
@@ -605,11 +597,6 @@ async def patch_config(node_id: Annotated[int, Path(ge=1, le=62)], req: ConfigPa
             await get_bus().write_config_bytes(node_id, changes)
         if req.save or req.reboot:
             await get_bus().save_config(node_id, reboot=req.reboot)
-            if not req.reboot:
-                try:
-                    await get_bus().set_operation_state(node_id, OperationState.standby)
-                except Exception:
-                    pass
         return {"ok": True, "bytes_changed": len(changes), "reboot_required": reboot_required}
 
 
@@ -674,19 +661,10 @@ async def set_value(node_id: Annotated[int, Path(ge=1, le=63)], req: SetValueReq
     return {"ok": ok}
 
 
-@app.post("/api/devices/{node_id}/state")
-async def set_state(node_id: Annotated[int, Path(ge=1, le=63)], req: StateRequest):
-    ok = await get_bus().set_operation_state(node_id, req.state)
-    return {"ok": ok, "state": req.state.name}
-
-
 @app.post("/api/devices/{node_id}/save-config")
 async def save_config(node_id: Annotated[int, Path(ge=1, le=63)], req: SaveConfigRequest):
     async with exclusive_job_lock:
-        await get_bus().set_operation_state(node_id, OperationState.config)
         await get_bus().save_config(node_id, reboot=req.reboot)
-        if not req.reboot:
-            await get_bus().set_operation_state(node_id, OperationState.standby)
     return {"ok": True}
 
 
