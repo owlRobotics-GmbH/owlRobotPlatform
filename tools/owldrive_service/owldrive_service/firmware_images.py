@@ -16,6 +16,11 @@ UF2_MAGIC_START1 = 0x9E5D5157
 UF2_MAGIC_END = 0x0AB16F30
 
 
+def is_owldrive_image_name(name: str) -> bool:
+    lower = name.lower()
+    return lower.endswith(".uf2") and "owldrive" in lower
+
+
 @dataclass(frozen=True)
 class FirmwareImage:
     id: str
@@ -32,6 +37,8 @@ def list_local_images(repo_root: Path) -> list[FirmwareImage]:
         return []
     images = []
     for path in sorted(flash_dir.glob("*.uf2")):
+        if not is_owldrive_image_name(path.name):
+            continue
         images.append(FirmwareImage(id=f"local:{path.name}", name=path.name, source="local", size=path.stat().st_size, path=path))
     return images
 
@@ -42,7 +49,7 @@ def list_github_images() -> list[FirmwareImage]:
     images = []
     for item in payload:
         name = item.get("name", "")
-        if not name.endswith(".uf2"):
+        if not is_owldrive_image_name(name):
             continue
         images.append(
             FirmwareImage(

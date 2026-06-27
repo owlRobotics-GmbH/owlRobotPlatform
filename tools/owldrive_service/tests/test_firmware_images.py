@@ -11,6 +11,7 @@ from owldrive_service.firmware_images import (  # noqa: E402
     UF2_MAGIC_START0,
     UF2_MAGIC_START1,
     firmware_payload,
+    is_owldrive_image_name,
     uf2_to_binary,
 )
 
@@ -33,6 +34,12 @@ class FirmwareImagesTest(unittest.TestCase):
         data = uf2_block(RP2040_FLASH_BASE, b"abc")
 
         self.assertEqual(firmware_payload(data, "image.uf2"), b"abc")
+
+    def test_owldrive_image_filter_rejects_controller_images(self):
+        self.assertTrue(is_owldrive_image_name("owldrive_v44.uf2"))
+        self.assertTrue(is_owldrive_image_name("owlDrive_v45.uf2"))
+        self.assertFalse(is_owldrive_image_name("owlController_RP2040_00.uf2"))
+        self.assertFalse(is_owldrive_image_name("readme.txt"))
 
 
 if __name__ == "__main__":
