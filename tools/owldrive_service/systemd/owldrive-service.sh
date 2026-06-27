@@ -1,9 +1,24 @@
 #!/bin/sh
 set -eu
 
-SERVICE_DIR="${SERVICE_DIR:-/home/orangepi/owlRobotPlatform/tools/owldrive_service}"
+RUN_USER="${SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
+
+user_home() {
+  if command -v getent >/dev/null 2>&1; then
+    getent passwd "$1" | cut -d: -f6
+  else
+    eval "printf '%s\n' ~$1"
+  fi
+}
+
+HOME_DIR="${HOME_DIR:-$(user_home "$RUN_USER")}"
+if [ -z "$HOME_DIR" ]; then
+  echo "Could not determine home directory for user: $RUN_USER" >&2
+  exit 1
+fi
+
+SERVICE_DIR="${SERVICE_DIR:-$HOME_DIR/owlRobotPlatform/tools/owldrive_service}"
 UNIT_NAME="${UNIT_NAME:-owldrive-web.service}"
-UNIT_SOURCE="${UNIT_SOURCE:-$SERVICE_DIR/systemd/owldrive.service}"
 UNIT_TARGET="/etc/systemd/system/$UNIT_NAME"
 
 usage() {
@@ -24,7 +39,7 @@ Commands:
 Environment overrides:
   SERVICE_DIR=$SERVICE_DIR
   UNIT_NAME=$UNIT_NAME
-  SERVICE_USER=<owner of SERVICE_DIR>
+  SERVICE_USER=$RUN_USER
 EOF
 }
 
@@ -36,22 +51,34 @@ need_root() {
 }
 
 install_unit() {
-  if [ ! -f "$UNIT_SOURCE" ]; then
-    echo "Unit source not found: $UNIT_SOURCE" >&2
-    exit 1
-  fi
-  install -m 0644 "$UNIT_SOURCE" "$UNIT_TARGET"
+  tmp="$(mktemp)"
+  cat > "$tmp" <<EOF
+[Unit]
+Description=owlDrive CAN web interface
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$SERVICE_DIR
+Environment=OWLDRIVE_CAN_CHANNEL=can0
+Environment=OWLDRIVE_CAN_BITRATE=1000000
+Environment=OWLDRIVE_HOST_NODE_ID=62
+Environment=OWLDRIVE_CAN_MSG_ID=300
+ExecStart=$SERVICE_DIR/.venv/bin/uvicorn owldrive_service.app:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  install -m 0644 "$tmp" "$UNIT_TARGET"
+  rm -f "$tmp"
   systemctl daemon-reload
 }
 
 service_user() {
-  if [ -n "${SERVICE_USER:-}" ]; then
-    echo "$SERVICE_USER"
-  elif [ -d "$SERVICE_DIR" ]; then
-    stat -c "%U" "$SERVICE_DIR"
-  else
-    echo "root"
-  fi
+  echo "$RUN_USER"
 }
 
 run_as_service_user() {
@@ -78,7 +105,7 @@ ensure_environment() {
   fi
 
   mkdir -p "$SERVICE_DIR/data"
-  chown "$(service_user)":"$(service_user)" "$SERVICE_DIR/data" 2>/dev/null || true
+  chown "$(service_user):" "$SERVICE_DIR/data" 2>/dev/null || true
 
   if [ ! -x "$SERVICE_DIR/.venv/bin/python" ]; then
     echo "Creating Python virtual environment..."
@@ -89,15 +116,24 @@ ensure_environment() {
   run_as_service_user "$SERVICE_DIR/.venv/bin/python" -m pip install --upgrade pip
   run_as_service_user "$SERVICE_DIR/.venv/bin/python" -m pip install -r "$SERVICE_DIR/requirements.txt"
 
-  if [ -f "$SERVICE_DIR/systemd/owldrive-web.sudoers" ] && command -v visudo >/dev/null 2>&1; then
-    install -m 0440 "$SERVICE_DIR/systemd/owldrive-web.sudoers" "/etc/sudoers.d/owldrive-web"
-    visudo -cf "/etc/sudoers.d/owldrive-web" >/dev/null
+  if command -v visudo >/dev/null 2>&1; then
+    tmp="$(mktemp)"
+    cat > "$tmp" <<EOF
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl start *.service
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl stop *.service
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl restart *.service
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/lsof -nP
+EOF
+    visudo -cf "$tmp" >/dev/null
+    install -m 0440 "$tmp" "/etc/sudoers.d/owldrive-web"
+    rm -f "$tmp"
   fi
 }
 
 disable_old_user_unit() {
-  if command -v runuser >/dev/null 2>&1 && id orangepi >/dev/null 2>&1; then
-    runuser -u orangepi -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user disable --now "$UNIT_NAME" >/dev/null 2>&1 || true
+  if command -v runuser >/dev/null 2>&1 && id "$RUN_USER" >/dev/null 2>&1; then
+    uid="$(id -u "$RUN_USER")"
+    runuser -u "$RUN_USER" -- env XDG_RUNTIME_DIR="/run/user/$uid" systemctl --user disable --now "$UNIT_NAME" >/dev/null 2>&1 || true
   fi
 }
 

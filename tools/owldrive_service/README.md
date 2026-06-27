@@ -4,10 +4,10 @@ Web interface for managing owlDrive devices on a SocketCAN bus.
 
 ## User Setup on OrangePi
 
-Expected location on the OrangePi:
+Expected location on the target machine:
 
 ```bash
-/home/orangepi/owlRobotPlatform/tools/owldrive_service
+~/owlRobotPlatform/tools/owldrive_service
 ```
 
 Install and start the service:
@@ -17,7 +17,14 @@ cd ~/owlRobotPlatform/tools/owldrive_service
 sudo systemd/install-system-service.sh
 ```
 
-The installer creates the Python environment, installs dependencies, installs the systemd unit, enables it at boot, and starts it.
+The installer creates the Python environment, installs dependencies, generates the systemd unit for the detected path, enables it at boot, and starts it.
+
+When run through `sudo`, the installer uses `SUDO_USER` to find the real user's home directory. Override the detected values only when needed:
+
+```bash
+sudo SERVICE_USER=myuser systemd/install-system-service.sh
+sudo SERVICE_DIR=/custom/path/owldrive_service systemd/install-system-service.sh
+```
 
 Open the web interface:
 

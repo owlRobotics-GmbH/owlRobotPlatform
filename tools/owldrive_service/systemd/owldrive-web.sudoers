@@ -1,4 +1,4 @@
-orangepi ALL=(root) NOPASSWD: /usr/bin/systemctl start *.service
-orangepi ALL=(root) NOPASSWD: /usr/bin/systemctl stop *.service
-orangepi ALL=(root) NOPASSWD: /usr/bin/systemctl restart *.service
-orangepi ALL=(root) NOPASSWD: /usr/bin/lsof -nP
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl start *.service
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl stop *.service
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl restart *.service
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/lsof -nP
