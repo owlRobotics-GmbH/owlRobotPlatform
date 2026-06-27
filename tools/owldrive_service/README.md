@@ -1,31 +1,50 @@
 # owlDrive Linux Service
 
-This service provides a web interface for owlDrive CAN networks:
+Web interface for managing owlDrive devices on a SocketCAN bus.
 
-- SocketCAN discovery for `can0`, `can1`, ...
-- Device scan through `can_val_firmware_ver`
-- Live telemetry over WebSocket with a plot
-- Settings actions for operation state, motion mode, motor enable, and save/reboot
-- Exclusive config and flash jobs so motion commands are not sent during config/flash work
-- Firmware upload through the existing byte-wise CAN protocol
+## User Setup on OrangePi
 
-## Development
+Expected location on the OrangePi:
 
 ```bash
-cd owldrive_service
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-uvicorn owldrive_service.app:app --reload --host 0.0.0.0 --port 8080
+/home/orangepi/owlRobotPlatform/tools/owldrive_service
 ```
 
-Open `http://localhost:8080`.
+Install and start the service:
 
-The app can be imported without CAN hardware. Running it against real devices requires `python-can` and a SocketCAN interface.
+```bash
+cd ~/owlRobotPlatform/tools/owldrive_service
+sudo systemd/install-system-service.sh
+```
 
-## SocketCAN Setup
+The installer creates the Python environment, installs dependencies, installs the systemd unit, enables it at boot, and starts it.
 
-Example for 1 Mbit/s:
+Open the web interface:
+
+```text
+http://orangepi5pro.local:8080/
+```
+
+Service commands:
+
+```bash
+cd ~/owlRobotPlatform/tools/owldrive_service
+sudo systemd/owldrive-service.sh status
+sudo systemd/owldrive-service.sh restart
+sudo systemd/owldrive-service.sh disable
+sudo systemd/owldrive-service.sh enable
+systemd/owldrive-service.sh logs
+```
+
+`disable` stops the service and disables automatic start at boot. `enable` installs missing runtime files if needed, enables automatic start, and starts the service.
+
+Required OS packages:
+
+- `python3`
+- `python3-venv`
+- `systemd`
+
+SocketCAN must be configured by the platform setup. Example for `can0` at 1 Mbit/s:
 
 ```bash
 sudo ip link set can0 down || true
@@ -33,34 +52,44 @@ sudo ip link set can0 type can bitrate 1000000
 sudo ip link set can0 up
 ```
 
-## Systemd
+## What the Service Provides
 
-On the OrangePi, from `/home/orangepi/owlRobotPlatform/tools/owldrive_service`:
+- SocketCAN discovery for `can0`, `can1`, ...
+- owlDrive node scan through `can_val_firmware_ver`
+- Live telemetry plot over WebSocket
+- Config editor with profile, motor, motion, and PCB presets
+- Multi-device firmware flashing from `tools/flash`
+- Linux service overview for processes using CAN
 
-```bash
-sudo systemd/owldrive-service.sh install
-```
+## Developer Notes
 
-The installer:
-
-- creates `data/` if it is missing
-- creates `.venv` if it is missing
-- installs or updates Python requirements
-- installs the system unit as `owldrive-web.service`
-- disables an older user-level unit if present
-- enables and starts the service
-
-Useful service commands:
+Run locally:
 
 ```bash
-sudo systemd/owldrive-service.sh enable
-sudo systemd/owldrive-service.sh disable
-sudo systemd/owldrive-service.sh restart
-systemd/owldrive-service.sh status
-systemd/owldrive-service.sh logs
+cd tools/owldrive_service
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+uvicorn owldrive_service.app:app --reload --host 0.0.0.0 --port 8080
 ```
 
-Configuration is done through environment variables:
+Run checks:
+
+```bash
+python3 -m unittest discover -s tests
+python3 -m py_compile owldrive_service/*.py tools/generate_motor_presets.py
+node --check static/app.js
+sh -n systemd/owldrive-service.sh systemd/install-system-service.sh
+```
+
+Path assumptions:
+
+- service root: `tools/owldrive_service`
+- local firmware images: `tools/flash/*.uf2`
+- static web files: `tools/owldrive_service/static`
+- runtime data: `tools/owldrive_service/data`
+
+Environment variables:
 
 - `OWLDRIVE_CAN_CHANNEL`, default `can0`
 - `OWLDRIVE_CAN_BITRATE`, default `1000000`
@@ -69,7 +98,7 @@ Configuration is done through environment variables:
 
 ## Firmware Compatibility
 
-The web service can request `can_val_operation_state = 35`. Older firmware does not answer that value; live plot, config, and flashing can still work, but older firmware relies on its existing FOC pause/stop behavior instead of an explicit operation-state lock.
+The service can request `can_val_operation_state = 35`. Older firmware does not answer that value; live plot, config, and flashing can still work, but older firmware relies on its existing FOC pause/stop behavior instead of an explicit operation-state lock.
 
 Operation states used by newer firmware:
 
