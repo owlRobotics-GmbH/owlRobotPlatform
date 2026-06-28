@@ -21,6 +21,9 @@ CAN_NODE_ID_MAX = 62
 CAN_NODE_ID_BROADCAST = 63
 CAN_NODE_ID_HOST = 62
 REFLASH_PAGE_SIZE = 256
+SCAN_ATTEMPTS = 5
+SCAN_TIMEOUT = 0.08
+SCAN_RETRY_DELAY = 0.05
 
 
 class CanCommand(enum.IntEnum):
@@ -327,23 +330,27 @@ class OwldriveCanBus:
 
     async def scan(self, first: int = CAN_NODE_ID_MIN, last: int = CAN_NODE_ID_MAX) -> list[dict]:
         found = []
+        async for device in self.scan_iter(first, last):
+            found.append(device)
+        return found
+
+    async def scan_iter(self, first: int = CAN_NODE_ID_MIN, last: int = CAN_NODE_ID_MAX):
         for node_id in range(first, last + 1):
-            for _ in range(2):
+            for _ in range(SCAN_ATTEMPTS):
                 started = time.monotonic()
-                version = await self.request(node_id, CanValue.firmware_ver, timeout=0.02)
+                version = await self.request(node_id, CanValue.firmware_ver, timeout=SCAN_TIMEOUT)
                 if version is not None:
-                    error = await self.request(node_id, CanValue.error, timeout=0.02)
+                    error = await self.request(node_id, CanValue.error, timeout=SCAN_TIMEOUT)
                     error_code = int(error) if error is not None else None
-                    found.append({
+                    yield {
                         "node_id": node_id,
                         "firmware_version": version,
                         "answer_ms": round((time.monotonic() - started) * 1000, 2),
                         "error": error_code,
                         "error_text": ERROR_TEXT.get(error_code, f"Unknown error {error_code}") if error_code is not None else "Unknown",
-                    })
+                    }
                     break
-                await asyncio.sleep(0.005)
-        return found
+                await asyncio.sleep(SCAN_RETRY_DELAY)
 
     async def telemetry(self, node_id: int) -> dict:
         values = {}

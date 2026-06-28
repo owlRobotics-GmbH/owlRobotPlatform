@@ -2,6 +2,7 @@ const state = {
   devices: [],
   selected: null,
   ws: null,
+  scanWs: null,
   samples: [],
   jobs: new Map(),
   images: [],
@@ -84,9 +85,49 @@ function renderDevices() {
 async function scan() {
   const info = await api("/api/interfaces");
   $("bus-status").textContent = `Active: ${info.active} | available: ${info.interfaces.join(", ") || "none"}`;
-  const data = await api("/api/devices");
-  state.devices = data.devices;
-  if (!state.selected && state.devices.length) state.selected = state.devices[0];
+  startDeviceScan();
+}
+
+function startDeviceScan() {
+  if (state.scanWs) state.scanWs.close();
+  state.devices = [];
+  state.selected = null;
+  $("selected-label").textContent = "No device";
+  $("devices").innerHTML = '<p class="muted">Scanning...</p>';
+  renderFlashDeviceList();
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  state.scanWs = new WebSocket(`${proto}://${location.host}/ws/devices/scan`);
+  state.scanWs.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "device") {
+      addScannedDevice(msg.device);
+      return;
+    }
+    if (msg.type === "done") {
+      state.scanWs?.close();
+      state.scanWs = null;
+      if (!state.devices.length) renderDevices();
+      renderFlashDeviceList();
+    }
+  };
+  state.scanWs.onerror = () => {
+    $("devices").innerHTML = '<p class="muted">Scan failed.</p>';
+  };
+  state.scanWs.onclose = () => {
+    state.scanWs = null;
+    renderFlashDeviceList();
+  };
+}
+
+function addScannedDevice(device) {
+  const idx = state.devices.findIndex((item) => item.node_id === device.node_id);
+  if (idx >= 0) state.devices[idx] = device;
+  else state.devices.push(device);
+  state.devices.sort((a, b) => a.node_id - b.node_id);
+  if (!state.selected) {
+    state.selected = device;
+    $("selected-label").textContent = `Node ${device.node_id}`;
+  }
   renderDevices();
   renderFlashDeviceList();
 }

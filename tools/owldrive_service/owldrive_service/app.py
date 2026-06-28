@@ -859,3 +859,14 @@ async def telemetry_ws(websocket: WebSocket, node_id: int):
             await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         return
+
+
+@app.websocket("/ws/devices/scan")
+async def scan_ws(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        async for device in get_bus().scan_iter():
+            await websocket.send_json({"type": "device", "device": device})
+        await websocket.send_json({"type": "done"})
+    except WebSocketDisconnect:
+        return
