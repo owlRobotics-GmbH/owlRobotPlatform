@@ -66,6 +66,7 @@ class CanValue(enum.IntEnum):
     misc_sensor2 = 32
     total_current = 33
     voltageLimit = 34
+    sensor_auto_align = 35
 
 
 FLOAT_VALUES = {
@@ -270,6 +271,12 @@ class OwldriveCanBus:
             frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, value, data)
             return await asyncio.to_thread(self._set_sync, frame, node_id, value, wait_ack, timeout)
 
+    async def sensor_auto_align(self, node_id: int, timeout: float = 8.0) -> bool:
+        async with self._lock:
+            frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.sensor_auto_align, pack_byte(1))
+            ack = await asyncio.to_thread(self._set_ack_sync, frame, node_id, CanValue.sensor_auto_align, timeout)
+            return ack is not None and ack.data[0] == 1
+
     def _set_sync(self, frame: OwldriveFrame, node_id: int, value: CanValue, wait_ack: bool, timeout: float):
         self._drain_pending()
         self._send(frame)
@@ -280,6 +287,14 @@ class OwldriveCanBus:
             timeout,
         )
         return ack is not None
+
+    def _set_ack_sync(self, frame: OwldriveFrame, node_id: int, value: CanValue, timeout: float):
+        self._drain_pending()
+        self._send(frame)
+        return self._recv_matching(
+            lambda f: f.cmd == CanCommand.ack and f.value == value and f.source == node_id,
+            timeout,
+        )
 
     async def scan(self, first: int = CAN_NODE_ID_MIN, last: int = CAN_NODE_ID_MAX) -> list[dict]:
         found = []

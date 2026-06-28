@@ -66,40 +66,20 @@
           </div>
           <div id="config-summary" class="config-summary muted">No config loaded</div>
           <div id="config-editor" class="config-editor"></div>
-
-          <div class="grid">
-            <button id="save-config">Save config</button>
-            <button id="save-reboot">Save + reboot</button>
-          </div>
-          <div class="grid">
-            <label>Motion Mode
-              <select id="motion-mode">
-                <option value="0">torque</option>
-                <option value="1">velocity</option>
-                <option value="2">angle</option>
-                <option value="3">velocity_openloop</option>
-                <option value="4">angle_openloop</option>
-              </select>
-            </label>
-            <button data-send="5" data-input="motion-mode">Send</button>
-            <label>Motor Enable
-              <select id="motor-enable">
-                <option value="0">off</option>
-                <option value="1">on</option>
-              </select>
-            </label>
-            <button data-send="7" data-input="motor-enable">Send</button>
-          </div>
         </div>
 
         <div id="flash" class="tab">
           <div class="toolbar">
-            <select id="firmware-image"></select>
-            <button id="refresh-images">Load images</button>
-            <button id="flash-image-selected">Flash image</button>
-            <input id="firmware" type="file" />
-            <button id="flash-selected">Flash selected device</button>
-            <button id="flash-all">Flash checked devices</button>
+            <label>Built-in image
+              <select id="firmware-image"></select>
+            </label>
+            <button id="flash-image-checked">Flash checked devices</button>
+          </div>
+          <div class="toolbar">
+            <button id="choose-firmware">Choose external flash image</button>
+            <input id="firmware" type="file" accept=".uf2,.bin,application/octet-stream" hidden />
+            <span id="firmware-name" class="muted">No file selected</span>
+            <button id="flash-file-checked">Flash checked devices</button>
           </div>
           <div id="flash-device-list" class="flash-device-list"></div>
           <div id="jobs" class="list"></div>

@@ -643,6 +643,24 @@ async def apply_pcb_preset(node_id: Annotated[int, Path(ge=1, le=62)], req: Appl
     return result
 
 
+@app.post("/api/devices/{node_id}/config/sensor-auto-align")
+async def sensor_auto_align(node_id: Annotated[int, Path(ge=1, le=62)]):
+    async with exclusive_job_lock:
+        ok = await get_bus().sensor_auto_align(node_id)
+        if not ok:
+            raise HTTPException(status_code=400, detail="sensor auto-align failed or is not supported by this firmware")
+        raw = await get_bus().read_config(node_id, PROFILE_SIZE)
+        values = decode_config(raw)
+        return {
+            "ok": True,
+            "values": {
+                "motor.zeroOfs": values.get("motor.zeroOfs"),
+                "motor.senDirCW": values.get("motor.senDirCW"),
+            },
+            "reboot_required": False,
+        }
+
+
 @app.post("/api/devices/{node_id}/values")
 async def set_value(node_id: Annotated[int, Path(ge=1, le=63)], req: SetValueRequest):
     if exclusive_job_lock.locked() and req.value in {
