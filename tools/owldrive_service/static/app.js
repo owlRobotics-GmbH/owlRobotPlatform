@@ -565,7 +565,23 @@ function changedConfigValues() {
   return values;
 }
 
+function confirmChangedCanNodeId() {
+  const node = selectedNode();
+  const draftNodeId = Number(state.configDraft.canNodeId);
+  if (!Number.isFinite(draftNodeId) || draftNodeId === node) return true;
+  return window.confirm(
+    `The config CAN node ID is ${draftNodeId}, but the selected device is Node ${node}.\n\n` +
+    `Do you really want to write CAN node ID ${draftNodeId} to this device?\n\n` +
+    `OK: write the changed CAN node ID\n` +
+    `Cancel: abort so you can correct the value`
+  );
+}
+
 async function writeConfig(save = false, reboot = false) {
+  if (!confirmChangedCanNodeId()) {
+    $("config-status").textContent = "Write aborted: CAN node ID differs from selected device";
+    return;
+  }
   const changes = changedConfigValues();
   $("config-status").textContent = `Writing ${Object.keys(changes).length} fields...`;
   const result = await jsonRequest("PATCH", `/api/devices/${selectedNode()}/config`, { values: changes, save, reboot });
