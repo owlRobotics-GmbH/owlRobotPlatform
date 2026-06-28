@@ -314,6 +314,11 @@ canvas {
   margin: 0;
 }
 
+.sensor-align-group {
+  background: #f5f7f8;
+  border-color: #d4dde2;
+}
+
 .config-field.changed input,
 .config-field.changed select {
   border-color: #d17a00;
