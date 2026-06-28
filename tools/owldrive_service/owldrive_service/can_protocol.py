@@ -408,7 +408,11 @@ class OwldriveCanBus:
                 if current is not None:
                     previous_broadcast_receive[node_id] = current
                 enabled = node_id in selected
-                ok = await self.set_broadcast_receive(node_id, enabled, wait_ack=enabled, timeout=0.2)
+                ok = False
+                for _ in range(3 if enabled else 1):
+                    ok = await self.set_broadcast_receive(node_id, enabled, wait_ack=enabled, timeout=0.5)
+                    if ok:
+                        break
                 if enabled and not ok:
                     raise TimeoutError(f"broadcast enable ack timeout for node {node_id}")
 
