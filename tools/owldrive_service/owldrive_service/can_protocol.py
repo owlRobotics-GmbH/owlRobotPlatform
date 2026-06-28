@@ -223,13 +223,16 @@ class OwldriveCanBus:
             return await asyncio.to_thread(self._request_sync, req, node_id, value, timeout)
 
     def _request_sync(self, req: OwldriveFrame, node_id: int, value: CanValue, timeout: float):
+        frame = self._request_frame_sync(req, node_id, value, timeout)
+        return None if frame is None else decode_value(value, frame.data)
+
+    def _request_frame_sync(self, req: OwldriveFrame, node_id: int, value: CanValue, timeout: float):
         self._drain_pending()
         self._send(req)
-        frame = self._recv_matching(
+        return self._recv_matching(
             lambda f: f.cmd == CanCommand.info and f.value == value and f.source == node_id,
             timeout,
         )
-        return None if frame is None else decode_value(value, frame.data)
 
     async def request_cfg_byte(self, node_id: int, offset: int, timeout: float = 0.05) -> int | None:
         async with self._lock:
@@ -270,6 +273,18 @@ class OwldriveCanBus:
             data = encode_value(value, raw)
             frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, value, data)
             return await asyncio.to_thread(self._set_sync, frame, node_id, value, wait_ack, timeout)
+
+    async def set_broadcast_receive(self, node_id: int, enabled: bool, wait_ack: bool = True, timeout: float = 0.1) -> bool:
+        async with self._lock:
+            data = pack_offset_byte(0, 1 if enabled else 0)
+            frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.broadcast_rx_enable, data)
+            return await asyncio.to_thread(self._set_sync, frame, node_id, CanValue.broadcast_rx_enable, wait_ack, timeout)
+
+    async def request_broadcast_receive(self, node_id: int, timeout: float = 0.02) -> bool | None:
+        async with self._lock:
+            req = OwldriveFrame(self.host_node, node_id, CanCommand.request, CanValue.broadcast_rx_enable, b"\x00\x00\x00\x00")
+            frame = await asyncio.to_thread(self._request_frame_sync, req, node_id, CanValue.broadcast_rx_enable, timeout)
+            return None if frame is None else frame.data[2] == 1
 
     async def sensor_auto_align(self, node_id: int, timeout: float = 8.0) -> bool:
         async with self._lock:
@@ -346,6 +361,48 @@ class OwldriveCanBus:
             save = OwldriveFrame(self.host_node, node_id, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
             await asyncio.to_thread(self._send, save)
         return crc
+
+    async def upload_firmware_broadcast(self, node_ids: list[int], firmware: bytes, progress_cb=None) -> int:
+        if not node_ids:
+            raise ValueError("no nodes selected")
+        ordered_nodes = sorted(set(int(node_id) for node_id in node_ids))
+        selected = set(ordered_nodes)
+        previous_broadcast_receive: dict[int, bool] = {}
+        try:
+            for node_id in range(1, CAN_NODE_ID_BROADCAST):
+                current = await self.request_broadcast_receive(node_id, timeout=0.02)
+                if current is not None:
+                    previous_broadcast_receive[node_id] = current
+                enabled = node_id in selected
+                ok = await self.set_broadcast_receive(node_id, enabled, wait_ack=enabled, timeout=0.2)
+                if enabled and not ok:
+                    raise TimeoutError(f"broadcast enable ack timeout for node {node_id}")
+
+            crc = sum(firmware) & 0xFFFFFFFF
+            ack_index = 0
+            for offset, byte in enumerate(firmware):
+                payload = pack_large_offset_byte(offset, byte)
+                frame = OwldriveFrame(self.host_node, CAN_NODE_ID_BROADCAST, CanCommand.set, CanValue.upload_firmware, payload)
+                expected_node = ordered_nodes[ack_index]
+                async with self._lock:
+                    ok = await asyncio.to_thread(self._set_upload_byte_sync, frame, expected_node, offset)
+                if not ok:
+                    raise TimeoutError(f"broadcast firmware upload ack timeout at offset {offset} from node {expected_node}")
+                ack_index = (ack_index + 1) % len(ordered_nodes)
+                if progress_cb and (offset % 128 == 0 or offset + 1 == len(firmware)):
+                    progress_cb(offset + 1, len(firmware))
+
+            async with self._lock:
+                save = OwldriveFrame(self.host_node, CAN_NODE_ID_BROADCAST, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
+                await asyncio.to_thread(self._send, save)
+            for node_id, enabled in previous_broadcast_receive.items():
+                if node_id not in selected:
+                    await self.set_broadcast_receive(node_id, enabled, wait_ack=False)
+            return crc
+        except BaseException:
+            for node_id, enabled in previous_broadcast_receive.items():
+                await self.set_broadcast_receive(node_id, enabled, wait_ack=False)
+            raise
 
     def _set_upload_byte_sync(self, frame: OwldriveFrame, node_id: int, offset: int) -> bool:
         for _ in range(3):

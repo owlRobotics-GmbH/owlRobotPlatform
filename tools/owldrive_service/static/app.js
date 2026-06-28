@@ -976,7 +976,9 @@ function flashCheckedFile() {
     return;
   }
   try {
-    checkedFlashDevices().forEach((device) => flashNode(device.node_id));
+    flashFileNodes(checkedFlashDevices().map((device) => device.node_id)).catch((err) => {
+      showFlashStartError("checked", file.name, err.message);
+    });
   } catch (err) {
     showFlashStartError("checked", file.name, err.message);
   }
@@ -990,9 +992,48 @@ function flashCheckedImage() {
     return;
   }
   try {
-    checkedFlashDevices().forEach((device) => flashImageNode(device.node_id));
+    flashImageNodes(checkedFlashDevices().map((device) => device.node_id)).catch((err) => {
+      showFlashStartError("checked", image.name, err.message);
+    });
   } catch (err) {
     showFlashStartError("checked", image.name, err.message);
+  }
+}
+
+async function flashFileNodes(nodeIds) {
+  const file = $("firmware").files[0];
+  if (!file) throw new Error("No firmware selected");
+  if (nodeIds.length === 1) {
+    await flashNode(nodeIds[0]);
+    return;
+  }
+  const form = new FormData();
+  form.append("firmware", file);
+  form.append("node_ids", JSON.stringify(nodeIds));
+  try {
+    const job = await api("/api/devices/flash", { method: "POST", body: form });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError("checked", file.name, err.message);
+  }
+}
+
+async function flashImageNodes(nodeIds) {
+  if (nodeIds.length === 1) {
+    await flashImageNode(nodeIds[0]);
+    return;
+  }
+  const imageId = $("firmware-image").value;
+  const image = state.images.find((item) => item.id === imageId);
+  try {
+    const job = await postJSON("/api/devices/flash-image", { image_id: imageId, node_ids: nodeIds });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError("checked", image?.name || imageId, err.message);
   }
 }
 
