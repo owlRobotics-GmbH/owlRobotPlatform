@@ -1015,8 +1015,14 @@ async function pollJob(id) {
     const job = await api(`/api/jobs/${id}`);
     state.jobs.set(id, job);
     renderJobs();
-    if (job.state === "done" || job.state === "failed") clearInterval(timer);
+    if (job.state === "done" || job.state === "failed" || job.state === "cancelled") clearInterval(timer);
   }, 500);
+}
+
+async function cancelJob(id) {
+  const job = await postJSON(`/api/jobs/${id}/cancel`, {});
+  state.jobs.set(id, job);
+  renderJobs();
 }
 
 function renderJobs() {
@@ -1026,9 +1032,28 @@ function renderJobs() {
     const pct = Math.round((job.done / Math.max(1, job.total)) * 100);
     const el = document.createElement("div");
     el.className = "job";
-    el.innerHTML = `<strong>Job ${job.id}: Node ${job.node_id}</strong><div class="muted">${job.state} ${pct}% ${job.error || ""}</div>`;
+    const canCancel = job.state === "queued" || job.state === "running";
+    const action = canCancel ? `<button data-cancel-job="${job.id}">Cancel</button>` : "";
+    el.innerHTML = `
+      <div>
+        <strong>Job ${job.id}: Node ${job.node_id}</strong>
+        <div class="muted">${job.filename || ""}</div>
+        <div class="muted">${job.state} ${pct}% ${job.error || ""}</div>
+      </div>
+      ${action}
+    `;
     root.appendChild(el);
   }
+  root.querySelectorAll("[data-cancel-job]").forEach((button) => {
+    button.onclick = () => cancelJob(button.dataset.cancelJob).catch((err) => {
+      const job = state.jobs.get(Number(button.dataset.cancelJob)) || state.jobs.get(button.dataset.cancelJob);
+      if (job) {
+        job.error = err.message;
+        state.jobs.set(job.id, job);
+        renderJobs();
+      }
+    });
+  });
 }
 
 document.querySelectorAll(".tabs button").forEach((button) => {

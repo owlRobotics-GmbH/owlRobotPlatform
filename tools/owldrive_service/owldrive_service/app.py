@@ -107,6 +107,7 @@ class FlashJob(BaseModel):
     state: str = "queued"
     error: Optional[str] = None
     crc: Optional[int] = None
+    cancel_requested: bool = False
 
 
 settings = Settings()
@@ -701,16 +702,29 @@ async def flash(node_id: Annotated[int, Path(ge=1, le=62)], firmware: UploadFile
             job.state = "running"
 
             def progress(done: int, total: int):
+                if job.cancel_requested:
+                    raise asyncio.CancelledError()
                 job.done = done
                 job.total = total
 
             try:
                 job.crc = await get_bus().upload_firmware(node_id, data, progress)
-                job.done = job.total
-                job.state = "done"
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.done = job.total
+                    job.state = "done"
+            except asyncio.CancelledError:
+                job.state = "cancelled"
+                job.error = "cancelled by user"
             except Exception as exc:
-                job.error = str(exc)
-                job.state = "failed"
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.error = str(exc)
+                    job.state = "failed"
 
     asyncio.create_task(runner())
     return job
@@ -741,16 +755,29 @@ async def flash_image(node_id: Annotated[int, Path(ge=1, le=62)], req: FlashImag
             job.state = "running"
 
             def progress(done: int, total: int):
+                if job.cancel_requested:
+                    raise asyncio.CancelledError()
                 job.done = done
                 job.total = total
 
             try:
                 job.crc = await get_bus().upload_firmware(node_id, data, progress)
-                job.done = job.total
-                job.state = "done"
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.done = job.total
+                    job.state = "done"
+            except asyncio.CancelledError:
+                job.state = "cancelled"
+                job.error = "cancelled by user"
             except Exception as exc:
-                job.error = str(exc)
-                job.state = "failed"
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.error = str(exc)
+                    job.state = "failed"
 
     asyncio.create_task(runner())
     return job
@@ -761,6 +788,20 @@ async def get_job(job_id: int):
     job = jobs.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
+    return job
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+async def cancel_job(job_id: int):
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    if job.state in {"done", "failed", "cancelled"}:
+        return job
+    job.cancel_requested = True
+    if job.state == "queued":
+        job.state = "cancelled"
+        job.error = "cancelled by user"
     return job
 
 
