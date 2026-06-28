@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 from .can_protocol import CanValue, OwldriveCanBus, socketcan_interfaces
-from .config_schema import FIELD_BY_PATH, PROFILE_SIZE, decode_config, encode_field, schema_json
+from .config_schema import FIELD_BY_PATH, PROFILE_SIZE, SUPPORTED_DATABASE_VERSIONS, decode_config, decode_database_version, encode_field, schema_json
 from .firmware_images import download_url, firmware_payload, list_github_images, list_local_images
 from .presets import (
     find_motion_preset,
@@ -36,6 +36,17 @@ TOOLS_ROOT = SERVICE_ROOT.parents[0]
 STATIC = SERVICE_ROOT / "static"
 DATA_DIR = SERVICE_ROOT / "data"
 STOPPED_CAN_SERVICES = DATA_DIR / "stopped-can-services.json"
+
+
+def ensure_supported_database_version(raw_config: bytes) -> int:
+    database_version = decode_database_version(raw_config)
+    if database_version not in SUPPORTED_DATABASE_VERSIONS:
+        supported = ", ".join(str(version) for version in sorted(SUPPORTED_DATABASE_VERSIONS))
+        raise HTTPException(
+            status_code=409,
+            detail=f"Unsupported database version {database_version}. Settings are disabled; supported database versions: {supported}.",
+        )
+    return database_version
 
 
 class Settings(BaseSettings):
@@ -634,7 +645,8 @@ async def pcb_presets():
 @app.get("/api/devices/{node_id}/config")
 async def read_config(node_id: Annotated[int, Path(ge=1, le=62)]):
     raw = await get_bus().read_config(node_id, PROFILE_SIZE)
-    return {"node_id": node_id, "values": decode_config(raw)}
+    database_version = ensure_supported_database_version(raw)
+    return {"node_id": node_id, "database_version": database_version, "values": decode_config(raw)}
 
 
 @app.patch("/api/devices/{node_id}/config")
@@ -642,6 +654,7 @@ async def patch_config(node_id: Annotated[int, Path(ge=1, le=62)], req: ConfigPa
     async with exclusive_job_lock:
         try:
             current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
+            ensure_supported_database_version(current)
             changes: dict[int, int] = {}
             reboot_required = False
             for path, value in req.values.items():
@@ -718,6 +731,8 @@ async def apply_pcb_preset(node_id: Annotated[int, Path(ge=1, le=62)], req: Appl
 @app.post("/api/devices/{node_id}/config/sensor-auto-align")
 async def sensor_auto_align(node_id: Annotated[int, Path(ge=1, le=62)]):
     async with exclusive_job_lock:
+        raw = await get_bus().read_config(node_id, PROFILE_SIZE)
+        ensure_supported_database_version(raw)
         ok = await get_bus().sensor_auto_align(node_id)
         if not ok:
             raise HTTPException(status_code=400, detail="sensor auto-align failed or is not supported by this firmware")
@@ -754,6 +769,9 @@ async def set_value(node_id: Annotated[int, Path(ge=1, le=63)], req: SetValueReq
 @app.post("/api/devices/{node_id}/save-config")
 async def save_config(node_id: Annotated[int, Path(ge=1, le=63)], req: SaveConfigRequest):
     async with exclusive_job_lock:
+        if node_id != 63:
+            raw = await get_bus().read_config(node_id, PROFILE_SIZE)
+            ensure_supported_database_version(raw)
         await get_bus().save_config(node_id, reboot=req.reboot)
     return {"ok": True}
 

@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 
 PROFILE_SIZE = 418
+SUPPORTED_DATABASE_VERSIONS = {33}
 
 
 @dataclass(frozen=True)
@@ -204,6 +205,10 @@ def encode_field(value: Any, field: ConfigField) -> bytes:
 
 def decode_config(data: bytes) -> dict[str, Any]:
     return {field.path: decode_field(data, field) for field in FIELDS}
+
+
+def decode_database_version(data: bytes) -> int:
+    return int(decode_field(data, FIELD_BY_PATH["databaseVer"]))
 
 
 def schema_json() -> list[dict[str, Any]]:
