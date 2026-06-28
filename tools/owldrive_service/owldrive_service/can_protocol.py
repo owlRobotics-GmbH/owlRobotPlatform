@@ -92,6 +92,19 @@ FLOAT_VALUES = {
     CanValue.voltageLimit,
 }
 
+ERROR_TEXT = {
+    0: "OK",
+    1: "No CAN communication",
+    2: "No settings",
+    3: "Undervoltage",
+    4: "Overvoltage",
+    5: "Overcurrent",
+    6: "Overtemperature",
+    7: "No endstop",
+    8: "Clock error",
+    9: "FIFO error",
+}
+
 
 @dataclass(frozen=True)
 class OwldriveFrame:
@@ -257,10 +270,10 @@ class OwldriveCanBus:
             data.append(value)
         return bytes(data)
 
-    async def set_cfg_byte(self, node_id: int, offset: int, value: int, timeout: float = 0.1) -> bool:
+    async def set_cfg_byte(self, node_id: int, offset: int, value: int, timeout: float = 0.1, wait_ack: bool = True) -> bool:
         async with self._lock:
             frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.cfg_mem, pack_offset_byte(offset, value))
-            return await asyncio.to_thread(self._set_sync, frame, node_id, CanValue.cfg_mem, True, timeout)
+            return await asyncio.to_thread(self._set_sync, frame, node_id, CanValue.cfg_mem, wait_ack, timeout)
 
     async def write_config_bytes(self, node_id: int, changes: dict[int, int]) -> None:
         for offset, value in sorted(changes.items()):
@@ -318,7 +331,15 @@ class OwldriveCanBus:
                 started = time.monotonic()
                 version = await self.request(node_id, CanValue.firmware_ver, timeout=0.02)
                 if version is not None:
-                    found.append({"node_id": node_id, "firmware_version": version, "answer_ms": round((time.monotonic() - started) * 1000, 2)})
+                    error = await self.request(node_id, CanValue.error, timeout=0.02)
+                    error_code = int(error) if error is not None else None
+                    found.append({
+                        "node_id": node_id,
+                        "firmware_version": version,
+                        "answer_ms": round((time.monotonic() - started) * 1000, 2),
+                        "error": error_code,
+                        "error_text": ERROR_TEXT.get(error_code, f"Unknown error {error_code}") if error_code is not None else "Unknown",
+                    })
                     break
                 await asyncio.sleep(0.005)
         return found
@@ -337,6 +358,8 @@ class OwldriveCanBus:
             "error": CanValue.error,
         }.items():
             values[key] = await self.request(node_id, val, timeout=0.02)
+        error_code = int(values["error"]) if values["error"] is not None else None
+        values["error_text"] = ERROR_TEXT.get(error_code, f"Unknown error {error_code}") if error_code is not None else "Unknown"
         return values
 
     async def save_config(self, node_id: int, reboot: bool = False) -> bool:

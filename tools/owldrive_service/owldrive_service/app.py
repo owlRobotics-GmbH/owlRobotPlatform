@@ -640,24 +640,36 @@ async def read_config(node_id: Annotated[int, Path(ge=1, le=62)]):
 @app.patch("/api/devices/{node_id}/config")
 async def patch_config(node_id: Annotated[int, Path(ge=1, le=62)], req: ConfigPatchRequest):
     async with exclusive_job_lock:
-        current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
-        changes: dict[int, int] = {}
-        reboot_required = False
-        for path, value in req.values.items():
-            field = FIELD_BY_PATH.get(path)
-            if field is None:
-                raise HTTPException(status_code=400, detail=f"unknown config field: {path}")
-            encoded = encode_field(value, field)
-            for idx, byte in enumerate(encoded):
-                offset = field.offset + idx
-                if current[offset] != byte:
-                    changes[offset] = byte
-            reboot_required = reboot_required or field.reboot
-        if changes:
-            await get_bus().write_config_bytes(node_id, changes)
-        if req.save or req.reboot:
-            await get_bus().save_config(node_id, reboot=req.reboot)
-        return {"ok": True, "bytes_changed": len(changes), "reboot_required": reboot_required}
+        try:
+            current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
+            changes: dict[int, int] = {}
+            reboot_required = False
+            for path, value in req.values.items():
+                field = FIELD_BY_PATH.get(path)
+                if field is None:
+                    raise HTTPException(status_code=400, detail=f"unknown config field: {path}")
+                encoded = encode_field(value, field)
+                for idx, byte in enumerate(encoded):
+                    offset = field.offset + idx
+                    if current[offset] != byte:
+                        changes[offset] = byte
+                reboot_required = reboot_required or field.reboot
+
+            can_node_field = FIELD_BY_PATH["canNodeId"]
+            can_node_change = changes.pop(can_node_field.offset, None)
+            if changes:
+                await get_bus().write_config_bytes(node_id, changes)
+
+            effective_node_id = node_id
+            if can_node_change is not None:
+                await get_bus().set_cfg_byte(node_id, can_node_field.offset, can_node_change, wait_ack=False)
+                effective_node_id = can_node_change
+
+            if req.save or req.reboot:
+                await get_bus().save_config(effective_node_id, reboot=req.reboot)
+            return {"ok": True, "bytes_changed": len(changes) + (1 if can_node_change is not None else 0), "reboot_required": reboot_required, "node_id": effective_node_id}
+        except TimeoutError as exc:
+            raise HTTPException(status_code=504, detail=str(exc)) from exc
 
 
 @app.post("/api/devices/{node_id}/config/apply-preset")

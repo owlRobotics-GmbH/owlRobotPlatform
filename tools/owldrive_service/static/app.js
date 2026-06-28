@@ -68,7 +68,8 @@ function renderDevices() {
   for (const device of state.devices) {
     const el = document.createElement("div");
     el.className = "device" + (state.selected?.node_id === device.node_id ? " active" : "");
-    el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms</div>`;
+    const errorText = device.error_text ? `, ${device.error === 0 ? "OK" : `Error: ${escapeHtml(device.error_text)}`}` : "";
+    el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms${errorText}</div>`;
     el.onclick = () => {
       const changed = state.selected?.node_id !== device.node_id;
       state.selected = device;
@@ -714,7 +715,10 @@ function renderMetrics(sample) {
   for (const key of ["target", "velocity", "angle", "current", "voltage", "supply_voltage", "error"]) {
     const el = document.createElement("div");
     el.className = "metric";
-    el.innerHTML = `<span class="muted">${key}</span><strong>${typeof sample[key] === "number" ? sample[key].toFixed(3) : sample[key]}</strong>`;
+    const value = key === "error"
+      ? `${sample.error ?? "Unknown"} - ${sample.error_text || "Unknown"}`
+      : (typeof sample[key] === "number" ? sample[key].toFixed(3) : sample[key]);
+    el.innerHTML = `<span class="muted">${key}</span><strong>${escapeHtml(String(value))}</strong>`;
     root.appendChild(el);
   }
 }
