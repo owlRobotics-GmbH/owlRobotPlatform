@@ -154,7 +154,7 @@ def _start_flash_job(job: FlashJob, upload_coro_factory) -> None:
             def progress(done: int, total: int):
                 if job.cancel_requested:
                     raise asyncio.CancelledError()
-                job.done = done
+                job.done = max(job.done, done)
                 job.total = total
 
             try:

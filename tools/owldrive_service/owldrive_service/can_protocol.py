@@ -20,6 +20,7 @@ CAN_NODE_ID_MIN = 1
 CAN_NODE_ID_MAX = 62
 CAN_NODE_ID_BROADCAST = 63
 CAN_NODE_ID_HOST = 62
+REFLASH_PAGE_SIZE = 256
 
 
 class CanCommand(enum.IntEnum):
@@ -371,15 +372,25 @@ class OwldriveCanBus:
 
     async def upload_firmware(self, node_id: int, firmware: bytes, progress_cb=None) -> int:
         crc = sum(firmware) & 0xFFFFFFFF
-        for offset, byte in enumerate(firmware):
+        offset = 0
+        last_acknowledged = False
+        while offset < len(firmware):
+            byte = firmware[offset]
             payload = pack_large_offset_byte(offset, byte)
             frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, CanValue.upload_firmware, payload)
             async with self._lock:
                 ok = await asyncio.to_thread(self._set_upload_byte_sync, frame, node_id, offset)
             if not ok:
-                raise TimeoutError(f"firmware upload ack timeout at offset {offset}")
-            if progress_cb and (offset % 128 == 0 or offset + 1 == len(firmware)):
-                progress_cb(offset + 1, len(firmware))
+                if not last_acknowledged:
+                    raise TimeoutError(f"firmware upload ack timeout at offset {offset}")
+                offset = max(0, offset - REFLASH_PAGE_SIZE)
+                offset = (offset // REFLASH_PAGE_SIZE) * REFLASH_PAGE_SIZE
+                last_acknowledged = False
+                continue
+            offset += 1
+            last_acknowledged = True
+            if progress_cb and (offset % 128 == 0 or offset == len(firmware)):
+                progress_cb(offset, len(firmware))
         async with self._lock:
             save = OwldriveFrame(self.host_node, node_id, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
             await asyncio.to_thread(self._send, save)
@@ -402,18 +413,29 @@ class OwldriveCanBus:
                     raise TimeoutError(f"broadcast enable ack timeout for node {node_id}")
 
             crc = sum(firmware) & 0xFFFFFFFF
+            offset = 0
             ack_index = 0
-            for offset, byte in enumerate(firmware):
+            last_acknowledged = False
+            while offset < len(firmware):
+                byte = firmware[offset]
                 payload = pack_large_offset_byte(offset, byte)
                 frame = OwldriveFrame(self.host_node, CAN_NODE_ID_BROADCAST, CanCommand.set, CanValue.upload_firmware, payload)
                 expected_node = ordered_nodes[ack_index]
                 async with self._lock:
                     ok = await asyncio.to_thread(self._set_upload_byte_sync, frame, expected_node, offset)
                 if not ok:
-                    raise TimeoutError(f"broadcast firmware upload ack timeout at offset {offset} from node {expected_node}")
+                    if not last_acknowledged:
+                        raise TimeoutError(f"broadcast firmware upload ack timeout at offset {offset} from node {expected_node}")
+                    offset = max(0, offset - REFLASH_PAGE_SIZE)
+                    offset = (offset // REFLASH_PAGE_SIZE) * REFLASH_PAGE_SIZE
+                    ack_index = 0
+                    last_acknowledged = False
+                    continue
+                offset += 1
+                if progress_cb and (offset % 128 == 0 or offset == len(firmware)):
+                    progress_cb(offset, len(firmware))
                 ack_index = (ack_index + 1) % len(ordered_nodes)
-                if progress_cb and (offset % 128 == 0 or offset + 1 == len(firmware)):
-                    progress_cb(offset + 1, len(firmware))
+                last_acknowledged = True
 
             async with self._lock:
                 save = OwldriveFrame(self.host_node, CAN_NODE_ID_BROADCAST, CanCommand.save, CanValue.upload_firmware, pack_int(crc))
