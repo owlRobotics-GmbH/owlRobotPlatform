@@ -33,6 +33,8 @@ const PLOT_SERIES = [
   { key: "target", label: "target", unit: "controller target", color: "#f94144" },
 ];
 
+const SENSOR_ALIGN_FIELDS = ["motor.alignV", "motor.senDirCW", "motor.zeroOfs"];
+
 function selectedNode() {
   if (!state.selected) throw new Error("No device selected");
   return state.selected.node_id;
@@ -292,52 +294,63 @@ function renderConfigEditor() {
     const grid = document.createElement("div");
     grid.className = "field-grid";
     for (const field of fields) {
-      const wrap = document.createElement("label");
-      wrap.className = "config-field";
-      wrap.dataset.path = field.path;
-      const value = state.configDraft[field.path];
-      const title = `${field.label}${field.reboot ? " (reboot)" : ""}`;
-      let input;
-      if (field.type === "bool") {
-        input = document.createElement("select");
-        input.innerHTML = '<option value="false">off</option><option value="true">on</option>';
-        input.value = value ? "true" : "false";
-      } else if (field.options) {
-        input = document.createElement("select");
-        field.options.forEach((name, idx) => {
-          const option = document.createElement("option");
-          option.value = String(idx);
-          option.textContent = name;
-          input.appendChild(option);
-        });
-        input.value = String(value ?? 0);
-      } else {
-        input = document.createElement("input");
-        input.type = field.type === "string" ? "text" : "number";
-        if (field.type === "float") input.step = field.precision === undefined || field.precision === null ? "any" : String(Math.pow(10, -field.precision));
-        else if (field.type !== "string") input.step = "1";
-        if (field.min !== null && field.min !== undefined) input.min = field.min;
-        if (field.max !== null && field.max !== undefined) input.max = field.max;
-        input.value = formatConfigValue(value, field);
+      if (group === "motor" && field.path === SENSOR_ALIGN_FIELDS[0]) {
+        grid.appendChild(renderSensorAlignGroup(fields));
+        continue;
       }
-      input.oninput = () => {
-        const next = coerceConfigValue(input.value, field);
-        state.configDraft[field.path] = next;
-        wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], next, field));
-      };
-      wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], value, field));
-      wrap.append(document.createTextNode(title), input);
-      if (field.reboot) {
-        const hint = document.createElement("span");
-        hint.className = "muted";
-        hint.textContent = "takes effect after reboot";
-        wrap.appendChild(hint);
+      if (group === "motor" && SENSOR_ALIGN_FIELDS.includes(field.path)) {
+        continue;
       }
-      grid.appendChild(wrap);
+      grid.appendChild(renderConfigField(field));
     }
     section.appendChild(grid);
     root.appendChild(section);
   }
+}
+
+function renderConfigField(field) {
+  const wrap = document.createElement("label");
+  wrap.className = "config-field";
+  wrap.dataset.path = field.path;
+  const value = state.configDraft[field.path];
+  const title = `${field.label}${field.reboot ? " (reboot)" : ""}`;
+  let input;
+  if (field.type === "bool") {
+    input = document.createElement("select");
+    input.innerHTML = '<option value="false">off</option><option value="true">on</option>';
+    input.value = value ? "true" : "false";
+  } else if (field.options) {
+    input = document.createElement("select");
+    field.options.forEach((name, idx) => {
+      const option = document.createElement("option");
+      option.value = String(idx);
+      option.textContent = name;
+      input.appendChild(option);
+    });
+    input.value = String(value ?? 0);
+  } else {
+    input = document.createElement("input");
+    input.type = field.type === "string" ? "text" : "number";
+    if (field.type === "float") input.step = field.precision === undefined || field.precision === null ? "any" : String(Math.pow(10, -field.precision));
+    else if (field.type !== "string") input.step = "1";
+    if (field.min !== null && field.min !== undefined) input.min = field.min;
+    if (field.max !== null && field.max !== undefined) input.max = field.max;
+    input.value = formatConfigValue(value, field);
+  }
+  input.oninput = () => {
+    const next = coerceConfigValue(input.value, field);
+    state.configDraft[field.path] = next;
+    wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], next, field));
+  };
+  wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], value, field));
+  wrap.append(document.createTextNode(title), input);
+  if (field.reboot) {
+    const hint = document.createElement("span");
+    hint.className = "muted";
+    hint.textContent = "takes effect after reboot";
+    wrap.appendChild(hint);
+  }
+  return wrap;
 }
 
 function renderGroupTools(group) {
@@ -362,10 +375,7 @@ function renderGroupTools(group) {
     const apply = document.createElement("button");
     apply.textContent = "Load defaults";
     apply.onclick = () => applyMotorPreset().catch((err) => $("config-status").textContent = err.message);
-    const align = document.createElement("button");
-    align.textContent = "Sensor auto-align";
-    align.onclick = () => sensorAutoAlign().catch((err) => $("config-status").textContent = err.message);
-    tools.append(select, apply, align);
+    tools.append(select, apply);
     return tools;
   }
   if (group === "motion") {
@@ -393,6 +403,40 @@ function renderGroupTools(group) {
     return tools;
   }
   return null;
+}
+
+function renderSensorAlignTool() {
+  const wrap = document.createElement("div");
+  wrap.className = "config-field";
+  const button = document.createElement("button");
+  button.textContent = "Sensor auto-align";
+  button.onclick = () => sensorAutoAlign().catch((err) => {
+    $("config-status").textContent = err.message;
+    const inline = $("sensor-align-status");
+    if (inline) inline.textContent = err.message;
+  });
+  const status = document.createElement("span");
+  status.id = "sensor-align-status";
+  status.className = "muted";
+  status.textContent = "updates sensor direction and zero offset";
+  wrap.append(button, status);
+  return wrap;
+}
+
+function renderSensorAlignGroup(fields) {
+  const group = document.createElement("div");
+  group.className = "config-subgroup sensor-align-group";
+  const title = document.createElement("h4");
+  title.textContent = "Sensor alignment";
+  const grid = document.createElement("div");
+  grid.className = "field-grid";
+  grid.appendChild(renderSensorAlignTool());
+  for (const path of SENSOR_ALIGN_FIELDS) {
+    const field = fields.find((item) => item.path === path);
+    if (field) grid.appendChild(renderConfigField(field));
+  }
+  group.append(title, grid);
+  return group;
 }
 
 function fillProfilePresetSelect(select) {
@@ -639,11 +683,16 @@ async function applyMotorPreset() {
 
 async function sensorAutoAlign() {
   $("config-status").textContent = "Running sensor auto-align...";
+  const startStatus = $("sensor-align-status");
+  if (startStatus) startStatus.textContent = "Running...";
   const result = await postJSON(`/api/devices/${selectedNode()}/config/sensor-auto-align`, {});
   await loadConfig();
   const zeroOfs = Number(result.values?.["motor.zeroOfs"]);
   const direction = result.values?.["motor.senDirCW"] ? "CW" : "CCW";
-  $("config-status").textContent = `Sensor auto-align complete: zero offset ${Number.isFinite(zeroOfs) ? zeroOfs.toFixed(4) : "updated"}, direction ${direction}`;
+  const message = `Sensor auto-align complete: zero offset ${Number.isFinite(zeroOfs) ? zeroOfs.toFixed(4) : "updated"}, direction ${direction}`;
+  $("config-status").textContent = message;
+  const inlineStatus = $("sensor-align-status");
+  if (inlineStatus) inlineStatus.textContent = message;
 }
 
 async function applyMotionPreset() {

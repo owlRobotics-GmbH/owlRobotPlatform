@@ -143,6 +143,12 @@ section {
   margin-bottom: 14px;
 }
 
+.toolbar-label {
+  align-self: center;
+  color: #172026;
+  font-weight: 650;
+}
+
 label {
   display: grid;
   gap: 5px;
@@ -292,6 +298,20 @@ canvas {
   align-content: start;
   display: grid;
   gap: 5px;
+}
+
+.config-subgroup {
+  border: 1px solid #d8e0e4;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  grid-column: 1 / -1;
+  padding: 10px;
+}
+
+.config-subgroup h4 {
+  font-size: 14px;
+  margin: 0;
 }
 
 .config-field.changed input,
