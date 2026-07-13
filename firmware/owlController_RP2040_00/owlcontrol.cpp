@@ -10,6 +10,7 @@
 extern oledDisp oled;
 extern Funkt myF;
 extern void triggerHardPowerOff(const char* reason);
+extern String picoID;
 
 #ifndef POWER_OFF_FORCE_HOLD_SECONDS
 #define POWER_OFF_FORCE_HOLD_SECONDS 10
@@ -341,6 +342,10 @@ void owlControl::onCanReceived(int id, int len, unsigned char canData[8]){
           case owlctl::can_val_ultrasonic_generic:
             sendUltrasonicWarningLevels(node.sourceAndDest.sourceNodeID);
             break;
+          case owlctl::can_val_rp2040_serial_0:
+          case owlctl::can_val_rp2040_serial_1:
+            sendRp2040SerialChunk(node.sourceAndDest.sourceNodeID, val);
+            break;
         }
     }
     else if (cmd == can_cmd_set){
@@ -578,6 +583,34 @@ void owlControl::sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t d
   Serial.print(accepted ? "OK" : "NOK");
   Serial.print(" to node ");
   Serial.println(destNodeId);
+}
+
+static uint8_t hexNibbleToByte(char c){
+  if (c >= '0' && c <= '9') return (uint8_t)(c - '0');
+  if (c >= 'a' && c <= 'f') return (uint8_t)(10 + c - 'a');
+  if (c >= 'A' && c <= 'F') return (uint8_t)(10 + c - 'A');
+  return 0;
+}
+
+static uint8_t hexPairToByte(const String &text, uint8_t byteIndex){
+  const uint8_t charIndex = byteIndex * 2;
+  if (text.length() <= charIndex + 1){
+    return 0;
+  }
+  return (uint8_t)((hexNibbleToByte(text[charIndex]) << 4) | hexNibbleToByte(text[charIndex + 1]));
+}
+
+void owlControl::sendRp2040SerialChunk(int destNodeId, owlctl::canValueType_t val){
+  canDataType_t data;
+  data.byteVal[0] = 0;
+  data.byteVal[1] = 0;
+  data.byteVal[2] = 0;
+  data.byteVal[3] = 0;
+  const uint8_t offset = (val == owlctl::can_val_rp2040_serial_1) ? 4 : 0;
+  for (uint8_t i = 0; i < 4; ++i){
+    data.byteVal[i] = hexPairToByte(picoID, offset + i);
+  }
+  sendCanData(destNodeId, can_cmd_info, val, data);
 }
 
 void owlControl::sendUltrasonicDistance(int destNodeId, owlctl::canValueType_t val, uint16_t distanceMm, bool valid){

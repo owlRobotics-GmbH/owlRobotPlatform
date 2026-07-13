@@ -35,6 +35,8 @@ namespace owlctl {
       can_val_led_anim_single   = 18, // LED single-color animation
       can_val_led_anim_multi    = 19, // LED multi-color animation
       can_val_led_off           = 20, // LED off
+      can_val_rp2040_serial_0   = 36, // RP2040 unique board ID bytes 0..3
+      can_val_rp2040_serial_1   = 37, // RP2040 unique board ID bytes 4..7
   };
 
   // motor driver error values
@@ -136,6 +138,7 @@ class owlControl
     void sendSlowDownState(int destNodeId, bool value);
     void sendPowerOffState(int destNodeId);
     void sendPowerOffCommandAck(int destNodeId, bool accepted, uint8_t delaySeconds);
+    void sendRp2040SerialChunk(int destNodeId, owlctl::canValueType_t val);
     void setUltrasonicDistanceLeft(uint16_t distanceMm, bool valid);
     void setUltrasonicDistanceRight(uint16_t distanceMm, bool valid);
     void setUltrasonicDistanceGeneric(uint8_t i2cBus, uint8_t sensorAddr7, uint16_t distanceMm, bool valid);
