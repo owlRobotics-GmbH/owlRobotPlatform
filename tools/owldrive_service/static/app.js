@@ -158,15 +158,19 @@ function renderFlashDeviceList() {
 function resetDeviceViews() {
   stopLive();
   state.samples = [];
-  state.configValues = {};
-  state.configDraft = {};
+  resetConfigView();
   $("metrics").innerHTML = "";
-  $("config-editor").innerHTML = "";
-  $("config-summary").textContent = "No config loaded";
-  $("config-status").textContent = "";
   setTargetControlEnabled(false);
   drawPlot();
   renderPlotLegend();
+}
+
+function resetConfigView(message = "No config loaded") {
+  state.configValues = {};
+  state.configDraft = {};
+  $("config-editor").innerHTML = "";
+  $("config-summary").textContent = message;
+  $("config-status").textContent = "";
 }
 
 async function loadImages() {
@@ -240,7 +244,14 @@ async function loadConfig() {
   const node = selectedNode();
   $("config-status").textContent = `Loading node ${node}...`;
   if (!state.configSchema.length) await loadConfigSchema();
-  const data = await api(`/api/devices/${node}/config`);
+  let data;
+  try {
+    data = await api(`/api/devices/${node}/config`);
+  } catch (err) {
+    resetConfigView("Settings unavailable");
+    $("config-status").textContent = err.message;
+    throw err;
+  }
   state.configValues = data.values || {};
   state.configDraft = { ...state.configValues };
   renderConfigSummary();
