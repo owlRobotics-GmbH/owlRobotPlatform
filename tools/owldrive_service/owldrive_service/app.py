@@ -4,6 +4,7 @@ import asyncio
 import itertools
 import json
 import os
+import pwd
 import re
 import subprocess
 from datetime import datetime, timezone
@@ -112,6 +113,7 @@ class MultiFlashImageRequest(BaseModel):
 class ServiceActionRequest(BaseModel):
     action: str
     scope: str = "user"
+    owner: Optional[str] = None
 
 
 class FlashJob(BaseModel):
@@ -321,8 +323,22 @@ def _can_receive_lists() -> list[dict[str, Any]]:
     return lists
 
 
-def _run_systemctl(scope: str, args: list[str], timeout: float = 3) -> subprocess.CompletedProcess[str]:
-    cmd = ["systemctl", "--user", *args] if scope == "user" else ["systemctl", *args]
+def _safe_service_owner(owner: Optional[str]) -> Optional[str]:
+    if not owner or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", owner):
+        return None
+    try:
+        pwd.getpwnam(owner)
+    except KeyError:
+        return None
+    return owner
+
+
+def _run_systemctl(scope: str, args: list[str], timeout: float = 3, owner: Optional[str] = None) -> subprocess.CompletedProcess[str]:
+    service_owner = _safe_service_owner(owner) if scope == "user" else None
+    if scope == "user" and service_owner and service_owner != pwd.getpwuid(os.geteuid()).pw_name:
+        cmd = ["systemctl", "--user", f"--machine={service_owner}@.host", *args]
+    else:
+        cmd = ["systemctl", "--user", *args] if scope == "user" else ["systemctl", *args]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     if os.geteuid() != 0 and scope == "system" and proc.returncode != 0 and args and args[0] in {"start", "stop", "restart"}:
         sudo_cmd = ["sudo", "-n", "systemctl", *args]
@@ -332,18 +348,18 @@ def _run_systemctl(scope: str, args: list[str], timeout: float = 3) -> subproces
     return proc
 
 
-def _service_main_pid(scope: str, name: str) -> int:
-    proc = _run_systemctl(scope, ["show", name, "--property=MainPID", "--value"], timeout=2)
+def _service_main_pid(scope: str, name: str, owner: Optional[str] = None) -> int:
+    proc = _run_systemctl(scope, ["show", name, "--property=MainPID", "--value"], timeout=2, owner=owner)
     try:
         return int(proc.stdout.strip() or "0")
     except ValueError:
         return 0
 
 
-def _service_units(scope: str) -> list[dict[str, Any]]:
+def _service_units(scope: str, owner: Optional[str] = None) -> list[dict[str, Any]]:
     units = []
-    unit_proc = _run_systemctl(scope, ["list-units", "--type=service", "--all", "--no-legend", "--plain"])
-    enabled_proc = _run_systemctl(scope, ["list-unit-files", "--type=service", "--no-legend", "--plain"])
+    unit_proc = _run_systemctl(scope, ["list-units", "--type=service", "--all", "--no-legend", "--plain"], owner=owner)
+    enabled_proc = _run_systemctl(scope, ["list-unit-files", "--type=service", "--no-legend", "--plain"], owner=owner)
     enabled = {}
     for line in enabled_proc.stdout.splitlines():
         parts = line.split()
@@ -355,7 +371,7 @@ def _service_units(scope: str) -> list[dict[str, Any]]:
             continue
         name, load, active, sub = parts[:4]
         description = parts[4] if len(parts) > 4 else ""
-        main_pid = _service_main_pid(scope, name) if active == "active" else 0
+        main_pid = _service_main_pid(scope, name, owner) if active == "active" else 0
         units.append({
             "name": name,
             "load": load,
@@ -365,8 +381,29 @@ def _service_units(scope: str) -> list[dict[str, Any]]:
             "description": description,
             "main_pid": main_pid,
             "cmdline": _process_cmdline(main_pid) if main_pid else "",
+            "owner": owner if scope == "user" else None,
         })
     return units
+
+
+def _service_unit(scope: str, name: str, owner: Optional[str] = None) -> dict[str, Any]:
+    proc = _run_systemctl(scope, ["show", name, "--property=LoadState,ActiveState,SubState,UnitFileState,Description,MainPID"], timeout=3, owner=owner)
+    values = dict(line.split("=", 1) for line in proc.stdout.splitlines() if "=" in line)
+    try:
+        main_pid = int(values.get("MainPID", "0") or "0")
+    except ValueError:
+        main_pid = 0
+    return {
+        "name": name,
+        "load": values.get("LoadState", "unknown"),
+        "active": values.get("ActiveState", "unknown"),
+        "sub": values.get("SubState", "unknown"),
+        "enabled": values.get("UnitFileState", "unknown"),
+        "description": values.get("Description", ""),
+        "main_pid": main_pid,
+        "cmdline": _process_cmdline(main_pid) if main_pid else "",
+        "owner": owner if scope == "user" else None,
+    }
 
 
 def _can_socket_users() -> tuple[list[dict[str, Any]], str]:
@@ -429,6 +466,7 @@ def _remember_stopped_can_service(service: dict[str, Any]) -> None:
         "description": service.get("description", ""),
         "cmdline": service.get("cmdline", ""),
         "can_socket_count": service.get("can_socket_count", 0),
+        "owner": service.get("owner"),
     }
     _save_stopped_can_services(services)
 
@@ -463,21 +501,27 @@ async def system_permissions():
 def _detected_services() -> tuple[list[dict[str, Any]], str]:
     can_socket_users, error = _can_socket_users()
     stopped_can_services = _load_stopped_can_services()
-    can_by_service: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    can_by_service: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for user in can_socket_users:
         service = user.get("service") or ""
         if service:
             cgroup = _read_text(FsPath("/proc") / str(user.get("pid", "")) / "cgroup")
             scope = "system" if "/system.slice/" in cgroup else "user"
-            can_by_service.setdefault((scope, service), []).append(user)
+            owner = user.get("user", "") if scope == "user" else ""
+            can_by_service.setdefault((scope, owner, service), []).append(user)
     own_service = _process_service(os.getpid())
     by_key = {}
-    for scope in ("user", "system"):
-        for unit in _service_units(scope):
-            by_key[(scope, unit["name"])] = {**unit, "scope": scope}
-    for scope, service in can_by_service:
-        if (scope, service) not in by_key:
-            by_key[(scope, service)] = {
+    for unit in _service_units("system"):
+        by_key[("system", "", unit["name"])] = {**unit, "scope": "system"}
+    user_services = {(owner, service) for scope, owner, service in can_by_service if scope == "user" and _safe_service_owner(owner)}
+    user_services.update((record.get("owner"), record.get("name")) for record in stopped_can_services.values()
+        if record.get("scope") == "user" and _safe_service_owner(record.get("owner")) and _service_name_is_safe(record.get("name", "")))
+    for owner, service in sorted(user_services):
+        unit = _service_unit("user", service, owner)
+        by_key[("user", owner, service)] = {**unit, "scope": "user", "owner": owner}
+    for scope, owner, service in can_by_service:
+        if (scope, owner, service) not in by_key:
+            by_key[(scope, owner, service)] = {
                 "name": service,
                 "load": "unknown",
                 "active": "unknown",
@@ -487,12 +531,14 @@ def _detected_services() -> tuple[list[dict[str, Any]], str]:
                 "main_pid": 0,
                 "cmdline": "",
                 "scope": scope,
+                "owner": owner or None,
             }
     services = []
     for unit in sorted(by_key.values(), key=lambda item: (item["scope"], item["name"])):
         name = unit["name"]
         scope = unit["scope"]
-        can_users = can_by_service.get((scope, name), [])
+        owner = unit.get("owner") or ""
+        can_users = can_by_service.get((scope, owner, name), [])
         is_self = name == own_service or name == "owldrive-web.service"
         services.append({
             **unit,
@@ -528,7 +574,7 @@ async def stop_can_services():
         if not service["can_stop"]:
             skipped.append({"service": service["name"], "scope": service["scope"], "reason": "stop not allowed"})
             continue
-        proc = _run_systemctl(service["scope"], ["stop", service["name"]], timeout=10)
+        proc = _run_systemctl(service["scope"], ["stop", service["name"]], timeout=10, owner=service.get("owner"))
         item = {"service": service["name"], "scope": service["scope"]}
         if proc.returncode == 0:
             stopped.append(item)
@@ -557,7 +603,7 @@ async def start_stopped_can_services():
             item["error"] = "invalid stored service"
             failed.append(item)
             continue
-        proc = _run_systemctl(scope, ["start", name], timeout=10)
+        proc = _run_systemctl(scope, ["start", name], timeout=10, owner=service.get("owner"))
         if proc.returncode == 0:
             started.append(item)
             _forget_stopped_can_service(scope, name)
@@ -573,6 +619,7 @@ async def control_service(service_name: str, req: ServiceActionRequest):
         raise HTTPException(status_code=400, detail="invalid service name")
     action = req.action.lower()
     scope = req.scope.lower()
+    owner = _safe_service_owner(req.owner) if scope == "user" else None
     if action not in {"start", "stop"}:
         raise HTTPException(status_code=400, detail="action must be start or stop")
     if scope not in {"user", "system"}:
@@ -580,13 +627,21 @@ async def control_service(service_name: str, req: ServiceActionRequest):
     if action == "stop" and (service_name == _process_service(os.getpid()) or service_name == "owldrive-web.service"):
         raise HTTPException(status_code=400, detail="refusing to stop this web service")
     stopped_can_service = None
-    if action == "stop":
+    if scope == "user" and not owner:
         service_list, _ = _detected_services()
         for service in service_list:
-            if service["scope"] == scope and service["name"] == service_name and service["can_active"]:
-                stopped_can_service = service
+            if service["scope"] == scope and service["name"] == service_name:
+                owner = service.get("owner")
+                if action == "stop" and service["can_active"]:
+                    stopped_can_service = service
                 break
-    proc = _run_systemctl(scope, [action, service_name], timeout=10)
+    elif action == "stop":
+        service_list, _ = _detected_services()
+        stopped_can_service = next((service for service in service_list if service["scope"] == scope
+            and service["name"] == service_name and service.get("owner") == owner and service["can_active"]), None)
+    if scope == "user" and not owner:
+        raise HTTPException(status_code=400, detail="user service owner is required")
+    proc = _run_systemctl(scope, [action, service_name], timeout=10, owner=owner)
     if proc.returncode != 0:
         detail = proc.stderr.strip() or proc.stdout.strip() or f"systemctl {action} failed"
         raise HTTPException(status_code=500, detail=detail)

@@ -865,10 +865,10 @@ function renderCanUsers() {
     el.innerHTML = `
       <div>
         <strong>${escapeHtml(service.name)}</strong>
-        <div class="muted">${escapeHtml(service.scope)} | ${escapeHtml(service.active)} / ${escapeHtml(service.sub)} | ${escapeHtml(service.enabled)} | ${escapeHtml(canText)}</div>
+        <div class="muted">${escapeHtml(service.scope)}${service.owner ? ` (${escapeHtml(service.owner)})` : ""} | ${escapeHtml(service.active)} / ${escapeHtml(service.sub)} | ${escapeHtml(service.enabled)} | ${escapeHtml(canText)}</div>
         <div class="service-actions">
-          <button data-service-action="start" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" ${service.can_start ? "" : "disabled"}>Start</button>
-          <button data-service-action="stop" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" ${service.can_stop ? "" : "disabled"}>Stop</button>
+          <button data-service-action="start" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_start ? "" : "disabled"}>Start</button>
+          <button data-service-action="stop" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_stop ? "" : "disabled"}>Stop</button>
         </div>
       </div>
       <div>
@@ -882,7 +882,7 @@ function renderCanUsers() {
     root.appendChild(el);
   }
   root.querySelectorAll("[data-service-action]").forEach((button) => {
-    button.onclick = () => controlService(button.dataset.serviceName, button.dataset.serviceAction, button.dataset.serviceScope);
+    button.onclick = () => controlService(button.dataset.serviceName, button.dataset.serviceAction, button.dataset.serviceScope, button.dataset.serviceOwner);
   });
 }
 
@@ -1027,9 +1027,9 @@ function stopTargetHold(sendFinal = true) {
   }
 }
 
-async function controlService(name, action, scope) {
+async function controlService(name, action, scope, owner = "") {
   $("can-users-status").textContent = `${action === "start" ? "Starting" : "Stopping"} ${name}...`;
-  await postJSON(`/api/system/services/${encodeURIComponent(name)}`, { action, scope });
+  await postJSON(`/api/system/services/${encodeURIComponent(name)}`, { action, scope, owner: owner || null });
   await loadCanUsers();
 }
 
