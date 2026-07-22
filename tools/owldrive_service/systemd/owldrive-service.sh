@@ -90,6 +90,14 @@ run_as_service_user() {
   fi
 }
 
+ensure_os_packages() {
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y python3 python3-venv python3-dev build-essential
+  fi
+}
+
 ensure_environment() {
   if [ ! -d "$SERVICE_DIR" ]; then
     echo "Service directory not found: $SERVICE_DIR" >&2
@@ -99,6 +107,7 @@ ensure_environment() {
     echo "requirements.txt not found in $SERVICE_DIR" >&2
     exit 1
   fi
+  ensure_os_packages
   if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 not found. Install python3 and python3-venv first." >&2
     exit 1

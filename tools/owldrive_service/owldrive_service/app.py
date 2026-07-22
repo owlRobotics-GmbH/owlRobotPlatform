@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path as FsPath
 from typing import Annotated, Any, Dict, Optional, Union
 
-from fastapi import FastAPI, File, HTTPException, Path, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, Path, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -93,6 +93,11 @@ class FlashImageRequest(BaseModel):
     image_id: str
 
 
+class MultiFlashImageRequest(BaseModel):
+    image_id: str
+    node_ids: list[int]
+
+
 class ServiceActionRequest(BaseModel):
     action: str
     scope: str = "user"
@@ -107,6 +112,7 @@ class FlashJob(BaseModel):
     state: str = "queued"
     error: Optional[str] = None
     crc: Optional[int] = None
+    cancel_requested: bool = False
 
 
 settings = Settings()
@@ -117,6 +123,60 @@ bus: OwldriveCanBus | None = None
 job_counter = itertools.count(1)
 jobs: Dict[int, FlashJob] = {}
 exclusive_job_lock = asyncio.Lock()
+
+
+def _validate_flash_nodes(node_ids: list[int]) -> list[int]:
+    nodes = sorted(set(int(node_id) for node_id in node_ids))
+    if not nodes:
+        raise HTTPException(status_code=400, detail="no devices checked")
+    invalid = [node_id for node_id in nodes if node_id < 1 or node_id > 62]
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"invalid node IDs: {invalid}")
+    return nodes
+
+
+def _create_flash_job(node_id: int, filename: str, total: int) -> FlashJob:
+    job_id = next(job_counter)
+    job = FlashJob(id=job_id, node_id=node_id, filename=filename, total=total)
+    jobs[job_id] = job
+    return job
+
+
+def _start_flash_job(job: FlashJob, upload_coro_factory) -> None:
+    async def runner():
+        async with exclusive_job_lock:
+            if job.cancel_requested:
+                job.state = "cancelled"
+                job.error = "cancelled by user"
+                return
+            job.state = "running"
+
+            def progress(done: int, total: int):
+                if job.cancel_requested:
+                    raise asyncio.CancelledError()
+                job.done = max(job.done, done)
+                job.total = total
+
+            try:
+                job.crc = await upload_coro_factory(progress)
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.done = job.total
+                    job.state = "done"
+            except asyncio.CancelledError:
+                job.state = "cancelled"
+                job.error = "cancelled by user"
+            except Exception as exc:
+                if job.cancel_requested:
+                    job.state = "cancelled"
+                    job.error = "cancelled by user"
+                else:
+                    job.error = str(exc)
+                    job.state = "failed"
+
+    asyncio.create_task(runner())
 
 
 @app.on_event("startup")
@@ -580,24 +640,36 @@ async def read_config(node_id: Annotated[int, Path(ge=1, le=62)]):
 @app.patch("/api/devices/{node_id}/config")
 async def patch_config(node_id: Annotated[int, Path(ge=1, le=62)], req: ConfigPatchRequest):
     async with exclusive_job_lock:
-        current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
-        changes: dict[int, int] = {}
-        reboot_required = False
-        for path, value in req.values.items():
-            field = FIELD_BY_PATH.get(path)
-            if field is None:
-                raise HTTPException(status_code=400, detail=f"unknown config field: {path}")
-            encoded = encode_field(value, field)
-            for idx, byte in enumerate(encoded):
-                offset = field.offset + idx
-                if current[offset] != byte:
-                    changes[offset] = byte
-            reboot_required = reboot_required or field.reboot
-        if changes:
-            await get_bus().write_config_bytes(node_id, changes)
-        if req.save or req.reboot:
-            await get_bus().save_config(node_id, reboot=req.reboot)
-        return {"ok": True, "bytes_changed": len(changes), "reboot_required": reboot_required}
+        try:
+            current = bytearray(await get_bus().read_config(node_id, PROFILE_SIZE))
+            changes: dict[int, int] = {}
+            reboot_required = False
+            for path, value in req.values.items():
+                field = FIELD_BY_PATH.get(path)
+                if field is None:
+                    raise HTTPException(status_code=400, detail=f"unknown config field: {path}")
+                encoded = encode_field(value, field)
+                for idx, byte in enumerate(encoded):
+                    offset = field.offset + idx
+                    if current[offset] != byte:
+                        changes[offset] = byte
+                reboot_required = reboot_required or field.reboot
+
+            can_node_field = FIELD_BY_PATH["canNodeId"]
+            can_node_change = changes.pop(can_node_field.offset, None)
+            if changes:
+                await get_bus().write_config_bytes(node_id, changes)
+
+            effective_node_id = node_id
+            if can_node_change is not None:
+                await get_bus().set_cfg_byte(node_id, can_node_field.offset, can_node_change, wait_ack=False)
+                effective_node_id = can_node_change
+
+            if req.save or req.reboot:
+                await get_bus().save_config(effective_node_id, reboot=req.reboot)
+            return {"ok": True, "bytes_changed": len(changes) + (1 if can_node_change is not None else 0), "reboot_required": reboot_required, "node_id": effective_node_id}
+        except TimeoutError as exc:
+            raise HTTPException(status_code=504, detail=str(exc)) from exc
 
 
 @app.post("/api/devices/{node_id}/config/apply-preset")
@@ -643,6 +715,24 @@ async def apply_pcb_preset(node_id: Annotated[int, Path(ge=1, le=62)], req: Appl
     return result
 
 
+@app.post("/api/devices/{node_id}/config/sensor-auto-align")
+async def sensor_auto_align(node_id: Annotated[int, Path(ge=1, le=62)]):
+    async with exclusive_job_lock:
+        ok = await get_bus().sensor_auto_align(node_id)
+        if not ok:
+            raise HTTPException(status_code=400, detail="sensor auto-align failed or is not supported by this firmware")
+        raw = await get_bus().read_config(node_id, PROFILE_SIZE)
+        values = decode_config(raw)
+        return {
+            "ok": True,
+            "values": {
+                "motor.zeroOfs": values.get("motor.zeroOfs"),
+                "motor.senDirCW": values.get("motor.senDirCW"),
+            },
+            "reboot_required": False,
+        }
+
+
 @app.post("/api/devices/{node_id}/values")
 async def set_value(node_id: Annotated[int, Path(ge=1, le=63)], req: SetValueRequest):
     if exclusive_job_lock.locked() and req.value in {
@@ -674,27 +764,24 @@ async def flash(node_id: Annotated[int, Path(ge=1, le=62)], firmware: UploadFile
     data = firmware_payload(uploaded, firmware.filename or "")
     if not data:
         raise HTTPException(status_code=400, detail="empty firmware file")
-    job_id = next(job_counter)
-    job = FlashJob(id=job_id, node_id=node_id, filename=firmware.filename or "firmware.bin", total=len(data))
-    jobs[job_id] = job
+    job = _create_flash_job(node_id, firmware.filename or "firmware.bin", len(data))
+    _start_flash_job(job, lambda progress: get_bus().upload_firmware(node_id, data, progress))
+    return job
 
-    async def runner():
-        async with exclusive_job_lock:
-            job.state = "running"
 
-            def progress(done: int, total: int):
-                job.done = done
-                job.total = total
-
-            try:
-                job.crc = await get_bus().upload_firmware(node_id, data, progress)
-                job.done = job.total
-                job.state = "done"
-            except Exception as exc:
-                job.error = str(exc)
-                job.state = "failed"
-
-    asyncio.create_task(runner())
+@app.post("/api/devices/flash")
+async def flash_multi(node_ids: Annotated[str, Form()], firmware: UploadFile = File(...)):
+    try:
+        nodes = _validate_flash_nodes(json.loads(node_ids))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="invalid node_ids") from exc
+    uploaded = await firmware.read()
+    data = firmware_payload(uploaded, firmware.filename or "")
+    if not data:
+        raise HTTPException(status_code=400, detail="empty firmware file")
+    job = _create_flash_job(63, firmware.filename or "firmware.bin", len(data))
+    job.filename = f"{job.filename} ({', '.join(f'Node {node}' for node in nodes)})"
+    _start_flash_job(job, lambda progress: get_bus().upload_firmware_broadcast(nodes, data, progress))
     return job
 
 
@@ -714,27 +801,30 @@ async def flash_image(node_id: Annotated[int, Path(ge=1, le=62)], req: FlashImag
         raise HTTPException(status_code=404, detail="firmware image not found")
     raw = image.path.read_bytes() if image.path else download_url(image.url or "")
     data = firmware_payload(raw, image.name)
-    job_id = next(job_counter)
-    job = FlashJob(id=job_id, node_id=node_id, filename=image.name, total=len(data))
-    jobs[job_id] = job
+    job = _create_flash_job(node_id, image.name, len(data))
+    _start_flash_job(job, lambda progress: get_bus().upload_firmware(node_id, data, progress))
+    return job
 
-    async def runner():
-        async with exclusive_job_lock:
-            job.state = "running"
 
-            def progress(done: int, total: int):
-                job.done = done
-                job.total = total
-
-            try:
-                job.crc = await get_bus().upload_firmware(node_id, data, progress)
-                job.done = job.total
-                job.state = "done"
-            except Exception as exc:
-                job.error = str(exc)
-                job.state = "failed"
-
-    asyncio.create_task(runner())
+@app.post("/api/devices/flash-image")
+async def flash_image_multi(req: MultiFlashImageRequest):
+    nodes = _validate_flash_nodes(req.node_ids)
+    image = None
+    all_images = list_local_images(TOOLS_ROOT)
+    try:
+        all_images.extend(list_github_images())
+    except Exception:
+        pass
+    for candidate in all_images:
+        if candidate.id == req.image_id:
+            image = candidate
+            break
+    if image is None:
+        raise HTTPException(status_code=404, detail="firmware image not found")
+    raw = image.path.read_bytes() if image.path else download_url(image.url or "")
+    data = firmware_payload(raw, image.name)
+    job = _create_flash_job(63, f"{image.name} ({', '.join(f'Node {node}' for node in nodes)})", len(data))
+    _start_flash_job(job, lambda progress: get_bus().upload_firmware_broadcast(nodes, data, progress))
     return job
 
 
@@ -746,6 +836,20 @@ async def get_job(job_id: int):
     return job
 
 
+@app.post("/api/jobs/{job_id}/cancel")
+async def cancel_job(job_id: int):
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    if job.state in {"done", "failed", "cancelled"}:
+        return job
+    job.cancel_requested = True
+    if job.state == "queued":
+        job.state = "cancelled"
+        job.error = "cancelled by user"
+    return job
+
+
 @app.websocket("/ws/devices/{node_id}/telemetry")
 async def telemetry_ws(websocket: WebSocket, node_id: int):
     await websocket.accept()
@@ -753,5 +857,16 @@ async def telemetry_ws(websocket: WebSocket, node_id: int):
         while True:
             await websocket.send_json(await get_bus().telemetry(node_id))
             await asyncio.sleep(0.1)
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/ws/devices/scan")
+async def scan_ws(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        async for device in get_bus().scan_iter():
+            await websocket.send_json({"type": "device", "device": device})
+        await websocket.send_json({"type": "done"})
     except WebSocketDisconnect:
         return

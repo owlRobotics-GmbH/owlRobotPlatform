@@ -18,6 +18,7 @@ sudo systemd/install-system-service.sh
 ```
 
 The installer creates the Python environment, installs dependencies, generates the systemd unit for the detected path, enables it at boot, and starts it.
+On Debian/Ubuntu based systems it also installs the required OS packages with `apt-get` when available.
 
 When run through `sudo`, the installer uses `SUDO_USER` to find the real user's home directory. Override the detected values only when needed:
 
@@ -49,6 +50,8 @@ Required OS packages:
 
 - `python3`
 - `python3-venv`
+- `python3-dev`
+- `build-essential`
 - `systemd`
 
 SocketCAN must be configured by the platform setup. Example for `can0` at 1 Mbit/s:

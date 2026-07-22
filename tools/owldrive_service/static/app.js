@@ -2,6 +2,7 @@ const state = {
   devices: [],
   selected: null,
   ws: null,
+  scanWs: null,
   samples: [],
   jobs: new Map(),
   images: [],
@@ -32,6 +33,8 @@ const PLOT_SERIES = [
   { key: "target", label: "target", unit: "controller target", color: "#f94144" },
 ];
 
+const SENSOR_ALIGN_FIELDS = ["motor.alignV", "motor.senDirCW", "motor.zeroOfs"];
+
 function selectedNode() {
   if (!state.selected) throw new Error("No device selected");
   return state.selected.node_id;
@@ -39,8 +42,23 @@ function selectedNode() {
 
 async function api(path, options = {}) {
   const res = await fetch(path, options);
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseApiError(res));
   return res.json();
+}
+
+async function parseApiError(res) {
+  const text = await res.text();
+  if (!text) return `${res.status} ${res.statusText}`;
+  try {
+    const payload = JSON.parse(text);
+    if (typeof payload.detail === "string") return payload.detail;
+    if (Array.isArray(payload.detail)) {
+      return payload.detail.map((item) => item.msg || item.detail || JSON.stringify(item)).join("; ");
+    }
+  } catch (_err) {
+    return text;
+  }
+  return text;
 }
 
 function renderDevices() {
@@ -53,7 +71,8 @@ function renderDevices() {
   for (const device of state.devices) {
     const el = document.createElement("div");
     el.className = "device" + (state.selected?.node_id === device.node_id ? " active" : "");
-    el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms</div>`;
+    const errorText = device.error_text ? `, ${device.error === 0 ? "OK" : `Error: ${escapeHtml(device.error_text)}`}` : "";
+    el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms${errorText}</div>`;
     el.onclick = () => {
       const changed = state.selected?.node_id !== device.node_id;
       state.selected = device;
@@ -68,9 +87,49 @@ function renderDevices() {
 async function scan() {
   const info = await api("/api/interfaces");
   $("bus-status").textContent = `Active: ${info.active} | available: ${info.interfaces.join(", ") || "none"}`;
-  const data = await api("/api/devices");
-  state.devices = data.devices;
-  if (!state.selected && state.devices.length) state.selected = state.devices[0];
+  startDeviceScan();
+}
+
+function startDeviceScan() {
+  if (state.scanWs) state.scanWs.close();
+  state.devices = [];
+  state.selected = null;
+  $("selected-label").textContent = "No device";
+  $("devices").innerHTML = '<p class="muted">Scanning...</p>';
+  renderFlashDeviceList();
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  state.scanWs = new WebSocket(`${proto}://${location.host}/ws/devices/scan`);
+  state.scanWs.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "device") {
+      addScannedDevice(msg.device);
+      return;
+    }
+    if (msg.type === "done") {
+      state.scanWs?.close();
+      state.scanWs = null;
+      if (!state.devices.length) renderDevices();
+      renderFlashDeviceList();
+    }
+  };
+  state.scanWs.onerror = () => {
+    $("devices").innerHTML = '<p class="muted">Scan failed.</p>';
+  };
+  state.scanWs.onclose = () => {
+    state.scanWs = null;
+    renderFlashDeviceList();
+  };
+}
+
+function addScannedDevice(device) {
+  const idx = state.devices.findIndex((item) => item.node_id === device.node_id);
+  if (idx >= 0) state.devices[idx] = device;
+  else state.devices.push(device);
+  state.devices.sort((a, b) => a.node_id - b.node_id);
+  if (!state.selected) {
+    state.selected = device;
+    $("selected-label").textContent = `Node ${device.node_id}`;
+  }
   renderDevices();
   renderFlashDeviceList();
 }
@@ -235,53 +294,63 @@ function renderConfigEditor() {
     const grid = document.createElement("div");
     grid.className = "field-grid";
     for (const field of fields) {
-      const wrap = document.createElement("label");
-      wrap.className = "config-field";
-      wrap.dataset.path = field.path;
-      const value = state.configDraft[field.path];
-      const title = `${field.label}${field.reboot ? " (reboot)" : ""}`;
-      let input;
-      if (field.type === "bool") {
-        input = document.createElement("select");
-        input.innerHTML = '<option value="false">off</option><option value="true">on</option>';
-        input.value = value ? "true" : "false";
-      } else if (field.options) {
-        input = document.createElement("select");
-        field.options.forEach((name, idx) => {
-          const option = document.createElement("option");
-          option.value = String(idx);
-          option.textContent = name;
-          input.appendChild(option);
-        });
-        input.value = String(value ?? 0);
-      } else {
-        input = document.createElement("input");
-        input.type = field.type === "string" ? "text" : "number";
-        if (field.type === "float") input.step = field.precision === undefined || field.precision === null ? "any" : String(Math.pow(10, -field.precision));
-        else if (field.type !== "string") input.step = "1";
-        if (field.min !== null && field.min !== undefined) input.min = field.min;
-        if (field.max !== null && field.max !== undefined) input.max = field.max;
-        input.value = formatConfigValue(value, field);
+      if (group === "motor" && field.path === SENSOR_ALIGN_FIELDS[0]) {
+        grid.appendChild(renderSensorAlignGroup(fields));
+        continue;
       }
-      input.oninput = () => {
-        let next = input.value;
-        if (field.type === "bool") next = input.value === "true";
-        else if (field.type !== "string") next = Number(input.value);
-        state.configDraft[field.path] = next;
-        wrap.classList.toggle("changed", !sameConfigValue(state.configValues[field.path], next, field.type));
-      };
-      wrap.append(document.createTextNode(title), input);
-      if (field.reboot) {
-        const hint = document.createElement("span");
-        hint.className = "muted";
-        hint.textContent = "takes effect after reboot";
-        wrap.appendChild(hint);
+      if (group === "motor" && SENSOR_ALIGN_FIELDS.includes(field.path)) {
+        continue;
       }
-      grid.appendChild(wrap);
+      grid.appendChild(renderConfigField(field));
     }
     section.appendChild(grid);
     root.appendChild(section);
   }
+}
+
+function renderConfigField(field) {
+  const wrap = document.createElement("label");
+  wrap.className = "config-field";
+  wrap.dataset.path = field.path;
+  const value = state.configDraft[field.path];
+  const title = `${field.label}${field.reboot ? " (reboot)" : ""}`;
+  let input;
+  if (field.type === "bool") {
+    input = document.createElement("select");
+    input.innerHTML = '<option value="false">off</option><option value="true">on</option>';
+    input.value = value ? "true" : "false";
+  } else if (field.options) {
+    input = document.createElement("select");
+    field.options.forEach((name, idx) => {
+      const option = document.createElement("option");
+      option.value = String(idx);
+      option.textContent = name;
+      input.appendChild(option);
+    });
+    input.value = String(value ?? 0);
+  } else {
+    input = document.createElement("input");
+    input.type = field.type === "string" ? "text" : "number";
+    if (field.type === "float") input.step = field.precision === undefined || field.precision === null ? "any" : String(Math.pow(10, -field.precision));
+    else if (field.type !== "string") input.step = "1";
+    if (field.min !== null && field.min !== undefined) input.min = field.min;
+    if (field.max !== null && field.max !== undefined) input.max = field.max;
+    input.value = formatConfigValue(value, field);
+  }
+  input.oninput = () => {
+    const next = coerceConfigValue(input.value, field);
+    state.configDraft[field.path] = next;
+    wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], next, field));
+  };
+  wrap.classList.toggle("changed", !sameConfigFieldValue(state.configValues[field.path], value, field));
+  wrap.append(document.createTextNode(title), input);
+  if (field.reboot) {
+    const hint = document.createElement("span");
+    hint.className = "muted";
+    hint.textContent = "takes effect after reboot";
+    wrap.appendChild(hint);
+  }
+  return wrap;
 }
 
 function renderGroupTools(group) {
@@ -291,13 +360,10 @@ function renderGroupTools(group) {
     const select = document.createElement("select");
     select.id = "profile-preset";
     fillProfilePresetSelect(select);
-    const load = document.createElement("button");
-    load.textContent = "Load profiles";
-    load.onclick = () => loadPresets().then(renderConfigEditor).catch((err) => $("config-status").textContent = err.message);
     const apply = document.createElement("button");
     apply.textContent = "Apply profile";
     apply.onclick = () => applyPreset().catch((err) => $("config-status").textContent = err.message);
-    tools.append(select, load, apply);
+    tools.append(select, apply);
     return tools;
   }
   if (group === "motor") {
@@ -306,13 +372,10 @@ function renderGroupTools(group) {
     const select = document.createElement("select");
     select.id = "motor-preset";
     fillMotorPresetSelect(select);
-    const load = document.createElement("button");
-    load.textContent = "Load motors";
-    load.onclick = () => loadMotorPresets().then(renderConfigEditor).catch((err) => $("config-status").textContent = err.message);
     const apply = document.createElement("button");
     apply.textContent = "Load defaults";
     apply.onclick = () => applyMotorPreset().catch((err) => $("config-status").textContent = err.message);
-    tools.append(select, load, apply);
+    tools.append(select, apply);
     return tools;
   }
   if (group === "motion") {
@@ -321,13 +384,10 @@ function renderGroupTools(group) {
     const select = document.createElement("select");
     select.id = "motion-preset";
     fillMotionPresetSelect(select);
-    const load = document.createElement("button");
-    load.textContent = "Load motion presets";
-    load.onclick = () => loadMotionPresets().then(renderConfigEditor).catch((err) => $("config-status").textContent = err.message);
     const apply = document.createElement("button");
     apply.textContent = "Load defaults";
     apply.onclick = () => applyMotionPreset().catch((err) => $("config-status").textContent = err.message);
-    tools.append(select, load, apply);
+    tools.append(select, apply);
     return tools;
   }
   if (group === "pcb") {
@@ -336,16 +396,47 @@ function renderGroupTools(group) {
     const select = document.createElement("select");
     select.id = "pcb-preset";
     fillPcbPresetSelect(select);
-    const load = document.createElement("button");
-    load.textContent = "Load PCBs";
-    load.onclick = () => loadPcbPresets().then(renderConfigEditor).catch((err) => $("config-status").textContent = err.message);
     const apply = document.createElement("button");
     apply.textContent = "Load defaults";
     apply.onclick = () => applyPcbPreset().catch((err) => $("config-status").textContent = err.message);
-    tools.append(select, load, apply);
+    tools.append(select, apply);
     return tools;
   }
   return null;
+}
+
+function renderSensorAlignTool() {
+  const wrap = document.createElement("div");
+  wrap.className = "config-field";
+  const button = document.createElement("button");
+  button.textContent = "Sensor auto-align";
+  button.onclick = () => sensorAutoAlign().catch((err) => {
+    $("config-status").textContent = err.message;
+    const inline = $("sensor-align-status");
+    if (inline) inline.textContent = err.message;
+  });
+  const status = document.createElement("span");
+  status.id = "sensor-align-status";
+  status.className = "muted";
+  status.textContent = "updates sensor direction and zero offset";
+  wrap.append(button, status);
+  return wrap;
+}
+
+function renderSensorAlignGroup(fields) {
+  const group = document.createElement("div");
+  group.className = "config-subgroup sensor-align-group";
+  const title = document.createElement("h4");
+  title.textContent = "Sensor alignment";
+  const grid = document.createElement("div");
+  grid.className = "field-grid";
+  grid.appendChild(renderSensorAlignTool());
+  for (const path of SENSOR_ALIGN_FIELDS) {
+    const field = fields.find((item) => item.path === path);
+    if (field) grid.appendChild(renderConfigField(field));
+  }
+  group.append(title, grid);
+  return group;
 }
 
 function fillProfilePresetSelect(select) {
@@ -443,9 +534,24 @@ function formatConfigValue(value, field) {
   return String(value);
 }
 
+function coerceConfigValue(value, field) {
+  if (field.type === "bool") return value === true || value === "true" || value === 1 || value === "1";
+  if (field.type === "string") return String(value ?? "");
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function sameConfigValue(a, b, type) {
   if (type === "float") return Math.abs(Number(a) - Number(b)) < 0.00001;
   return String(a) === String(b);
+}
+
+function sameConfigFieldValue(a, b, field) {
+  if (field.type !== "float") return sameConfigValue(a, b, field.type);
+  if (field.precision !== null && field.precision !== undefined) {
+    return Math.abs(Number(a) - Number(b)) <= Math.pow(10, -field.precision) / 2;
+  }
+  return sameConfigValue(a, b, field.type);
 }
 
 function changedConfigValues() {
@@ -454,17 +560,114 @@ function changedConfigValues() {
     if (field.visible === false) continue;
     const oldValue = state.configValues[field.path];
     const newValue = state.configDraft[field.path];
-    if (!sameConfigValue(oldValue, newValue, field.type)) values[field.path] = newValue;
+    if (!sameConfigFieldValue(oldValue, newValue, field)) values[field.path] = newValue;
   }
   return values;
 }
 
+function confirmChangedCanNodeId() {
+  const node = selectedNode();
+  const draftNodeId = Number(state.configDraft.canNodeId);
+  if (!Number.isFinite(draftNodeId) || draftNodeId === node) return true;
+  return window.confirm(
+    `The config CAN node ID is ${draftNodeId}, but the selected device is Node ${node}.\n\n` +
+    `Do you really want to write CAN node ID ${draftNodeId} to this device?\n\n` +
+    `OK: write the changed CAN node ID\n` +
+    `Cancel: abort so you can correct the value`
+  );
+}
+
 async function writeConfig(save = false, reboot = false) {
+  if (!confirmChangedCanNodeId()) {
+    $("config-status").textContent = "Write aborted: CAN node ID differs from selected device";
+    return;
+  }
   const changes = changedConfigValues();
   $("config-status").textContent = `Writing ${Object.keys(changes).length} fields...`;
   const result = await jsonRequest("PATCH", `/api/devices/${selectedNode()}/config`, { values: changes, save, reboot });
   $("config-status").textContent = `OK, ${result.bytes_changed} bytes changed${result.reboot_required ? ", reboot recommended" : ""}`;
   if (!reboot) await loadConfig();
+}
+
+async function exportConfig() {
+  const node = selectedNode();
+  if (!Object.keys(state.configValues).length) await loadConfig();
+  const exportedAt = new Date();
+  const payload = {
+    format: "owldrive-config",
+    version: 1,
+    exported_at: exportedAt.toISOString(),
+    node_id: node,
+    firmware_version: state.selected?.firmware_version ?? null,
+    values: exportConfigValues(),
+  };
+  const text = JSON.stringify(payload, null, 2);
+  const stamp = exportedAt.toISOString().replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-");
+  downloadTextFile(`owldrive-node${node}-config-${stamp}.json`, text);
+  $("config-status").textContent = `Exported node ${node} config`;
+}
+
+function exportConfigValues() {
+  const values = {};
+  const knownPaths = new Set();
+  for (const field of state.configSchema) {
+    knownPaths.add(field.path);
+    if (!Object.prototype.hasOwnProperty.call(state.configValues, field.path)) continue;
+    values[field.path] = formatConfigExportValue(state.configValues[field.path], field);
+  }
+  for (const [path, value] of Object.entries(state.configValues)) {
+    if (!knownPaths.has(path)) values[path] = value;
+  }
+  return values;
+}
+
+function formatConfigExportValue(value, field) {
+  if (value === null || value === undefined) return value;
+  if (field.type === "float" && field.precision !== null && field.precision !== undefined) {
+    return Number(Number(value).toFixed(field.precision));
+  }
+  if (field.type !== "string" && field.type !== "bool") return Number(value);
+  return value;
+}
+
+async function importConfigFile(file) {
+  selectedNode();
+  if (!state.configSchema.length) await loadConfigSchema();
+  if (!Object.keys(state.configValues).length) await loadConfig();
+  const raw = JSON.parse(await file.text());
+  const values = raw && typeof raw === "object" && raw.values && typeof raw.values === "object" ? raw.values : raw;
+  if (!values || typeof values !== "object" || Array.isArray(values)) throw new Error("Import file does not contain config values");
+
+  let imported = 0;
+  let skipped = 0;
+  for (const field of state.configSchema) {
+    if (field.visible === false) continue;
+    if (!Object.prototype.hasOwnProperty.call(values, field.path)) continue;
+    state.configDraft[field.path] = coerceConfigValue(values[field.path], field);
+    imported += 1;
+  }
+  for (const path of Object.keys(values)) {
+    const field = state.configSchema.find((item) => item.path === path);
+    if (!field || field.visible === false) skipped += 1;
+  }
+
+  renderConfigSummary();
+  renderConfigEditor();
+  selectPresetCombosByCurrentNames();
+  const changed = Object.keys(changedConfigValues()).length;
+  $("config-status").textContent = `Imported ${imported} fields, ${changed} changed${skipped ? `, ${skipped} skipped` : ""}. Use Write to send them.`;
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function applyPreset() {
@@ -492,6 +695,20 @@ async function applyMotorPreset() {
   });
   $("config-status").textContent = `Motor defaults loaded, ${result.bytes_changed} bytes changed, reboot recommended`;
   await loadConfig();
+}
+
+async function sensorAutoAlign() {
+  $("config-status").textContent = "Running sensor auto-align...";
+  const startStatus = $("sensor-align-status");
+  if (startStatus) startStatus.textContent = "Running...";
+  const result = await postJSON(`/api/devices/${selectedNode()}/config/sensor-auto-align`, {});
+  await loadConfig();
+  const zeroOfs = Number(result.values?.["motor.zeroOfs"]);
+  const direction = result.values?.["motor.senDirCW"] ? "CW" : "CCW";
+  const message = `Sensor auto-align complete: zero offset ${Number.isFinite(zeroOfs) ? zeroOfs.toFixed(4) : "updated"}, direction ${direction}`;
+  $("config-status").textContent = message;
+  const inlineStatus = $("sensor-align-status");
+  if (inlineStatus) inlineStatus.textContent = message;
 }
 
 async function applyMotionPreset() {
@@ -604,7 +821,10 @@ function renderMetrics(sample) {
   for (const key of ["target", "velocity", "angle", "current", "voltage", "supply_voltage", "error"]) {
     const el = document.createElement("div");
     el.className = "metric";
-    el.innerHTML = `<span class="muted">${key}</span><strong>${typeof sample[key] === "number" ? sample[key].toFixed(3) : sample[key]}</strong>`;
+    const value = key === "error"
+      ? `${sample.error ?? "Unknown"} - ${sample.error_text || "Unknown"}`
+      : (typeof sample[key] === "number" ? sample[key].toFixed(3) : sample[key]);
+    el.innerHTML = `<span class="muted">${key}</span><strong>${escapeHtml(String(value))}</strong>`;
     root.appendChild(el);
   }
 }
@@ -829,19 +1049,116 @@ async function flashNode(node) {
   if (!file) throw new Error("No firmware selected");
   const form = new FormData();
   form.append("firmware", file);
-  const job = await api(`/api/devices/${node}/flash`, { method: "POST", body: form });
-  state.jobs.set(job.id, job);
-  renderJobs();
-  pollJob(job.id);
+  try {
+    const job = await api(`/api/devices/${node}/flash`, { method: "POST", body: form });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError(node, file.name, err.message);
+  }
 }
 
 async function flashImageNode(node) {
   const imageId = $("firmware-image").value;
   if (!imageId) throw new Error("No image selected");
-  const job = await postJSON(`/api/devices/${node}/flash-image`, { image_id: imageId });
-  state.jobs.set(job.id, job);
+  const image = state.images.find((item) => item.id === imageId);
+  try {
+    const job = await postJSON(`/api/devices/${node}/flash-image`, { image_id: imageId });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError(node, image?.name || imageId, err.message);
+  }
+}
+
+function checkedFlashDevices() {
+  const devices = state.devices.filter((device) => state.flashDevices.has(device.node_id));
+  if (!devices.length) throw new Error("No devices checked");
+  return devices;
+}
+
+function flashCheckedFile() {
+  const file = $("firmware").files[0];
+  if (!file) {
+    showFlashStartError("checked", "external image", "No firmware selected");
+    return;
+  }
+  try {
+    flashFileNodes(checkedFlashDevices().map((device) => device.node_id)).catch((err) => {
+      showFlashStartError("checked", file.name, err.message);
+    });
+  } catch (err) {
+    showFlashStartError("checked", file.name, err.message);
+  }
+}
+
+function flashCheckedImage() {
+  const imageId = $("firmware-image").value;
+  const image = state.images.find((item) => item.id === imageId);
+  if (!imageId || !image) {
+    showFlashStartError("checked", "built-in image", "No image selected");
+    return;
+  }
+  try {
+    flashImageNodes(checkedFlashDevices().map((device) => device.node_id)).catch((err) => {
+      showFlashStartError("checked", image.name, err.message);
+    });
+  } catch (err) {
+    showFlashStartError("checked", image.name, err.message);
+  }
+}
+
+async function flashFileNodes(nodeIds) {
+  const file = $("firmware").files[0];
+  if (!file) throw new Error("No firmware selected");
+  if (nodeIds.length === 1) {
+    await flashNode(nodeIds[0]);
+    return;
+  }
+  const form = new FormData();
+  form.append("firmware", file);
+  form.append("node_ids", JSON.stringify(nodeIds));
+  try {
+    const job = await api("/api/devices/flash", { method: "POST", body: form });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError("checked", file.name, err.message);
+  }
+}
+
+async function flashImageNodes(nodeIds) {
+  if (nodeIds.length === 1) {
+    await flashImageNode(nodeIds[0]);
+    return;
+  }
+  const imageId = $("firmware-image").value;
+  const image = state.images.find((item) => item.id === imageId);
+  try {
+    const job = await postJSON("/api/devices/flash-image", { image_id: imageId, node_ids: nodeIds });
+    state.jobs.set(job.id, job);
+    renderJobs();
+    pollJob(job.id);
+  } catch (err) {
+    showFlashStartError("checked", image?.name || imageId, err.message);
+  }
+}
+
+function showFlashStartError(node, filename, message) {
+  const id = `flash-error-${Date.now()}`;
+  state.jobs.set(id, {
+    id,
+    node_id: node,
+    filename,
+    done: 0,
+    total: 1,
+    state: "failed",
+    error: message,
+  });
   renderJobs();
-  pollJob(job.id);
 }
 
 async function pollJob(id) {
@@ -849,8 +1166,14 @@ async function pollJob(id) {
     const job = await api(`/api/jobs/${id}`);
     state.jobs.set(id, job);
     renderJobs();
-    if (job.state === "done" || job.state === "failed") clearInterval(timer);
+    if (job.state === "done" || job.state === "failed" || job.state === "cancelled") clearInterval(timer);
   }, 500);
+}
+
+async function cancelJob(id) {
+  const job = await postJSON(`/api/jobs/${id}/cancel`, {});
+  state.jobs.set(id, job);
+  renderJobs();
 }
 
 function renderJobs() {
@@ -860,9 +1183,28 @@ function renderJobs() {
     const pct = Math.round((job.done / Math.max(1, job.total)) * 100);
     const el = document.createElement("div");
     el.className = "job";
-    el.innerHTML = `<strong>Job ${job.id}: Node ${job.node_id}</strong><div class="muted">${job.state} ${pct}% ${job.error || ""}</div>`;
+    const canCancel = job.state === "queued" || job.state === "running";
+    const action = canCancel ? `<button data-cancel-job="${job.id}">Cancel</button>` : "";
+    el.innerHTML = `
+      <div>
+        <strong>Job ${job.id}: Node ${job.node_id}</strong>
+        <div class="muted">${job.filename || ""}</div>
+        <div class="muted">${job.state} ${pct}% ${job.error || ""}</div>
+      </div>
+      ${action}
+    `;
     root.appendChild(el);
   }
+  root.querySelectorAll("[data-cancel-job]").forEach((button) => {
+    button.onclick = () => cancelJob(button.dataset.cancelJob).catch((err) => {
+      const job = state.jobs.get(Number(button.dataset.cancelJob)) || state.jobs.get(button.dataset.cancelJob);
+      if (job) {
+        job.error = err.message;
+        state.jobs.set(job.id, job);
+        renderJobs();
+      }
+    });
+  });
 }
 
 document.querySelectorAll(".tabs button").forEach((button) => {
@@ -893,14 +1235,21 @@ $("target-zero").onclick = () => {
   setTargetDraft(0);
   sendTarget().catch((err) => $("target-status").textContent = err.message);
 };
-$("save-config").onclick = () => postJSON(`/api/devices/${selectedNode()}/save-config`, { reboot: false });
-$("save-reboot").onclick = () => postJSON(`/api/devices/${selectedNode()}/save-config`, { reboot: true });
 $("send-can").onclick = () => postJSON(`/api/devices/${selectedNode()}/values`, { value: Number($("can-value").value), data: Number($("can-data").value) });
-$("flash-selected").onclick = () => flashNode(selectedNode());
-$("flash-all").onclick = () => state.devices.filter((d) => state.flashDevices.has(d.node_id)).forEach((d) => flashNode(d.node_id));
-$("refresh-images").onclick = () => loadImages();
-$("flash-image-selected").onclick = () => flashImageNode(selectedNode());
+$("choose-firmware").onclick = () => $("firmware").click();
+$("firmware").onchange = () => {
+  $("firmware-name").textContent = $("firmware").files[0]?.name || "No file selected";
+};
+$("flash-file-checked").onclick = flashCheckedFile;
+$("flash-image-checked").onclick = flashCheckedImage;
 $("load-config").onclick = () => loadConfig().catch((err) => $("config-status").textContent = err.message);
+$("export-config").onclick = () => exportConfig().catch((err) => $("config-status").textContent = err.message);
+$("import-config").onclick = () => $("import-config-file").click();
+$("import-config-file").onchange = () => {
+  const file = $("import-config-file").files[0];
+  if (file) importConfigFile(file).catch((err) => $("config-status").textContent = err.message);
+  $("import-config-file").value = "";
+};
 $("write-config").onclick = () => writeConfig(false, false).catch((err) => $("config-status").textContent = err.message);
 $("write-save-config").onclick = () => writeConfig(true, false).catch((err) => $("config-status").textContent = err.message);
 $("write-save-reboot").onclick = () => writeConfig(true, true).catch((err) => $("config-status").textContent = err.message);
@@ -908,13 +1257,6 @@ $("refresh-can-users").onclick = () => loadCanUsers().catch((err) => $("can-user
 $("stop-can-services").onclick = () => stopCanServices().catch((err) => $("can-users-status").textContent = err.message);
 $("start-stopped-can-services").onclick = () => startStoppedCanServices().catch((err) => $("can-users-status").textContent = err.message);
 $("filter-can-active").onchange = renderCanUsers;
-
-document.querySelectorAll("[data-send]").forEach((button) => {
-  button.onclick = () => postJSON(`/api/devices/${selectedNode()}/values`, {
-    value: Number(button.dataset.send),
-    data: Number($(button.dataset.input).value),
-  });
-});
 
 scan().catch((err) => {
   $("bus-status").textContent = err.message;
