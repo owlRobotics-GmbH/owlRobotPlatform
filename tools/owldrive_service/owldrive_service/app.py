@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     can_bitrate: int = 1_000_000
     host_node_id: int = 62
     can_msg_id: int = 300
+    service_user: str = ""
 
     class Config:
         env_prefix = "OWLDRIVE_"
@@ -335,12 +336,16 @@ def _safe_service_owner(owner: Optional[str]) -> Optional[str]:
 
 def _run_systemctl(scope: str, args: list[str], timeout: float = 3, owner: Optional[str] = None) -> subprocess.CompletedProcess[str]:
     service_owner = _safe_service_owner(owner) if scope == "user" else None
-    if scope == "user" and service_owner and service_owner != pwd.getpwuid(os.geteuid()).pw_name:
+    if scope == "user" and os.geteuid() == 0:
+        service_owner = service_owner or _safe_service_owner(settings.service_user.strip()) or pwd.getpwuid(SERVICE_ROOT.stat().st_uid).pw_name
+        owner_uid = pwd.getpwnam(service_owner).pw_uid
+        cmd = ["runuser", "-u", service_owner, "--", "env", f"XDG_RUNTIME_DIR=/run/user/{owner_uid}", "systemctl", "--user", *args]
+    elif scope == "user" and service_owner and service_owner != pwd.getpwuid(os.geteuid()).pw_name:
         cmd = ["systemctl", "--user", f"--machine={service_owner}@.host", *args]
     else:
         cmd = ["systemctl", "--user", *args] if scope == "user" else ["systemctl", *args]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
-    if os.geteuid() != 0 and scope == "system" and proc.returncode != 0 and args and args[0] in {"start", "stop", "restart"}:
+    if os.geteuid() != 0 and scope == "system" and proc.returncode != 0 and args and args[0] in {"start", "stop", "restart", "enable", "disable"}:
         sudo_cmd = ["sudo", "-n", "systemctl", *args]
         sudo_proc = subprocess.run(sudo_cmd, capture_output=True, text=True, timeout=timeout, check=False)
         if sudo_proc.returncode == 0 or "a password is required" not in sudo_proc.stderr:
@@ -382,6 +387,20 @@ def _service_units(scope: str, owner: Optional[str] = None) -> list[dict[str, An
             "main_pid": main_pid,
             "cmdline": _process_cmdline(main_pid) if main_pid else "",
             "owner": owner if scope == "user" else None,
+        })
+    listed_names = {unit["name"] for unit in units}
+    for name, state in enabled.items():
+        if name in listed_names:
+            continue
+        units.append({
+            "name": name,
+            "load": "loaded",
+            "active": "inactive",
+            "sub": "dead",
+            "enabled": state,
+            "description": "",
+            "main_pid": 0,
+            "cmdline": "",
         })
     return units
 
@@ -574,13 +593,13 @@ async def stop_can_services():
         if not service["can_stop"]:
             skipped.append({"service": service["name"], "scope": service["scope"], "reason": "stop not allowed"})
             continue
-        proc = _run_systemctl(service["scope"], ["stop", service["name"]], timeout=10, owner=service.get("owner"))
+        proc = _run_systemctl(service["scope"], ["disable", "--now", service["name"]], timeout=10, owner=service.get("owner"))
         item = {"service": service["name"], "scope": service["scope"]}
         if proc.returncode == 0:
             stopped.append(item)
             _remember_stopped_can_service(service)
         else:
-            item["error"] = proc.stderr.strip() or proc.stdout.strip() or "systemctl stop failed"
+            item["error"] = proc.stderr.strip() or proc.stdout.strip() or "systemctl disable --now failed"
             failed.append(item)
     return {"ok": not failed, "stopped": stopped, "failed": failed, "skipped": skipped, "detection_error": error}
 
@@ -603,12 +622,12 @@ async def start_stopped_can_services():
             item["error"] = "invalid stored service"
             failed.append(item)
             continue
-        proc = _run_systemctl(scope, ["start", name], timeout=10, owner=service.get("owner"))
+        proc = _run_systemctl(scope, ["enable", "--now", name], timeout=10, owner=service.get("owner"))
         if proc.returncode == 0:
             started.append(item)
             _forget_stopped_can_service(scope, name)
         else:
-            item["error"] = proc.stderr.strip() or proc.stdout.strip() or "systemctl start failed"
+            item["error"] = proc.stderr.strip() or proc.stdout.strip() or "systemctl enable --now failed"
             failed.append(item)
     return {"ok": not failed, "started": started, "failed": failed}
 
@@ -641,7 +660,8 @@ async def control_service(service_name: str, req: ServiceActionRequest):
             and service["name"] == service_name and service.get("owner") == owner and service["can_active"]), None)
     if scope == "user" and not owner:
         raise HTTPException(status_code=400, detail="user service owner is required")
-    proc = _run_systemctl(scope, [action, service_name], timeout=10, owner=owner)
+    systemctl_args = ["enable", "--now", service_name] if action == "start" else ["disable", "--now", service_name]
+    proc = _run_systemctl(scope, systemctl_args, timeout=10, owner=owner)
     if proc.returncode != 0:
         detail = proc.stderr.strip() or proc.stdout.strip() or f"systemctl {action} failed"
         raise HTTPException(status_code=500, detail=detail)

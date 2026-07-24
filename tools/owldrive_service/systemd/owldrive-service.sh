@@ -65,6 +65,7 @@ Environment=OWLDRIVE_CAN_CHANNEL=can0
 Environment=OWLDRIVE_CAN_BITRATE=1000000
 Environment=OWLDRIVE_HOST_NODE_ID=62
 Environment=OWLDRIVE_CAN_MSG_ID=300
+Environment=OWLDRIVE_SERVICE_USER=$RUN_USER
 ExecStart=$SERVICE_DIR/.venv/bin/uvicorn owldrive_service.app:app --host 0.0.0.0 --port 8080
 Restart=on-failure
 RestartSec=2
@@ -131,6 +132,8 @@ ensure_environment() {
 $RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl start *.service
 $RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl stop *.service
 $RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl restart *.service
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl enable --now *.service
+$RUN_USER ALL=(root) NOPASSWD: /usr/bin/systemctl disable --now *.service
 $RUN_USER ALL=(root) NOPASSWD: /usr/bin/lsof -nP
 EOF
     visudo -cf "$tmp" >/dev/null

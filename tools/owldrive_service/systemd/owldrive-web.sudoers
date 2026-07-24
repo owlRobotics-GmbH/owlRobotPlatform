@@ -1,4 +1,6 @@
 @SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl start *.service
 @SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl stop *.service
 @SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl restart *.service
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl enable --now *.service
+@SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/systemctl disable --now *.service
 @SERVICE_USER@ ALL=(root) NOPASSWD: /usr/bin/lsof -nP

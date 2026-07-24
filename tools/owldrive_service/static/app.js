@@ -15,6 +15,7 @@ const state = {
   pcbPresets: [],
   flashDevices: new Set(),
   canServices: [],
+  canServicePins: new Set(),
   canUsers: [],
   canReceiveLists: [],
   systemPermissions: null,
@@ -232,6 +233,9 @@ async function loadCanUsers() {
   ]);
   state.systemPermissions = permissions;
   state.canServices = data.services || [];
+  for (const service of state.canServices) {
+    if (service.can_active) state.canServicePins.delete(`${service.scope}:${service.owner || ""}:${service.name}`);
+  }
   state.canUsers = state.canServices.flatMap((service) => service.can_users || []);
   state.canReceiveLists = data.receive_lists || [];
   renderCanUsers();
@@ -844,15 +848,31 @@ function renderCanUsers() {
   const root = $("can-users");
   root.innerHTML = "";
   const onlyCanActive = $("filter-can-active")?.checked || false;
-  const services = onlyCanActive ? state.canServices.filter((service) => service.can_active) : state.canServices;
+  const services = onlyCanActive
+    ? state.canServices.filter((service) => service.can_active || service.stopped_can_record || state.canServicePins.has(`${service.scope}:${service.owner || ""}:${service.name}`))
+    : state.canServices;
   updateCanUsersStatus();
   if (!services.length) {
-    root.innerHTML = `<p class="muted">${onlyCanActive ? "No services with active CAN sockets found." : "No services found."}</p>`;
+    root.innerHTML = `<p class="muted">${onlyCanActive ? "No active or previously stopped CAN services found." : "No services found."}</p>`;
     return;
   }
   for (const service of services) {
     const el = document.createElement("div");
     el.className = "service-row";
+    const serviceState = service.active === "active"
+      ? "active"
+      : (service.active === "failed" || service.sub === "failed")
+        ? "failed"
+        : service.active === "inactive"
+          ? "inactive"
+          : "pending";
+    const serviceStateText = serviceState === "active"
+      ? "Running"
+      : serviceState === "failed"
+        ? "Failed"
+        : serviceState === "inactive"
+          ? "Stopped"
+          : (service.active || "Unknown");
     const canUsers = service.can_users || [];
     const canText = service.can_active ? `${service.can_socket_count} CAN socket${service.can_socket_count === 1 ? "" : "s"}` : "no CAN socket";
     const cmdline = service.cmdline ? `<code>${escapeHtml(service.cmdline)}</code>` : "";
@@ -864,11 +884,14 @@ function renderCanUsers() {
       : '<span class="muted">No active CAN socket detected.</span>';
     el.innerHTML = `
       <div>
-        <strong>${escapeHtml(service.name)}</strong>
+        <div class="service-heading">
+          <strong>${escapeHtml(service.name)}</strong>
+          <span class="service-state service-state-${serviceState}"><span class="service-state-dot" aria-hidden="true"></span>${escapeHtml(serviceStateText)}</span>
+        </div>
         <div class="muted">${escapeHtml(service.scope)}${service.owner ? ` (${escapeHtml(service.owner)})` : ""} | ${escapeHtml(service.active)} / ${escapeHtml(service.sub)} | ${escapeHtml(service.enabled)} | ${escapeHtml(canText)}</div>
         <div class="service-actions">
-          <button data-service-action="start" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_start ? "" : "disabled"}>Start</button>
-          <button data-service-action="stop" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_stop ? "" : "disabled"}>Stop</button>
+          <button data-service-action="start" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_start && service.active !== "active" ? "" : "disabled"}>Start</button>
+          <button data-service-action="stop" data-service-name="${escapeHtml(service.name)}" data-service-scope="${escapeHtml(service.scope)}" data-service-owner="${escapeHtml(service.owner || "")}" ${service.can_stop && service.active === "active" ? "" : "disabled"}>Stop</button>
         </div>
       </div>
       <div>
@@ -900,7 +923,8 @@ function updateCanUsersStatus(error = "") {
   }
   const total = state.canServices.length;
   const canActive = state.canServices.filter((service) => service.can_active).length;
-  const shown = $("filter-can-active")?.checked ? canActive : total;
+  const canRelevant = state.canServices.filter((service) => service.can_active || service.stopped_can_record || state.canServicePins.has(`${service.scope}:${service.owner || ""}:${service.name}`)).length;
+  const shown = $("filter-can-active")?.checked ? canRelevant : total;
   const mode = state.systemPermissions?.full_can_detection ? "full detection" : "limited detection";
   $("can-users-status").textContent = `${shown} shown, ${total} total, ${canActive} using CAN, ${mode}`;
 }
@@ -1028,9 +1052,23 @@ function stopTargetHold(sendFinal = true) {
 }
 
 async function controlService(name, action, scope, owner = "") {
+  const serviceKey = `${scope}:${owner}:${name}`;
   $("can-users-status").textContent = `${action === "start" ? "Starting" : "Stopping"} ${name}...`;
-  await postJSON(`/api/system/services/${encodeURIComponent(name)}`, { action, scope, owner: owner || null });
-  await loadCanUsers();
+  if (action === "start") state.canServicePins.add(serviceKey);
+  try {
+    await postJSON(`/api/system/services/${encodeURIComponent(name)}`, { action, scope, owner: owner || null });
+    await loadCanUsers();
+    if (action === "start") {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (state.canServices.some((service) => service.scope === scope && service.name === name && (service.owner || "") === owner && service.can_active)) break;
+        await delay(750);
+        await loadCanUsers();
+      }
+    }
+  } catch (err) {
+    state.canServicePins.delete(serviceKey);
+    throw err;
+  }
 }
 
 async function stopCanServices() {
