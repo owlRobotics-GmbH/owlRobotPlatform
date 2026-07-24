@@ -334,10 +334,17 @@ def _safe_service_owner(owner: Optional[str]) -> Optional[str]:
     return owner
 
 
+def _default_service_owner() -> str:
+    configured_owner = _safe_service_owner(settings.service_user.strip())
+    if configured_owner:
+        return configured_owner
+    return pwd.getpwuid(SERVICE_ROOT.stat().st_uid).pw_name
+
+
 def _run_systemctl(scope: str, args: list[str], timeout: float = 3, owner: Optional[str] = None) -> subprocess.CompletedProcess[str]:
     service_owner = _safe_service_owner(owner) if scope == "user" else None
     if scope == "user" and os.geteuid() == 0:
-        service_owner = service_owner or _safe_service_owner(settings.service_user.strip()) or pwd.getpwuid(SERVICE_ROOT.stat().st_uid).pw_name
+        service_owner = service_owner or _default_service_owner()
         owner_uid = pwd.getpwnam(service_owner).pw_uid
         cmd = ["runuser", "-u", service_owner, "--", "env", f"XDG_RUNTIME_DIR=/run/user/{owner_uid}", "systemctl", "--user", *args]
     elif scope == "user" and service_owner and service_owner != pwd.getpwuid(os.geteuid()).pw_name:
@@ -533,8 +540,11 @@ def _detected_services() -> tuple[list[dict[str, Any]], str]:
     for unit in _service_units("system"):
         by_key[("system", "", unit["name"])] = {**unit, "scope": "system"}
     user_services = {(owner, service) for scope, owner, service in can_by_service if scope == "user" and _safe_service_owner(owner)}
-    user_services.update((record.get("owner"), record.get("name")) for record in stopped_can_services.values()
-        if record.get("scope") == "user" and _safe_service_owner(record.get("owner")) and _service_name_is_safe(record.get("name", "")))
+    for record in stopped_can_services.values():
+        if record.get("scope") != "user" or not _service_name_is_safe(record.get("name", "")):
+            continue
+        owner = _safe_service_owner(record.get("owner")) or _default_service_owner()
+        user_services.add((owner, record["name"]))
     for owner, service in sorted(user_services):
         unit = _service_unit("user", service, owner)
         by_key[("user", owner, service)] = {**unit, "scope": "user", "owner": owner}
