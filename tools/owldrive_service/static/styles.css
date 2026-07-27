@@ -343,6 +343,52 @@ canvas {
   grid-template-columns: minmax(190px, 280px) 1fr;
 }
 
+.service-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.service-state {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 5px;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.service-state-dot {
+  background: currentColor;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.service-state-active {
+  background: #e6f5ea;
+  color: #176b31;
+}
+
+.service-state-inactive {
+  background: #fbe9e9;
+  color: #a11f1f;
+}
+
+.service-state-failed {
+  background: #f6dada;
+  color: #7d1111;
+}
+
+.service-state-pending {
+  background: #fff3d6;
+  color: #805900;
+}
+
 .service-row code {
   background: #f4f6f7;
   border: 1px solid #d8e0e4;

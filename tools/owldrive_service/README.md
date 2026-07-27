@@ -69,7 +69,8 @@ sudo ip link set can0 up
 - Live telemetry plot over WebSocket
 - Config editor with profile, motor, motion, and PCB presets
 - Multi-device firmware flashing from `tools/flash`
-- Linux service overview for processes using CAN
+- Linux service overview including running and stopped services
+- Persistent per-service start/stop controls (`enable --now` / `disable --now`)
 
 ## Developer Notes
 
