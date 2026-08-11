@@ -1,5 +1,6 @@
 const state = {
   devices: [],
+  rcSwitch: null,
   selected: null,
   ws: null,
   scanWs: null,
@@ -65,13 +66,27 @@ async function parseApiError(res) {
 function renderDevices() {
   const root = $("devices");
   root.innerHTML = "";
-  if (!state.devices.length) {
+  if (!state.devices.length && !state.rcSwitch?.online) {
     root.innerHTML = '<p class="muted">No devices found.</p>';
     return;
   }
+  if (state.rcSwitch?.online) {
+    const device = state.rcSwitch;
+    const el = document.createElement("div");
+    el.className = "device rc-switch-device" + (state.selected?.device_type === "rc_switch" ? " active" : "");
+    el.innerHTML = `<strong>RC-Switch — Node ${device.node_id}</strong><div class="muted">CAN ID ${device.message_id}, FW ${device.firmware_version}, ${device.answer_ms} ms</div>`;
+    el.onclick = () => {
+      const changed = state.selected?.device_type !== "rc_switch";
+      state.selected = { ...device, device_type: "rc_switch" };
+      $("selected-label").textContent = `RC-Switch — Node ${device.node_id}`;
+      if (changed) resetDeviceViews();
+      renderDevices();
+    };
+    root.appendChild(el);
+  }
   for (const device of state.devices) {
     const el = document.createElement("div");
-    el.className = "device" + (state.selected?.node_id === device.node_id ? " active" : "");
+    el.className = "device" + (state.selected?.device_type !== "rc_switch" && state.selected?.node_id === device.node_id ? " active" : "");
     const errorText = device.error_text ? `, ${device.error === 0 ? "OK" : `Error: ${escapeHtml(device.error_text)}`}` : "";
     el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms${errorText}</div>`;
     el.onclick = () => {
@@ -89,6 +104,99 @@ async function scan() {
   const info = await api("/api/interfaces");
   $("bus-status").textContent = `Active: ${info.active} | available: ${info.interfaces.join(", ") || "none"}`;
   startDeviceScan();
+  refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
+}
+
+async function refreshRcSwitch() {
+  const device = await api("/api/rc-switch");
+  state.rcSwitch = device;
+  renderDevices();
+  $("rc-switch-status").textContent = device.online
+    ? `Online — Message-ID ${device.message_id}, Node ${device.node_id}, FW ${device.firmware_version}, ${device.answer_ms} ms`
+    : `Offline — Message-ID ${device.message_id}, Node ${device.node_id}`;
+}
+
+async function loadRcSwitchConfig() {
+  $("rc-config-status").textContent = "Loading...";
+  const data = await api("/api/rc-switch/config");
+  document.querySelectorAll("[data-rc-config]").forEach((input) => {
+    const value = data.values[input.dataset.rcConfig];
+    if (input.type === "checkbox") {
+      input.checked = Boolean(value);
+    } else if (/\.pid(P|I|D|Ramp)$/.test(input.dataset.rcConfig) && Number.isFinite(Number(value))) {
+      input.value = Number(value).toFixed(3);
+    } else {
+      input.value = value ?? "";
+    }
+  });
+  $("rc-config-status").textContent = `Loaded from Node ${data.node_id}`;
+}
+
+async function saveRcSwitchConfig() {
+  const values = {};
+  for (const input of document.querySelectorAll("[data-rc-config]")) {
+    const value = input.type === "checkbox" ? (input.checked ? 1 : 0) : Number(input.value);
+    if (!Number.isFinite(value)) throw new Error(`Invalid value for ${input.dataset.rcConfig}`);
+    values[input.dataset.rcConfig] = value;
+  }
+  $("rc-config-status").textContent = "Writing and saving...";
+  const result = await jsonRequest("PATCH", "/api/rc-switch/config", { values, save: true, reboot: false });
+  $("rc-config-status").textContent = `Saved (${result.bytes_changed} bytes changed)`;
+  await loadRcSwitchConfig();
+}
+
+function renderRcInputConfig() {
+  const root = $("rc-input-config");
+  root.innerHTML = "";
+  for (let channel = 1; channel <= 8; channel += 1) {
+    const card = document.createElement("div");
+    card.innerHTML = `<strong>Input ${channel}</strong>
+      <label>Minimum (µs)<input type="number" data-rc-config="input${channel}.minimumUs" min="800" max="2200" step="1" /></label>
+      <label>Neutral (µs)<input type="number" data-rc-config="input${channel}.neutralUs" min="800" max="2200" step="1" /></label>
+      <label>Maximum (µs)<input type="number" data-rc-config="input${channel}.maximumUs" min="800" max="2200" step="1" /></label>
+      <label>Deadzone (µs)<input type="number" data-rc-config="input${channel}.deadzoneUs" min="0" max="250" step="1" /></label>
+      <label class="inline-check"><input type="checkbox" data-rc-config="input${channel}.inverted" /> Input inverted</label>`;
+    root.appendChild(card);
+  }
+}
+
+function applyRcInputPreset() {
+  const presets = {
+    standard: [1000, 1500, 2000],
+    futaba: [1100, 1520, 1900],
+    graupner: [1000, 1500, 2000],
+    frsky: [988, 1500, 2012],
+  };
+  const values = presets[$("rc-input-preset").value];
+  if (!values) return;
+  for (let channel = 1; channel <= 8; channel += 1) {
+    document.querySelector(`[data-rc-config="input${channel}.minimumUs"]`).value = values[0];
+    document.querySelector(`[data-rc-config="input${channel}.neutralUs"]`).value = values[1];
+    document.querySelector(`[data-rc-config="input${channel}.maximumUs"]`).value = values[2];
+  }
+  $("rc-config-status").textContent = "Preset applied locally; press Write + save to store it";
+}
+
+async function controlRcCalibration(action) {
+  $("rc-config-status").textContent = action === "start"
+    ? "Calibration running — move all used controls through their full range"
+    : "Finishing calibration...";
+  await postJSON("/api/rc-switch/calibration", { action });
+  if (action === "finish") await loadRcSwitchConfig();
+}
+
+function trackFlashJob(job) {
+  state.jobs.set(job.id, job);
+  renderJobs();
+  pollJob(job.id);
+}
+
+async function flashRcSwitchFile() {
+  const file = $("rc-switch-firmware").files[0];
+  if (!file) throw new Error("No RC-Switch firmware selected");
+  const form = new FormData();
+  form.append("firmware", file);
+  trackFlashJob(await api("/api/rc-switch/flash", { method: "POST", body: form }));
 }
 
 function startDeviceScan() {
@@ -138,11 +246,20 @@ function addScannedDevice(device) {
 function renderFlashDeviceList() {
   const root = $("flash-device-list");
   root.innerHTML = "";
-  if (!state.devices.length) {
-    root.innerHTML = '<p class="muted">No devices found.</p>';
+  const rcSwitchInstalled = state.rcSwitch?.online === true;
+  const flashableDevices = state.devices.filter(
+    (device) => !rcSwitchInstalled || device.node_id > 3
+  );
+  for (const nodeId of [...state.flashDevices]) {
+    if (rcSwitchInstalled && nodeId <= 3) state.flashDevices.delete(nodeId);
+  }
+  if (!flashableDevices.length) {
+    root.innerHTML = rcSwitchInstalled
+      ? '<p class="muted">Nodes 1–3 are provided by the RC-Switch; no independent owlDrive nodes above Node 3 found.</p>'
+      : '<p class="muted">No owlDrive devices found.</p>';
     return;
   }
-  for (const device of state.devices) {
+  for (const device of flashableDevices) {
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -1123,7 +1240,10 @@ async function flashImageNode(node) {
 }
 
 function checkedFlashDevices() {
-  const devices = state.devices.filter((device) => state.flashDevices.has(device.node_id));
+  const rcSwitchInstalled = state.rcSwitch?.online === true;
+  const devices = state.devices.filter(
+    (device) => (!rcSwitchInstalled || device.node_id > 3) && state.flashDevices.has(device.node_id)
+  );
   if (!devices.length) throw new Error("No devices checked");
   return devices;
 }
@@ -1260,7 +1380,13 @@ document.querySelectorAll(".tabs button").forEach((button) => {
   button.onclick = () => {
     document.querySelectorAll(".tabs button, .tab").forEach((el) => el.classList.remove("active"));
     button.classList.add("active");
-    $(button.dataset.tab).classList.add("active");
+    const tabId = button.dataset.tab === "settings" && state.selected?.device_type === "rc_switch"
+      ? "rc-config"
+      : button.dataset.tab;
+    $(tabId).classList.add("active");
+    if (tabId === "rc-config") {
+      loadRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
+    }
   };
 });
 
@@ -1291,6 +1417,17 @@ $("firmware").onchange = () => {
 };
 $("flash-file-checked").onclick = flashCheckedFile;
 $("flash-image-checked").onclick = flashCheckedImage;
+$("refresh-rc-switch").onclick = () => refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
+$("load-rc-config").onclick = () => loadRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
+$("save-rc-config").onclick = () => saveRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
+$("apply-rc-input-preset").onclick = applyRcInputPreset;
+$("start-rc-calibration").onclick = () => controlRcCalibration("start").catch((err) => $("rc-config-status").textContent = err.message);
+$("finish-rc-calibration").onclick = () => controlRcCalibration("finish").catch((err) => $("rc-config-status").textContent = err.message);
+$("choose-rc-switch-firmware").onclick = () => $("rc-switch-firmware").click();
+$("rc-switch-firmware").onchange = () => {
+  $("rc-switch-firmware-name").textContent = $("rc-switch-firmware").files[0]?.name || "No file selected";
+};
+$("flash-rc-switch-file").onclick = () => flashRcSwitchFile().catch((err) => showFlashStartError(59, "RC-Switch", err.message));
 $("load-config").onclick = () => loadConfig().catch((err) => $("config-status").textContent = err.message);
 $("export-config").onclick = () => exportConfig().catch((err) => $("config-status").textContent = err.message);
 $("import-config").onclick = () => $("import-config-file").click();
@@ -1318,3 +1455,4 @@ loadMotionPresets().catch(() => {});
 loadPcbPresets().catch(() => {});
 loadCanUsers().catch(() => {});
 renderPlotLegend();
+renderRcInputConfig();

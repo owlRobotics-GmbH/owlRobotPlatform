@@ -6,6 +6,7 @@ import json
 import os
 import pwd
 import re
+import struct
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path as FsPath
@@ -37,6 +38,7 @@ TOOLS_ROOT = SERVICE_ROOT.parents[0]
 STATIC = SERVICE_ROOT / "static"
 DATA_DIR = SERVICE_ROOT / "data"
 STOPPED_CAN_SERVICES = DATA_DIR / "stopped-can-services.json"
+RC_SWITCH_CONFLICTING_SERVICE = "owl-wido-robot.service"
 
 
 def ensure_supported_database_version(raw_config: bytes) -> int:
@@ -55,6 +57,8 @@ class Settings(BaseSettings):
     can_bitrate: int = 1_000_000
     host_node_id: int = 62
     can_msg_id: int = 300
+    rc_switch_msg_id: int = 600
+    rc_switch_node_id: int = 59
     service_user: str = ""
 
     class Config:
@@ -75,6 +79,34 @@ class ConfigPatchRequest(BaseModel):
     values: Dict[str, Any]
     save: bool = False
     reboot: bool = False
+
+
+class RcCalibrationRequest(BaseModel):
+    action: str
+
+
+RC_SWITCH_CONFIG_SIZE = 160
+RC_SWITCH_CONFIG_FIELDS = {
+    "pwmMinimumUs": (4, "H", 500, 2500),
+    "pwmNeutralUs": (6, "H", 500, 2500),
+    "pwmMaximumUs": (8, "H", 500, 2500),
+    "modeRcMaximumUs": (10, "H", 500, 2500),
+    "modeCanMinimumUs": (12, "H", 500, 2500),
+    "maximumVelocity": (16, "f", 0.01, 1000.0),
+    "maximumTorque": (20, "f", 0.0, 1.0),
+    **{f"node{node}.pidP": (24 + 4 * (node - 1), "f", 0.0, 1000.0) for node in range(1, 4)},
+    **{f"node{node}.pidI": (36 + 4 * (node - 1), "f", 0.0, 1000.0) for node in range(1, 4)},
+    **{f"node{node}.pidD": (48 + 4 * (node - 1), "f", 0.0, 1000.0) for node in range(1, 4)},
+    **{f"node{node}.pidRamp": (60 + 4 * (node - 1), "f", 0.0, 100000.0) for node in range(1, 4)},
+    **{f"node{node}.outputInverted": (72 + (node - 1), "B", 0, 1) for node in range(1, 4)},
+    **{f"input{channel}.minimumUs": (76 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
+    **{f"input{channel}.neutralUs": (92 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
+    **{f"input{channel}.maximumUs": (108 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
+    **{f"input{channel}.deadzoneUs": (124 + 2 * (channel - 1), "H", 0, 250) for channel in range(1, 9)},
+    **{f"input{channel}.inverted": (140 + (channel - 1), "B", 0, 1) for channel in range(1, 9)},
+    "inputTimeoutUs": (148, "I", 10000, 5000000),
+    "inputFailsafeMode": (152, "B", 0, 1),
+}
 
 
 class ApplyPresetRequest(BaseModel):
@@ -134,6 +166,7 @@ app = FastAPI(title="owlDrive Service", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 bus: OwldriveCanBus | None = None
+rc_switch_bus: OwldriveCanBus | None = None
 job_counter = itertools.count(1)
 jobs: Dict[int, FlashJob] = {}
 exclusive_job_lock = asyncio.Lock()
@@ -193,9 +226,35 @@ def _start_flash_job(job: FlashJob, upload_coro_factory) -> None:
     asyncio.create_task(runner())
 
 
+async def _upload_rc_switch(firmware: bytes, progress) -> int:
+    """Flash ID 600 without continuous, higher-priority Wido ID 300 traffic."""
+    status = await asyncio.to_thread(
+        _run_systemctl, "system", ["is-active", RC_SWITCH_CONFLICTING_SERVICE], 5
+    )
+    was_active = status.returncode == 0
+    if was_active:
+        stopped = await asyncio.to_thread(
+            _run_systemctl, "system", ["stop", RC_SWITCH_CONFLICTING_SERVICE], 15
+        )
+        if stopped.returncode != 0:
+            raise RuntimeError(stopped.stderr.strip() or "could not stop Wido CAN service")
+        await asyncio.sleep(0.5)
+    try:
+        return await get_rc_switch_bus().upload_firmware(
+            settings.rc_switch_node_id, firmware, progress
+        )
+    finally:
+        if was_active:
+            started = await asyncio.to_thread(
+                _run_systemctl, "system", ["start", RC_SWITCH_CONFLICTING_SERVICE], 15
+            )
+            if started.returncode != 0:
+                raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
+
+
 @app.on_event("startup")
 async def startup():
-    global bus
+    global bus, rc_switch_bus
     if os.getenv("OWLDRIVE_DISABLE_CAN") == "1":
         return
     bus = OwldriveCanBus(
@@ -204,18 +263,108 @@ async def startup():
         host_node=settings.host_node_id,
         msg_id=settings.can_msg_id,
     )
+    rc_switch_bus = OwldriveCanBus(
+        channel=settings.can_channel,
+        bitrate=settings.can_bitrate,
+        host_node=settings.host_node_id,
+        msg_id=settings.rc_switch_msg_id,
+    )
 
 
 @app.on_event("shutdown")
 async def shutdown():
     if bus:
         bus.close()
+    if rc_switch_bus:
+        rc_switch_bus.close()
 
 
 def get_bus() -> OwldriveCanBus:
     if bus is None:
         raise HTTPException(status_code=503, detail="CAN bus is not available")
     return bus
+
+
+def get_rc_switch_bus() -> OwldriveCanBus:
+    if rc_switch_bus is None:
+        raise HTTPException(status_code=503, detail="RC-Switch CAN bus is not available")
+    return rc_switch_bus
+
+
+@app.get("/api/rc-switch")
+async def rc_switch_status():
+    started = asyncio.get_running_loop().time()
+    version = await get_rc_switch_bus().request(
+        settings.rc_switch_node_id, CanValue.firmware_ver, timeout=0.2
+    )
+    return {
+        "online": version is not None,
+        "node_id": settings.rc_switch_node_id,
+        "message_id": settings.rc_switch_msg_id,
+        "firmware_version": version,
+        "answer_ms": round((asyncio.get_running_loop().time() - started) * 1000, 2),
+    }
+
+
+def _decode_rc_switch_config(raw: bytes) -> dict[str, int | float]:
+    values: dict[str, int | float] = {}
+    for name, (offset, fmt, _minimum, _maximum) in RC_SWITCH_CONFIG_FIELDS.items():
+        values[name] = struct.unpack_from("<" + fmt, raw, offset)[0]
+    return values
+
+
+@app.get("/api/rc-switch/config")
+async def read_rc_switch_config():
+    try:
+        raw = await get_rc_switch_bus().read_config(
+            settings.rc_switch_node_id, RC_SWITCH_CONFIG_SIZE, timeout=0.1
+        )
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc)) from exc
+    return {"node_id": settings.rc_switch_node_id, "values": _decode_rc_switch_config(raw)}
+
+
+@app.patch("/api/rc-switch/config")
+async def patch_rc_switch_config(req: ConfigPatchRequest):
+    async with exclusive_job_lock:
+        try:
+            current = bytearray(await get_rc_switch_bus().read_config(
+                settings.rc_switch_node_id, RC_SWITCH_CONFIG_SIZE, timeout=0.1
+            ))
+            changes: dict[int, int] = {}
+            for name, value in req.values.items():
+                field = RC_SWITCH_CONFIG_FIELDS.get(name)
+                if field is None:
+                    raise HTTPException(status_code=400, detail=f"unknown RC-Switch config field: {name}")
+                offset, fmt, minimum, maximum = field
+                numeric = float(value)
+                if numeric < minimum or numeric > maximum:
+                    raise HTTPException(status_code=400, detail=f"{name} must be between {minimum} and {maximum}")
+                encoded = struct.pack("<" + fmt, int(numeric) if fmt in {"H", "B", "I"} else numeric)
+                for index, byte in enumerate(encoded):
+                    if current[offset + index] != byte:
+                        changes[offset + index] = byte
+            if changes:
+                await get_rc_switch_bus().write_config_bytes(settings.rc_switch_node_id, changes)
+            if req.save or req.reboot:
+                await get_rc_switch_bus().save_config(settings.rc_switch_node_id, reboot=req.reboot)
+            return {"ok": True, "bytes_changed": len(changes), "values": req.values}
+        except TimeoutError as exc:
+            raise HTTPException(status_code=504, detail=str(exc)) from exc
+
+
+@app.post("/api/rc-switch/calibration")
+async def rc_switch_calibration(req: RcCalibrationRequest):
+    action_value = {"start": 1, "finish": 2}.get(req.action)
+    if action_value is None:
+        raise HTTPException(status_code=400, detail="action must be start or finish")
+    ok = await get_rc_switch_bus().set_value(
+        settings.rc_switch_node_id, CanValue.rc_calibration,
+        action_value, wait_ack=True, timeout=1.0
+    )
+    if not ok:
+        raise HTTPException(status_code=504, detail="RC calibration acknowledgement timeout")
+    return {"ok": True, "action": req.action}
 
 
 @app.get("/")
@@ -869,6 +1018,18 @@ async def flash(node_id: Annotated[int, Path(ge=1, le=62)], firmware: UploadFile
         raise HTTPException(status_code=400, detail="empty firmware file")
     job = _create_flash_job(node_id, firmware.filename or "firmware.bin", len(data))
     _start_flash_job(job, lambda progress: get_bus().upload_firmware(node_id, data, progress))
+    return job
+
+
+@app.post("/api/rc-switch/flash")
+async def flash_rc_switch(firmware: UploadFile = File(...)):
+    uploaded = await firmware.read()
+    data = firmware_payload(uploaded, firmware.filename or "")
+    if not data:
+        raise HTTPException(status_code=400, detail="empty firmware file")
+    job = _create_flash_job(settings.rc_switch_node_id,
+                            f"RC-Switch: {firmware.filename or 'firmware.bin'}", len(data))
+    _start_flash_job(job, lambda progress: _upload_rc_switch(data, progress))
     return job
 
 

@@ -69,7 +69,84 @@
           <div id="config-editor" class="config-editor"></div>
         </div>
 
+        <div id="rc-config" class="tab">
+          <div class="toolbar">
+            <button id="load-rc-config">Load RC-Switch config</button>
+            <button id="save-rc-config">Write + save</button>
+            <span id="rc-config-status" class="muted">Not loaded</span>
+          </div>
+          <h2>RC input timing</h2>
+          <div class="toolbar">
+            <label>Receiver preset
+              <select id="rc-input-preset">
+                <option value="standard">Standard PWM (1000 / 1500 / 2000)</option>
+                <option value="futaba">Futaba (1100 / 1520 / 1900)</option>
+                <option value="graupner">Graupner (1000 / 1500 / 2000)</option>
+                <option value="frsky">FrSky (988 / 1500 / 2012)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <button id="apply-rc-input-preset">Apply preset to all inputs</button>
+            <button id="start-rc-calibration">Start calibration</button>
+            <button id="finish-rc-calibration">Finish + save calibration</button>
+          </div>
+          <p class="muted">For automatic calibration, leave all controls centered, press Start, then move every used control through its full range before pressing Finish.</p>
+          <div class="grid">
+            <label>Signal timeout (µs)<input type="number" data-rc-config="inputTimeoutUs" min="10000" max="5000000" step="1000" /></label>
+            <label>Signal-loss behavior
+              <select data-rc-config="inputFailsafeMode"><option value="0">Neutral</option><option value="1">Hold last output</option></select>
+            </label>
+          </div>
+          <div id="rc-input-config" class="grid"></div>
+          <h2>Output and mode</h2>
+          <div class="grid">
+            <label>PWM minimum (µs)<input type="number" data-rc-config="pwmMinimumUs" min="500" max="2500" step="1" /></label>
+            <label>PWM neutral (µs)<input type="number" data-rc-config="pwmNeutralUs" min="500" max="2500" step="1" /></label>
+            <label>PWM maximum (µs)<input type="number" data-rc-config="pwmMaximumUs" min="500" max="2500" step="1" /></label>
+            <label>RC threshold max. (µs)<input type="number" data-rc-config="modeRcMaximumUs" min="500" max="2500" step="1" /></label>
+            <label>CAN threshold min. (µs)<input type="number" data-rc-config="modeCanMinimumUs" min="500" max="2500" step="1" /></label>
+            <label>Maximum velocity (rad/s)<input type="number" data-rc-config="maximumVelocity" min="0.01" max="1000" step="0.01" /></label>
+            <label>Maximum output (0…1)<input type="number" data-rc-config="maximumTorque" min="0" max="1" step="0.01" /></label>
+          </div>
+          <h2>Velocity PID per emulated node</h2>
+          <div class="grid">
+            <div><strong>Node 1</strong>
+              <label class="inline-check"><input type="checkbox" data-rc-config="node1.outputInverted" /> Output inverted</label>
+              <label>P<input type="number" data-rc-config="node1.pidP" min="0" step="0.001" /></label>
+              <label>I<input type="number" data-rc-config="node1.pidI" min="0" step="0.001" /></label>
+              <label>D<input type="number" data-rc-config="node1.pidD" min="0" step="0.001" /></label>
+              <label>Output ramp<input type="number" data-rc-config="node1.pidRamp" min="0" step="0.01" /></label>
+            </div>
+            <div><strong>Node 2</strong>
+              <label class="inline-check"><input type="checkbox" data-rc-config="node2.outputInverted" /> Output inverted</label>
+              <label>P<input type="number" data-rc-config="node2.pidP" min="0" step="0.001" /></label>
+              <label>I<input type="number" data-rc-config="node2.pidI" min="0" step="0.001" /></label>
+              <label>D<input type="number" data-rc-config="node2.pidD" min="0" step="0.001" /></label>
+              <label>Output ramp<input type="number" data-rc-config="node2.pidRamp" min="0" step="0.01" /></label>
+            </div>
+            <div><strong>Node 3</strong>
+              <label class="inline-check"><input type="checkbox" data-rc-config="node3.outputInverted" /> Output inverted</label>
+              <label>P<input type="number" data-rc-config="node3.pidP" min="0" step="0.001" /></label>
+              <label>I<input type="number" data-rc-config="node3.pidI" min="0" step="0.001" /></label>
+              <label>D<input type="number" data-rc-config="node3.pidD" min="0" step="0.001" /></label>
+              <label>Output ramp<input type="number" data-rc-config="node3.pidRamp" min="0" step="0.01" /></label>
+            </div>
+          </div>
+        </div>
+
         <div id="flash" class="tab">
+          <h2>RC-Switch</h2>
+          <div class="toolbar">
+            <strong id="rc-switch-status">Checking Message-ID 600 / Node 59...</strong>
+            <button id="refresh-rc-switch">Refresh</button>
+          </div>
+          <div class="toolbar">
+            <button id="choose-rc-switch-firmware">Choose RC-Switch image</button>
+            <input id="rc-switch-firmware" type="file" accept=".uf2,.bin,application/octet-stream" hidden />
+            <span id="rc-switch-firmware-name" class="muted">No file selected</span>
+            <button id="flash-rc-switch-file">Flash RC-Switch</button>
+          </div>
+          <hr />
           <div class="toolbar">
             <label>Built-in image
               <select id="firmware-image"></select>
@@ -124,6 +201,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=20260724-can-start-state"></script>
+    <script src="/static/app.js?v=20260811-rc-input-profiles"></script>
   </body>
 </html>

@@ -71,6 +71,8 @@ class CanValue(enum.IntEnum):
     total_current = 33
     voltageLimit = 34
     sensor_auto_align = 35
+    operating_mode = 40
+    rc_calibration = 41
 
 
 FLOAT_VALUES = {
