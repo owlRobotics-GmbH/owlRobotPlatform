@@ -63,6 +63,7 @@ OUT pin 1:
 #include "watchdog.h"
 #include "can.h"
 #include "RunningMedian.h"
+#include "controller_management.h"
 
 /*
 extern "C" {
@@ -420,6 +421,7 @@ void setup() {
   for (uint8_t i = ultrasonic_sensor_count; i < owlControl::kUltrasonicWarningLevelCount; ++i) {
     publishUltrasonicWarning(i, kUltrasonicMissingWarningLevel);
   }
+  controllerManagement.begin();
   //Serial.println("Setup done");
   // default: 10 bit
   analogReadResolution(ADC_Resulution);
@@ -457,6 +459,8 @@ void setup() {
 }
 
 void loop() {
+
+ controllerManagement.run();
 
  if(millis()>PI_PWRon_delay&&power_on_init){        // PI_PWRon_delay is defined in config.h
     myF.LoadPowerPWM(10);

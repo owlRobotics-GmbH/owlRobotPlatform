@@ -73,6 +73,10 @@ class CanValue(enum.IntEnum):
     sensor_auto_align = 35
     operating_mode = 40
     rc_calibration = 41
+    rc_output = 42
+    controller_i2c_count = 43
+    controller_i2c_device = 44
+    controller_i2c_scan = 45
 
 
 FLOAT_VALUES = {
@@ -240,6 +244,24 @@ class OwldriveCanBus:
         async with self._lock:
             req = OwldriveFrame(self.host_node, node_id, CanCommand.request, value, b"\x00\x00\x00\x00")
             return await asyncio.to_thread(self._request_sync, req, node_id, value, timeout)
+
+    async def request_raw(self, node_id: int, value: CanValue,
+                          data: bytes = b"\x00\x00\x00\x00",
+                          timeout: float = 0.05) -> bytes | None:
+        if len(data) != 4:
+            raise ValueError("CAN payload must be exactly four bytes")
+        async with self._lock:
+            req = OwldriveFrame(self.host_node, node_id, CanCommand.request, value, data)
+            frame = await asyncio.to_thread(self._request_frame_sync, req, node_id, value, timeout)
+            return None if frame is None else frame.data
+
+    async def set_raw(self, node_id: int, value: CanValue, data: bytes,
+                      wait_ack: bool = True, timeout: float = 0.5) -> bool:
+        if len(data) != 4:
+            raise ValueError("CAN payload must be exactly four bytes")
+        async with self._lock:
+            frame = OwldriveFrame(self.host_node, node_id, CanCommand.set, value, data)
+            return await asyncio.to_thread(self._set_sync, frame, node_id, value, wait_ack, timeout)
 
     def _request_sync(self, req: OwldriveFrame, node_id: int, value: CanValue, timeout: float):
         frame = self._request_frame_sync(req, node_id, value, timeout)

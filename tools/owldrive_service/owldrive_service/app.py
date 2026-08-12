@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
-from .can_protocol import CanValue, OwldriveCanBus, socketcan_interfaces
+from .can_protocol import CanCommand, CanValue, OwldriveCanBus, OwldriveFrame, socketcan_interfaces
 from .config_schema import FIELD_BY_PATH, PROFILE_SIZE, SUPPORTED_DATABASE_VERSIONS, decode_config, decode_database_version, encode_field, schema_json
 from .firmware_images import download_url, firmware_payload, list_github_images, list_local_images
 from .presets import (
@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     can_msg_id: int = 300
     rc_switch_msg_id: int = 600
     rc_switch_node_id: int = 59
+    owl_controller_msg_id: int = 500
+    owl_controller_node_id: int = 60
     service_user: str = ""
 
     class Config:
@@ -85,7 +87,12 @@ class RcCalibrationRequest(BaseModel):
     action: str
 
 
-RC_SWITCH_CONFIG_SIZE = 160
+class RcOutputRequest(BaseModel):
+    channel: int
+    pulse_us: int
+
+
+RC_SWITCH_CONFIG_SIZE = 168
 RC_SWITCH_CONFIG_FIELDS = {
     "pwmMinimumUs": (4, "H", 500, 2500),
     "pwmNeutralUs": (6, "H", 500, 2500),
@@ -106,6 +113,8 @@ RC_SWITCH_CONFIG_FIELDS = {
     **{f"input{channel}.inverted": (140 + (channel - 1), "B", 0, 1) for channel in range(1, 9)},
     "inputTimeoutUs": (148, "I", 10000, 5000000),
     "inputFailsafeMode": (152, "B", 0, 1),
+    **{f"output{channel}.mode": (153 + (channel - 4), "B", 0, 2) for channel in range(4, 9)},
+    **{f"output{channel}.inverted": (158 + (channel - 4), "B", 0, 1) for channel in range(4, 9)},
 }
 
 
@@ -167,6 +176,7 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 bus: OwldriveCanBus | None = None
 rc_switch_bus: OwldriveCanBus | None = None
+owl_controller_bus: OwldriveCanBus | None = None
 job_counter = itertools.count(1)
 jobs: Dict[int, FlashJob] = {}
 exclusive_job_lock = asyncio.Lock()
@@ -252,9 +262,35 @@ async def _upload_rc_switch(firmware: bytes, progress) -> int:
                 raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
 
 
+async def _upload_owl_controller(firmware: bytes, progress) -> int:
+    """Flash the controller while suppressing competing CAN traffic."""
+    status = await asyncio.to_thread(
+        _run_systemctl, "system", ["is-active", RC_SWITCH_CONFLICTING_SERVICE], 5
+    )
+    was_active = status.returncode == 0
+    if was_active:
+        stopped = await asyncio.to_thread(
+            _run_systemctl, "system", ["stop", RC_SWITCH_CONFLICTING_SERVICE], 15
+        )
+        if stopped.returncode != 0:
+            raise RuntimeError(stopped.stderr.strip() or "could not stop Wido CAN service")
+        await asyncio.sleep(0.5)
+    try:
+        return await get_owl_controller_bus().upload_firmware(
+            settings.owl_controller_node_id, firmware, progress
+        )
+    finally:
+        if was_active:
+            started = await asyncio.to_thread(
+                _run_systemctl, "system", ["start", RC_SWITCH_CONFLICTING_SERVICE], 15
+            )
+            if started.returncode != 0:
+                raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
+
+
 @app.on_event("startup")
 async def startup():
-    global bus, rc_switch_bus
+    global bus, rc_switch_bus, owl_controller_bus
     if os.getenv("OWLDRIVE_DISABLE_CAN") == "1":
         return
     bus = OwldriveCanBus(
@@ -269,6 +305,12 @@ async def startup():
         host_node=settings.host_node_id,
         msg_id=settings.rc_switch_msg_id,
     )
+    owl_controller_bus = OwldriveCanBus(
+        channel=settings.can_channel,
+        bitrate=settings.can_bitrate,
+        host_node=settings.host_node_id,
+        msg_id=settings.owl_controller_msg_id,
+    )
 
 
 @app.on_event("shutdown")
@@ -277,6 +319,8 @@ async def shutdown():
         bus.close()
     if rc_switch_bus:
         rc_switch_bus.close()
+    if owl_controller_bus:
+        owl_controller_bus.close()
 
 
 def get_bus() -> OwldriveCanBus:
@@ -289,6 +333,77 @@ def get_rc_switch_bus() -> OwldriveCanBus:
     if rc_switch_bus is None:
         raise HTTPException(status_code=503, detail="RC-Switch CAN bus is not available")
     return rc_switch_bus
+
+
+def get_owl_controller_bus() -> OwldriveCanBus:
+    if owl_controller_bus is None:
+        raise HTTPException(status_code=503, detail="owlController CAN bus is not available")
+    return owl_controller_bus
+
+
+@app.get("/api/owl-controller")
+async def owl_controller_status():
+    started = asyncio.get_running_loop().time()
+    version = await get_owl_controller_bus().request(
+        settings.owl_controller_node_id, CanValue.firmware_ver, timeout=0.2
+    )
+    return {
+        "online": version is not None,
+        "node_id": settings.owl_controller_node_id,
+        "message_id": settings.owl_controller_msg_id,
+        "firmware_version": version,
+        "answer_ms": round((asyncio.get_running_loop().time() - started) * 1000, 2),
+    }
+
+
+async def _controller_i2c_devices() -> list[dict[str, int | str]]:
+    raw_count = await get_owl_controller_bus().request_raw(
+        settings.owl_controller_node_id, CanValue.controller_i2c_count, timeout=0.3
+    )
+    if raw_count is None:
+        raise HTTPException(status_code=504, detail="owlController I2C inventory timeout")
+    names = {
+        0x20: "PCF8574 I/O", 0x21: "PCF8574 I/O", 0x3C: "OLED display",
+        0x3D: "OLED display", 0x48: "PCF8591 ADC/DAC", 0x68: "IMU / ADC",
+        0x69: "IMU / ADC", 0x70: "TCA9548A I2C multiplexer",
+    }
+    devices = []
+    for index in range(min(raw_count[0], 48)):
+        raw = await get_owl_controller_bus().request_raw(
+            settings.owl_controller_node_id, CanValue.controller_i2c_device,
+            bytes([index, 0, 0, 0]), timeout=0.15
+        )
+        if raw is None or raw[3] != 1:
+            continue
+        channel, address = raw[1], raw[2]
+        devices.append({
+            "index": index, "channel": channel,
+            "bus": "direct" if channel == 255 else f"TCA channel {channel}",
+            "address": address, "address_hex": f"0x{address:02X}",
+            "name": names.get(address, "Unknown I2C device"),
+        })
+    return devices
+
+
+@app.get("/api/owl-controller/i2c")
+async def owl_controller_i2c():
+    devices = await _controller_i2c_devices()
+    return {"node_id": settings.owl_controller_node_id, "devices": devices,
+            "count": len(devices)}
+
+
+@app.post("/api/owl-controller/i2c/scan")
+async def scan_owl_controller_i2c():
+    ok = await get_owl_controller_bus().set_raw(
+        settings.owl_controller_node_id, CanValue.controller_i2c_scan,
+        b"\x01\x00\x00\x00", wait_ack=True, timeout=0.5
+    )
+    if not ok:
+        raise HTTPException(status_code=504, detail="owlController I2C scan acknowledgement timeout")
+    await asyncio.sleep(1.2)
+    devices = await _controller_i2c_devices()
+    return {"node_id": settings.owl_controller_node_id, "devices": devices,
+            "count": len(devices)}
 
 
 @app.get("/api/rc-switch")
@@ -365,6 +480,25 @@ async def rc_switch_calibration(req: RcCalibrationRequest):
     if not ok:
         raise HTTPException(status_code=504, detail="RC calibration acknowledgement timeout")
     return {"ok": True, "action": req.action}
+
+
+@app.post("/api/rc-switch/output")
+async def set_rc_switch_output(req: RcOutputRequest):
+    if req.channel < 4 or req.channel > 8:
+        raise HTTPException(status_code=400, detail="channel must be between 4 and 8")
+    if req.pulse_us < 500 or req.pulse_us > 2500:
+        raise HTTPException(status_code=400, detail="pulse_us must be between 500 and 2500")
+    payload = bytes([req.channel, req.pulse_us & 0xFF,
+                     (req.pulse_us >> 8) & 0xFF, 0])
+    async with get_rc_switch_bus()._lock:
+        frame = OwldriveFrame(settings.host_node_id, settings.rc_switch_node_id,
+                              CanCommand.set, CanValue.rc_output, payload)
+        ok = await asyncio.to_thread(get_rc_switch_bus()._set_sync, frame,
+                                     settings.rc_switch_node_id,
+                                     CanValue.rc_output, True, 0.5)
+    if not ok:
+        raise HTTPException(status_code=504, detail="RC output acknowledgement timeout")
+    return {"ok": True, "channel": req.channel, "pulse_us": req.pulse_us}
 
 
 @app.get("/")
@@ -1030,6 +1164,18 @@ async def flash_rc_switch(firmware: UploadFile = File(...)):
     job = _create_flash_job(settings.rc_switch_node_id,
                             f"RC-Switch: {firmware.filename or 'firmware.bin'}", len(data))
     _start_flash_job(job, lambda progress: _upload_rc_switch(data, progress))
+    return job
+
+
+@app.post("/api/owl-controller/flash")
+async def flash_owl_controller(firmware: UploadFile = File(...)):
+    uploaded = await firmware.read()
+    data = firmware_payload(uploaded, firmware.filename or "")
+    if not data:
+        raise HTTPException(status_code=400, detail="empty firmware file")
+    job = _create_flash_job(settings.owl_controller_node_id,
+                            f"owlController: {firmware.filename or 'firmware.bin'}", len(data))
+    _start_flash_job(job, lambda progress: _upload_owl_controller(data, progress))
     return job
 
 

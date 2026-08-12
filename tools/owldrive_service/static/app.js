@@ -1,6 +1,7 @@
 const state = {
   devices: [],
   rcSwitch: null,
+  owlController: null,
   selected: null,
   ws: null,
   scanWs: null,
@@ -66,9 +67,23 @@ async function parseApiError(res) {
 function renderDevices() {
   const root = $("devices");
   root.innerHTML = "";
-  if (!state.devices.length && !state.rcSwitch?.online) {
+  if (!state.devices.length && !state.rcSwitch?.online && !state.owlController?.online) {
     root.innerHTML = '<p class="muted">No devices found.</p>';
     return;
+  }
+  if (state.owlController?.online) {
+    const device = state.owlController;
+    const el = document.createElement("div");
+    el.className = "device" + (state.selected?.device_type === "owl_controller" ? " active" : "");
+    el.innerHTML = `<strong>owlController — Node ${device.node_id}</strong><div class="muted">CAN ID ${device.message_id}, FW ${device.firmware_version}, ${device.answer_ms} ms</div>`;
+    el.onclick = () => {
+      const changed = state.selected?.device_type !== "owl_controller";
+      state.selected = { ...device, device_type: "owl_controller" };
+      $("selected-label").textContent = `owlController — Node ${device.node_id}`;
+      if (changed) resetDeviceViews();
+      renderDevices();
+    };
+    root.appendChild(el);
   }
   if (state.rcSwitch?.online) {
     const device = state.rcSwitch;
@@ -86,7 +101,7 @@ function renderDevices() {
   }
   for (const device of state.devices) {
     const el = document.createElement("div");
-    el.className = "device" + (state.selected?.device_type !== "rc_switch" && state.selected?.node_id === device.node_id ? " active" : "");
+    el.className = "device" + (!state.selected?.device_type && state.selected?.node_id === device.node_id ? " active" : "");
     const errorText = device.error_text ? `, ${device.error === 0 ? "OK" : `Error: ${escapeHtml(device.error_text)}`}` : "";
     el.innerHTML = `<strong>Node ${device.node_id}</strong><div class="muted">FW ${device.firmware_version}, ${device.answer_ms} ms${errorText}</div>`;
     el.onclick = () => {
@@ -105,6 +120,35 @@ async function scan() {
   $("bus-status").textContent = `Active: ${info.active} | available: ${info.interfaces.join(", ") || "none"}`;
   startDeviceScan();
   refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
+  refreshOwlController().catch((err) => $("owl-controller-status").textContent = err.message);
+}
+
+async function refreshOwlController() {
+  const device = await api("/api/owl-controller");
+  state.owlController = device;
+  renderDevices();
+  $("owl-controller-status").textContent = device.online
+    ? `Online — Message-ID ${device.message_id}, Node ${device.node_id}, FW ${device.firmware_version}, ${device.answer_ms} ms`
+    : `Offline — Message-ID ${device.message_id}, Node ${device.node_id}`;
+}
+
+function renderControllerI2c(data) {
+  const root = $("controller-i2c-devices");
+  root.innerHTML = data.devices.length ? "" : '<p class="muted">No I2C devices detected.</p>';
+  for (const device of data.devices) {
+    const el = document.createElement("div");
+    el.className = "device";
+    el.innerHTML = `<strong>${escapeHtml(device.name)}</strong><div class="muted">${escapeHtml(device.bus)} — ${device.address_hex}</div>`;
+    root.appendChild(el);
+  }
+  $("controller-config-status").textContent = `${data.count} I2C device(s) found on Node ${data.node_id}`;
+}
+
+async function loadControllerI2c(rescan = false) {
+  $("controller-config-status").textContent = rescan ? "Scanning I2C bus..." : "Loading...";
+  const data = await api(rescan ? "/api/owl-controller/i2c/scan" : "/api/owl-controller/i2c",
+    rescan ? { method: "POST" } : {});
+  renderControllerI2c(data);
 }
 
 async function refreshRcSwitch() {
@@ -160,6 +204,34 @@ function renderRcInputConfig() {
   }
 }
 
+function renderAuxOutputConfig() {
+  const root = $("rc-aux-output-config");
+  root.innerHTML = "";
+  for (let channel = 4; channel <= 8; channel += 1) {
+    const card = document.createElement("div");
+    card.innerHTML = `<strong>Output ${channel}</strong>
+      <label>Control source
+        <select data-rc-config="output${channel}.mode">
+          <option value="0">CAN only</option>
+          <option value="1">RC only</option>
+          <option value="2">Toggle via CHA8</option>
+        </select>
+      </label>
+      <label class="inline-check"><input type="checkbox" data-rc-config="output${channel}.inverted" /> Output inverted</label>
+      <label>CAN test pulse (µs)<input type="number" id="aux-output-pulse-${channel}" min="500" max="2500" step="1" value="1500" /></label>
+      <button type="button" data-test-aux-output="${channel}">Send CAN test pulse</button>`;
+    root.appendChild(card);
+  }
+  root.querySelectorAll("[data-test-aux-output]").forEach((button) => {
+    button.onclick = async () => {
+      const channel = Number(button.dataset.testAuxOutput);
+      const pulse = Number($(`aux-output-pulse-${channel}`).value);
+      await postJSON("/api/rc-switch/output", { channel, pulse_us: pulse });
+      $("rc-config-status").textContent = `CAN pulse ${pulse} µs sent to output ${channel}`;
+    };
+  });
+}
+
 function applyRcInputPreset() {
   const presets = {
     standard: [1000, 1500, 2000],
@@ -197,6 +269,14 @@ async function flashRcSwitchFile() {
   const form = new FormData();
   form.append("firmware", file);
   trackFlashJob(await api("/api/rc-switch/flash", { method: "POST", body: form }));
+}
+
+async function flashOwlControllerFile() {
+  const file = $("owl-controller-firmware").files[0];
+  if (!file) throw new Error("No owlController firmware selected");
+  const form = new FormData();
+  form.append("firmware", file);
+  trackFlashJob(await api("/api/owl-controller/flash", { method: "POST", body: form }));
 }
 
 function startDeviceScan() {
@@ -1380,12 +1460,15 @@ document.querySelectorAll(".tabs button").forEach((button) => {
   button.onclick = () => {
     document.querySelectorAll(".tabs button, .tab").forEach((el) => el.classList.remove("active"));
     button.classList.add("active");
-    const tabId = button.dataset.tab === "settings" && state.selected?.device_type === "rc_switch"
-      ? "rc-config"
-      : button.dataset.tab;
+    let tabId = button.dataset.tab;
+    if (tabId === "settings" && state.selected?.device_type === "rc_switch") tabId = "rc-config";
+    if (tabId === "settings" && state.selected?.device_type === "owl_controller") tabId = "controller-config";
     $(tabId).classList.add("active");
     if (tabId === "rc-config") {
       loadRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
+    }
+    if (tabId === "controller-config") {
+      loadControllerI2c().catch((err) => $("controller-config-status").textContent = err.message);
     }
   };
 });
@@ -1418,6 +1501,9 @@ $("firmware").onchange = () => {
 $("flash-file-checked").onclick = flashCheckedFile;
 $("flash-image-checked").onclick = flashCheckedImage;
 $("refresh-rc-switch").onclick = () => refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
+$("refresh-owl-controller").onclick = () => refreshOwlController().catch((err) => $("owl-controller-status").textContent = err.message);
+$("load-controller-i2c").onclick = () => loadControllerI2c().catch((err) => $("controller-config-status").textContent = err.message);
+$("scan-controller-i2c").onclick = () => loadControllerI2c(true).catch((err) => $("controller-config-status").textContent = err.message);
 $("load-rc-config").onclick = () => loadRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
 $("save-rc-config").onclick = () => saveRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
 $("apply-rc-input-preset").onclick = applyRcInputPreset;
@@ -1428,6 +1514,11 @@ $("rc-switch-firmware").onchange = () => {
   $("rc-switch-firmware-name").textContent = $("rc-switch-firmware").files[0]?.name || "No file selected";
 };
 $("flash-rc-switch-file").onclick = () => flashRcSwitchFile().catch((err) => showFlashStartError(59, "RC-Switch", err.message));
+$("choose-owl-controller-firmware").onclick = () => $("owl-controller-firmware").click();
+$("owl-controller-firmware").onchange = () => {
+  $("owl-controller-firmware-name").textContent = $("owl-controller-firmware").files[0]?.name || "No file selected";
+};
+$("flash-owl-controller-file").onclick = () => flashOwlControllerFile().catch((err) => showFlashStartError(60, "owlController", err.message));
 $("load-config").onclick = () => loadConfig().catch((err) => $("config-status").textContent = err.message);
 $("export-config").onclick = () => exportConfig().catch((err) => $("config-status").textContent = err.message);
 $("import-config").onclick = () => $("import-config-file").click();
@@ -1456,3 +1547,4 @@ loadPcbPresets().catch(() => {});
 loadCanUsers().catch(() => {});
 renderPlotLegend();
 renderRcInputConfig();
+renderAuxOutputConfig();

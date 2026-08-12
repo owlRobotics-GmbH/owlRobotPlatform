@@ -8,6 +8,7 @@
 #include "cmd.h"
 #include "owlcontrol.h"
 #include "oledDisp.h"
+#include "controller_management.h"
 
 //#define DEBUG 1
 
@@ -57,6 +58,7 @@ class MyCanDriver: public owlDriveCAN {
     // if we received a CAN packet via CAN interface, send it to all owlDrives
     void onPacketReceived(unsigned long id, int len, unsigned char data[8], bool enableUsbBridge = true) override {
         if (enableUsbBridge) aRobot->slcan.onCanReceived(id, len, data);      // CAN-USB-bridge
+        if (controllerManagement.onCanReceived(id, len, data)) return;
         aRobot->control.onCanReceived(id, len, data);      // owlControl PCB (CAN node)
         aRobot->leftMotor.onCanReceived(id, len, data);    // owlDrive motor (CAN node)
         aRobot->rightMotor.onCanReceived(id, len, data);   // owlDrive motor (CAN node)

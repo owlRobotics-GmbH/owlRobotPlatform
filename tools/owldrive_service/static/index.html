@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>owlDrive</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260724-can-start-state" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260812-collapsible-rc-config" />
   </head>
   <body>
     <header>
@@ -75,7 +75,8 @@
             <button id="save-rc-config">Write + save</button>
             <span id="rc-config-status" class="muted">Not loaded</span>
           </div>
-          <h2>RC input timing</h2>
+          <details class="config-section">
+          <summary>RC input timing</summary>
           <div class="toolbar">
             <label>Receiver preset
               <select id="rc-input-preset">
@@ -98,7 +99,9 @@
             </label>
           </div>
           <div id="rc-input-config" class="grid"></div>
-          <h2>Output and mode</h2>
+          </details>
+          <details class="config-section">
+          <summary>Output and mode</summary>
           <div class="grid">
             <label>PWM minimum (µs)<input type="number" data-rc-config="pwmMinimumUs" min="500" max="2500" step="1" /></label>
             <label>PWM neutral (µs)<input type="number" data-rc-config="pwmNeutralUs" min="500" max="2500" step="1" /></label>
@@ -108,7 +111,14 @@
             <label>Maximum velocity (rad/s)<input type="number" data-rc-config="maximumVelocity" min="0.01" max="1000" step="0.01" /></label>
             <label>Maximum output (0…1)<input type="number" data-rc-config="maximumTorque" min="0" max="1" step="0.01" /></label>
           </div>
-          <h2>Velocity PID per emulated node</h2>
+          </details>
+          <details class="config-section">
+          <summary>Output channels 4–8</summary>
+          <p class="muted">Choose the source for each auxiliary output. Toggle follows the RC/CAN state selected by input channel 8.</p>
+          <div id="rc-aux-output-config" class="grid"></div>
+          </details>
+          <details class="config-section">
+          <summary>Velocity PID per emulated node</summary>
           <div class="grid">
             <div><strong>Node 1</strong>
               <label class="inline-check"><input type="checkbox" data-rc-config="node1.outputInverted" /> Output inverted</label>
@@ -132,9 +142,35 @@
               <label>Output ramp<input type="number" data-rc-config="node3.pidRamp" min="0" step="0.01" /></label>
             </div>
           </div>
+          </details>
+        </div>
+
+        <div id="controller-config" class="tab">
+          <div class="toolbar">
+            <button id="load-controller-i2c">Load I2C devices</button>
+            <button id="scan-controller-i2c">Scan I2C bus again</button>
+            <span id="controller-config-status" class="muted">Not loaded</span>
+          </div>
+          <details class="config-section">
+            <summary>I2C devices</summary>
+            <p class="muted">Devices are shown with their TCA9548A channel and I2C address. Unknown means that the address was detected but cannot be identified unambiguously from the address alone.</p>
+            <div id="controller-i2c-devices" class="list"></div>
+          </details>
         </div>
 
         <div id="flash" class="tab">
+          <h2>owlController</h2>
+          <div class="toolbar">
+            <strong id="owl-controller-status">Checking Message-ID 500 / Node 60...</strong>
+            <button id="refresh-owl-controller">Refresh</button>
+          </div>
+          <div class="toolbar">
+            <button id="choose-owl-controller-firmware">Choose owlController image</button>
+            <input id="owl-controller-firmware" type="file" accept=".uf2,.bin,application/octet-stream" hidden />
+            <span id="owl-controller-firmware-name" class="muted">No file selected</span>
+            <button id="flash-owl-controller-file">Flash owlController</button>
+          </div>
+          <hr />
           <h2>RC-Switch</h2>
           <div class="toolbar">
             <strong id="rc-switch-status">Checking Message-ID 600 / Node 59...</strong>
@@ -201,6 +237,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=20260811-rc-input-profiles"></script>
+    <script src="/static/app.js?v=20260812-aux-output-modes-v2"></script>
   </body>
 </html>
