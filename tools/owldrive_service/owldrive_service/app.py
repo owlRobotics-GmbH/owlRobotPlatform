@@ -108,6 +108,7 @@ RC_SWITCH_CONFIG_FIELDS = {
     **{f"node{node}.pidD": (48 + 4 * (node - 1), "f", 0.0, 1000.0) for node in range(1, 4)},
     **{f"node{node}.pidRamp": (60 + 4 * (node - 1), "f", 0.0, 100000.0) for node in range(1, 4)},
     **{f"node{node}.outputInverted": (72 + (node - 1), "B", 0, 1) for node in range(1, 4)},
+    "encoderTicksPerRevolution": (75, "B", 1, 255),
     **{f"input{channel}.minimumUs": (76 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
     **{f"input{channel}.neutralUs": (92 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
     **{f"input{channel}.maximumUs": (108 + 2 * (channel - 1), "H", 800, 2200) for channel in range(1, 9)},
