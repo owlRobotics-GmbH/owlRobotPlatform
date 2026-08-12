@@ -119,9 +119,10 @@
           </details>
           <details class="config-section">
           <summary>AS5600 sensors</summary>
-          <p class="muted">Encoder ticks generated per complete sensor revolution. Use 1 for one tick per revolution, 4 for every 90 degrees, or 10 or 100 for finer odometry.</p>
+          <p class="muted">Encoder ticks generated per complete sensor revolution. Nodes 1 and 2 share the drive setting; mower Node 3 has an independent setting.</p>
           <div class="grid">
-            <label>Ticks per revolution<input type="number" data-rc-config="encoderTicksPerRevolution" min="1" max="255" step="1" /></label>
+            <label>Drive ticks/revolution (Nodes 1+2)<input type="number" data-rc-config="driveTicksPerRevolution" min="1" max="255" step="1" /></label>
+            <label>Mower ticks/revolution (Node 3)<input type="number" data-rc-config="mowerTicksPerRevolution" min="1" max="255" step="1" /></label>
             <div><strong>Node 1 / I2C channel 0</strong><label class="inline-check"><input type="checkbox" data-rc-config="node1.sensorInverted" /> AS5600 direction inverted</label></div>
             <div><strong>Node 2 / I2C channel 1</strong><label class="inline-check"><input type="checkbox" data-rc-config="node2.sensorInverted" /> AS5600 direction inverted</label></div>
             <div><strong>Node 3 / I2C channel 2</strong><label class="inline-check"><input type="checkbox" data-rc-config="node3.sensorInverted" /> AS5600 direction inverted</label></div>
