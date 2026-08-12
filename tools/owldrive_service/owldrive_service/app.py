@@ -118,6 +118,7 @@ RC_SWITCH_CONFIG_FIELDS = {
     **{f"output{channel}.mode": (153 + (channel - 4), "B", 0, 2) for channel in range(4, 9)},
     **{f"output{channel}.inverted": (158 + (channel - 4), "B", 0, 1) for channel in range(4, 9)},
 }
+RC_SWITCH_SENSOR_INVERT_OFFSET = 163
 
 
 class ApplyPresetRequest(BaseModel):
@@ -240,29 +241,12 @@ def _start_flash_job(job: FlashJob, upload_coro_factory) -> None:
 
 
 async def _upload_rc_switch(firmware: bytes, progress) -> int:
-    """Flash ID 600 without continuous, higher-priority Wido ID 300 traffic."""
-    status = await asyncio.to_thread(
-        _run_systemctl, "system", ["is-active", RC_SWITCH_CONFLICTING_SERVICE], 5
+    # The owlController supervises the OrangePi. Stopping the robot runtime for
+    # a multi-minute upload makes that supervision power-cycle the computer.
+    # Per-byte ACK/retry allows flashing safely alongside normal CAN traffic.
+    return await get_rc_switch_bus().upload_firmware(
+        settings.rc_switch_node_id, firmware, progress
     )
-    was_active = status.returncode == 0
-    if was_active:
-        stopped = await asyncio.to_thread(
-            _run_systemctl, "system", ["stop", RC_SWITCH_CONFLICTING_SERVICE], 15
-        )
-        if stopped.returncode != 0:
-            raise RuntimeError(stopped.stderr.strip() or "could not stop Wido CAN service")
-        await asyncio.sleep(0.5)
-    try:
-        return await get_rc_switch_bus().upload_firmware(
-            settings.rc_switch_node_id, firmware, progress
-        )
-    finally:
-        if was_active:
-            started = await asyncio.to_thread(
-                _run_systemctl, "system", ["start", RC_SWITCH_CONFLICTING_SERVICE], 15
-            )
-            if started.returncode != 0:
-                raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
 
 
 async def _upload_owl_controller(firmware: bytes, progress) -> int:
@@ -466,6 +450,8 @@ def _decode_rc_switch_config(raw: bytes) -> dict[str, int | float]:
     values: dict[str, int | float] = {}
     for name, (offset, fmt, _minimum, _maximum) in RC_SWITCH_CONFIG_FIELDS.items():
         values[name] = struct.unpack_from("<" + fmt, raw, offset)[0]
+    for node in range(1, 4):
+        values[f"node{node}.sensorInverted"] = 1 if raw[RC_SWITCH_SENSOR_INVERT_OFFSET] & (1 << (node - 1)) else 0
     return values
 
 
@@ -489,6 +475,15 @@ async def patch_rc_switch_config(req: ConfigPatchRequest):
             ))
             changes: dict[int, int] = {}
             for name, value in req.values.items():
+                sensor_match = re.fullmatch(r"node([1-3])\.sensorInverted", name)
+                if sensor_match:
+                    node = int(sensor_match.group(1))
+                    mask = 1 << (node - 1)
+                    updated = (current[RC_SWITCH_SENSOR_INVERT_OFFSET] | mask) if int(value) else (current[RC_SWITCH_SENSOR_INVERT_OFFSET] & ~mask)
+                    if updated != current[RC_SWITCH_SENSOR_INVERT_OFFSET]:
+                        changes[RC_SWITCH_SENSOR_INVERT_OFFSET] = updated
+                        current[RC_SWITCH_SENSOR_INVERT_OFFSET] = updated
+                    continue
                 field = RC_SWITCH_CONFIG_FIELDS.get(name)
                 if field is None:
                     raise HTTPException(status_code=400, detail=f"unknown RC-Switch config field: {name}")
