@@ -292,28 +292,12 @@ async def _upload_owl_controller(firmware: bytes, progress) -> int:
 
 
 async def _upload_owl_display(firmware: bytes, progress) -> int:
-    status = await asyncio.to_thread(
-        _run_systemctl, "system", ["is-active", RC_SWITCH_CONFLICTING_SERVICE], 5
+    # Keep the robot runtime alive. Stopping it for the several-minute display
+    # upload triggers the owlController's OrangePi supervision/power cycle.
+    # The per-byte ACK/retry protocol safely coexists with normal CAN traffic.
+    return await get_owl_display_bus().upload_firmware(
+        settings.owl_display_node_id, firmware, progress
     )
-    was_active = status.returncode == 0
-    if was_active:
-        stopped = await asyncio.to_thread(
-            _run_systemctl, "system", ["stop", RC_SWITCH_CONFLICTING_SERVICE], 15
-        )
-        if stopped.returncode != 0:
-            raise RuntimeError(stopped.stderr.strip() or "could not stop Wido CAN service")
-        await asyncio.sleep(0.5)
-    try:
-        return await get_owl_display_bus().upload_firmware(
-            settings.owl_display_node_id, firmware, progress
-        )
-    finally:
-        if was_active:
-            started = await asyncio.to_thread(
-                _run_systemctl, "system", ["start", RC_SWITCH_CONFLICTING_SERVICE], 15
-            )
-            if started.returncode != 0:
-                raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
 
 
 @app.on_event("startup")
