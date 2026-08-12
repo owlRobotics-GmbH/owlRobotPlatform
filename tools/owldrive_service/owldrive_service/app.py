@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     rc_switch_node_id: int = 59
     owl_controller_msg_id: int = 500
     owl_controller_node_id: int = 60
+    owl_display_msg_id: int = 700
+    owl_display_node_id: int = 58
     service_user: str = ""
 
     class Config:
@@ -177,6 +179,7 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 bus: OwldriveCanBus | None = None
 rc_switch_bus: OwldriveCanBus | None = None
 owl_controller_bus: OwldriveCanBus | None = None
+owl_display_bus: OwldriveCanBus | None = None
 job_counter = itertools.count(1)
 jobs: Dict[int, FlashJob] = {}
 exclusive_job_lock = asyncio.Lock()
@@ -288,9 +291,34 @@ async def _upload_owl_controller(firmware: bytes, progress) -> int:
                 raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
 
 
+async def _upload_owl_display(firmware: bytes, progress) -> int:
+    status = await asyncio.to_thread(
+        _run_systemctl, "system", ["is-active", RC_SWITCH_CONFLICTING_SERVICE], 5
+    )
+    was_active = status.returncode == 0
+    if was_active:
+        stopped = await asyncio.to_thread(
+            _run_systemctl, "system", ["stop", RC_SWITCH_CONFLICTING_SERVICE], 15
+        )
+        if stopped.returncode != 0:
+            raise RuntimeError(stopped.stderr.strip() or "could not stop Wido CAN service")
+        await asyncio.sleep(0.5)
+    try:
+        return await get_owl_display_bus().upload_firmware(
+            settings.owl_display_node_id, firmware, progress
+        )
+    finally:
+        if was_active:
+            started = await asyncio.to_thread(
+                _run_systemctl, "system", ["start", RC_SWITCH_CONFLICTING_SERVICE], 15
+            )
+            if started.returncode != 0:
+                raise RuntimeError(started.stderr.strip() or "could not restart Wido CAN service")
+
+
 @app.on_event("startup")
 async def startup():
-    global bus, rc_switch_bus, owl_controller_bus
+    global bus, rc_switch_bus, owl_controller_bus, owl_display_bus
     if os.getenv("OWLDRIVE_DISABLE_CAN") == "1":
         return
     bus = OwldriveCanBus(
@@ -311,6 +339,12 @@ async def startup():
         host_node=settings.host_node_id,
         msg_id=settings.owl_controller_msg_id,
     )
+    owl_display_bus = OwldriveCanBus(
+        channel=settings.can_channel,
+        bitrate=settings.can_bitrate,
+        host_node=settings.host_node_id,
+        msg_id=settings.owl_display_msg_id,
+    )
 
 
 @app.on_event("shutdown")
@@ -321,6 +355,8 @@ async def shutdown():
         rc_switch_bus.close()
     if owl_controller_bus:
         owl_controller_bus.close()
+    if owl_display_bus:
+        owl_display_bus.close()
 
 
 def get_bus() -> OwldriveCanBus:
@@ -339,6 +375,27 @@ def get_owl_controller_bus() -> OwldriveCanBus:
     if owl_controller_bus is None:
         raise HTTPException(status_code=503, detail="owlController CAN bus is not available")
     return owl_controller_bus
+
+
+def get_owl_display_bus() -> OwldriveCanBus:
+    if owl_display_bus is None:
+        raise HTTPException(status_code=503, detail="owlDisplay CAN bus is not available")
+    return owl_display_bus
+
+
+@app.get("/api/owl-display")
+async def owl_display_status():
+    started = asyncio.get_running_loop().time()
+    version = await get_owl_display_bus().request(
+        settings.owl_display_node_id, CanValue.firmware_ver, timeout=0.2
+    )
+    return {
+        "online": version is not None,
+        "node_id": settings.owl_display_node_id,
+        "message_id": settings.owl_display_msg_id,
+        "firmware_version": version,
+        "answer_ms": round((asyncio.get_running_loop().time() - started) * 1000, 2),
+    }
 
 
 @app.get("/api/owl-controller")
@@ -1176,6 +1233,18 @@ async def flash_owl_controller(firmware: UploadFile = File(...)):
     job = _create_flash_job(settings.owl_controller_node_id,
                             f"owlController: {firmware.filename or 'firmware.bin'}", len(data))
     _start_flash_job(job, lambda progress: _upload_owl_controller(data, progress))
+    return job
+
+
+@app.post("/api/owl-display/flash")
+async def flash_owl_display(firmware: UploadFile = File(...)):
+    uploaded = await firmware.read()
+    data = firmware_payload(uploaded, firmware.filename or "")
+    if not data:
+        raise HTTPException(status_code=400, detail="empty firmware file")
+    job = _create_flash_job(settings.owl_display_node_id,
+                            f"owlDisplay: {firmware.filename or 'firmware.bin'}", len(data))
+    _start_flash_job(job, lambda progress: _upload_owl_display(data, progress))
     return job
 
 

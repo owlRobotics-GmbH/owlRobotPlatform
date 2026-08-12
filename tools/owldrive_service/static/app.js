@@ -2,6 +2,7 @@ const state = {
   devices: [],
   rcSwitch: null,
   owlController: null,
+  owlDisplay: null,
   selected: null,
   ws: null,
   scanWs: null,
@@ -67,9 +68,23 @@ async function parseApiError(res) {
 function renderDevices() {
   const root = $("devices");
   root.innerHTML = "";
-  if (!state.devices.length && !state.rcSwitch?.online && !state.owlController?.online) {
+  if (!state.devices.length && !state.rcSwitch?.online && !state.owlController?.online && !state.owlDisplay?.online) {
     root.innerHTML = '<p class="muted">No devices found.</p>';
     return;
+  }
+  if (state.owlDisplay?.online) {
+    const device = state.owlDisplay;
+    const el = document.createElement("div");
+    el.className = "device" + (state.selected?.device_type === "owl_display" ? " active" : "");
+    el.innerHTML = `<strong>owlDisplay — Node ${device.node_id}</strong><div class="muted">CAN ID ${device.message_id}, FW ${device.firmware_version}, ${device.answer_ms} ms</div>`;
+    el.onclick = () => {
+      const changed = state.selected?.device_type !== "owl_display";
+      state.selected = { ...device, device_type: "owl_display" };
+      $("selected-label").textContent = `owlDisplay — Node ${device.node_id}`;
+      if (changed) resetDeviceViews();
+      renderDevices();
+    };
+    root.appendChild(el);
   }
   if (state.owlController?.online) {
     const device = state.owlController;
@@ -121,6 +136,16 @@ async function scan() {
   startDeviceScan();
   refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
   refreshOwlController().catch((err) => $("owl-controller-status").textContent = err.message);
+  refreshOwlDisplay().catch((err) => $("owl-display-status").textContent = err.message);
+}
+
+async function refreshOwlDisplay() {
+  const device = await api("/api/owl-display");
+  state.owlDisplay = device;
+  renderDevices();
+  $("owl-display-status").textContent = device.online
+    ? `Online — Message-ID ${device.message_id}, Node ${device.node_id}, FW ${device.firmware_version}, ${device.answer_ms} ms`
+    : `Offline — Message-ID ${device.message_id}, Node ${device.node_id}`;
 }
 
 async function refreshOwlController() {
@@ -277,6 +302,14 @@ async function flashOwlControllerFile() {
   const form = new FormData();
   form.append("firmware", file);
   trackFlashJob(await api("/api/owl-controller/flash", { method: "POST", body: form }));
+}
+
+async function flashOwlDisplayFile() {
+  const file = $("owl-display-firmware").files[0];
+  if (!file) throw new Error("No owlDisplay firmware selected");
+  const form = new FormData();
+  form.append("firmware", file);
+  trackFlashJob(await api("/api/owl-display/flash", { method: "POST", body: form }));
 }
 
 function startDeviceScan() {
@@ -1502,6 +1535,7 @@ $("flash-file-checked").onclick = flashCheckedFile;
 $("flash-image-checked").onclick = flashCheckedImage;
 $("refresh-rc-switch").onclick = () => refreshRcSwitch().catch((err) => $("rc-switch-status").textContent = err.message);
 $("refresh-owl-controller").onclick = () => refreshOwlController().catch((err) => $("owl-controller-status").textContent = err.message);
+$("refresh-owl-display").onclick = () => refreshOwlDisplay().catch((err) => $("owl-display-status").textContent = err.message);
 $("load-controller-i2c").onclick = () => loadControllerI2c().catch((err) => $("controller-config-status").textContent = err.message);
 $("scan-controller-i2c").onclick = () => loadControllerI2c(true).catch((err) => $("controller-config-status").textContent = err.message);
 $("load-rc-config").onclick = () => loadRcSwitchConfig().catch((err) => $("rc-config-status").textContent = err.message);
@@ -1519,6 +1553,11 @@ $("owl-controller-firmware").onchange = () => {
   $("owl-controller-firmware-name").textContent = $("owl-controller-firmware").files[0]?.name || "No file selected";
 };
 $("flash-owl-controller-file").onclick = () => flashOwlControllerFile().catch((err) => showFlashStartError(60, "owlController", err.message));
+$("choose-owl-display-firmware").onclick = () => $("owl-display-firmware").click();
+$("owl-display-firmware").onchange = () => {
+  $("owl-display-firmware-name").textContent = $("owl-display-firmware").files[0]?.name || "No file selected";
+};
+$("flash-owl-display-file").onclick = () => flashOwlDisplayFile().catch((err) => showFlashStartError(58, "owlDisplay", err.message));
 $("load-config").onclick = () => loadConfig().catch((err) => $("config-status").textContent = err.message);
 $("export-config").onclick = () => exportConfig().catch((err) => $("config-status").textContent = err.message);
 $("import-config").onclick = () => $("import-config-file").click();

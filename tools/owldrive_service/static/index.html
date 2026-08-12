@@ -159,6 +159,18 @@
         </div>
 
         <div id="flash" class="tab">
+          <h2>owlDisplay</h2>
+          <div class="toolbar">
+            <strong id="owl-display-status">Checking Message-ID 700 / Node 58...</strong>
+            <button id="refresh-owl-display">Refresh</button>
+          </div>
+          <div class="toolbar">
+            <button id="choose-owl-display-firmware">Choose owlDisplay image</button>
+            <input id="owl-display-firmware" type="file" accept=".uf2,.bin,application/octet-stream" hidden />
+            <span id="owl-display-firmware-name" class="muted">No file selected</span>
+            <button id="flash-owl-display-file">Flash owlDisplay</button>
+          </div>
+          <hr />
           <h2>owlController</h2>
           <div class="toolbar">
             <strong id="owl-controller-status">Checking Message-ID 500 / Node 60...</strong>
