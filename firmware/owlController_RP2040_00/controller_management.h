@@ -11,6 +11,9 @@ class ControllerManagement {
 public:
   void begin();
   void run();
+  void updateIoStatus(uint8_t inputs, uint8_t outputs, bool rain,
+                      float rainMillivolts, float batteryVolts,
+                      float chargerVolts);
   bool onCanReceived(unsigned long id, int len, unsigned char data[8]);
 
 private:
@@ -20,6 +23,12 @@ private:
   volatile uint8_t deviceCount_ = 0;
   volatile bool scanRequested_ = false;
   uint32_t firmwareCrc_ = 0;
+  volatile uint8_t inputs_ = 0;
+  volatile uint8_t outputs_ = 0;
+  volatile bool rain_ = false;
+  float rainMillivolts_ = 0;
+  float batteryVolts_ = 0;
+  float chargerVolts_ = 0;
 
   void scanI2c();
   bool probe(uint8_t address);

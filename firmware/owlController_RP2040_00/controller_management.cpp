@@ -21,6 +21,10 @@ const uint8_t kValueFirmwareVersion = 18;
 const uint8_t kValueI2cCount = 43;
 const uint8_t kValueI2cDevice = 44;
 const uint8_t kValueI2cScan = 45;
+const uint8_t kValueIoDigital = 46;
+const uint8_t kValueRainAnalog = 47;
+const uint8_t kValueBatteryVoltage = 48;
+const uint8_t kValueChargerVoltage = 49;
 const uint8_t kTcaAddress = 0x70;
 const uint8_t kDirectBus = 0xff;
 const char *kUpdateFile = "/update.bin";
@@ -39,12 +43,19 @@ void encodeU32(uint32_t value, uint8_t data[4]) {
   data[2] = value >> 16;
   data[3] = value >> 24;
 }
+
+void encodeFloat(float value, uint8_t data[4]) {
+  memcpy(data, &value, sizeof(value));
+}
 }
 
 ControllerManagement controllerManagement;
 
 void ControllerManagement::begin() {
-  LittleFS.begin();
+  if (!LittleFS.begin()) {
+    LittleFS.format();
+    LittleFS.begin();
+  }
   const uint8_t *start = reinterpret_cast<const uint8_t *>(XIP_BASE);
   const uint8_t *end = reinterpret_cast<const uint8_t *>(&__flash_binary_end);
   firmwareCrc_ = 0;
@@ -57,6 +68,18 @@ void ControllerManagement::run() {
     scanRequested_ = false;
     scanI2c();
   }
+}
+
+void ControllerManagement::updateIoStatus(uint8_t inputs, uint8_t outputs,
+                                          bool rain, float rainMillivolts,
+                                          float batteryVolts,
+                                          float chargerVolts) {
+  inputs_ = inputs;
+  outputs_ = outputs;
+  rain_ = rain;
+  rainMillivolts_ = rainMillivolts;
+  batteryVolts_ = batteryVolts;
+  chargerVolts_ = chargerVolts;
 }
 
 bool ControllerManagement::probe(uint8_t address) {
@@ -148,6 +171,16 @@ bool ControllerManagement::onCanReceived(unsigned long id, int len,
         response[2] = devices_[index].address;
         response[3] = 1;
       }
+    } else if (value == kValueIoDigital) {
+      response[0] = inputs_;
+      response[1] = outputs_;
+      response[2] = rain_ ? 1 : 0;
+    } else if (value == kValueRainAnalog) {
+      encodeFloat(rainMillivolts_, response);
+    } else if (value == kValueBatteryVoltage) {
+      encodeFloat(batteryVolts_, response);
+    } else if (value == kValueChargerVoltage) {
+      encodeFloat(chargerVolts_, response);
     } else {
       return true;
     }

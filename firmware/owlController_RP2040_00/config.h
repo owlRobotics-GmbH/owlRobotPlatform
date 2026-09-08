@@ -16,6 +16,7 @@
 #define ADC_Resulution 10 //bit
 
 #define PI_PWRon_delay 2000   // defines Pi power on delay in ms ( 1000ms after that, CAN powers on 
+#define OUT_GND_AFTER_PI_POWER_ON_MS 3000  // activate OUT1..OUT3 (ULN2803 sinks to GND) after Pi power-on
 
 #define POWER_OFF_PIN_ACTIVE_MS 3000        // power-off pin must stay active for this time before a shutdown is requested
 #define POWER_OFF_CUTOFF_DELAY_SEC 30       // owlController keeps power enabled for this many seconds after accepting shutdown

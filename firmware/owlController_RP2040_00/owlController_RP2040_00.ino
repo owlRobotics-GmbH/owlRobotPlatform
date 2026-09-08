@@ -169,6 +169,8 @@ volatile int odometry_ctrl = 0;
 volatile int odometry_right = 0;  // temporary values for next processing
 
 bool power_on_init = 1;
+bool piPowerOnCommandIssued = false;
+unsigned long piPowerOnCommandTime = 0;
 bool manualShutdownLatched = false;
 int powerButtonHoldSeconds = 0;
 bool hardPowerOffTriggered = false;
@@ -464,11 +466,15 @@ void loop() {
 
  if(millis()>PI_PWRon_delay&&power_on_init){        // PI_PWRon_delay is defined in config.h
     myF.LoadPowerPWM(10);
-    if ( picoID == "E4638C729F2E4821"){
-      //Serial.println("owlMower owlControlPCB");
-      myF.PIpwr(0);
-    } else {
-      myF.PIpwr(1);     // set to 1 to power on the RP
+    if (!piPowerOnCommandIssued){
+      if ( picoID == "E4638C729F2E4821"){
+        //Serial.println("owlMower owlControlPCB");
+        myF.PIpwr(0);
+      } else {
+        myF.PIpwr(1);     // set to 1 to power on the RP
+      }
+      piPowerOnCommandTime = millis();
+      piPowerOnCommandIssued = true;
     }
     if ( millis()>PI_PWRon_delay+1000){
       myF.CAN_Power(1);
@@ -495,9 +501,14 @@ void loop() {
       robot.roboter();
     //  myF.readIn_port();          //Port ext!! If(readIn_port .......
 
-      myF.OUT_Pin[1]=!myF.IN_Pin[1];
-      myF.OUT_Pin[2]=!myF.IN_Pin[2];
-      myF.OUT_Pin[3]=!myF.IN_Pin[3];
+      // PCA9555 HIGH drives the corresponding ULN2803 output to GND.
+      // Keep OUT1..OUT3 off until the delay after the Pi power-on command
+      // has elapsed. OUT4 retains its existing input-mirroring behavior.
+      bool activateOutputs = piPowerOnCommandIssued &&
+          ((unsigned long)(millis() - piPowerOnCommandTime) >= OUT_GND_AFTER_PI_POWER_ON_MS);
+      myF.OUT_Pin[1] = activateOutputs;
+      myF.OUT_Pin[2] = activateOutputs;
+      myF.OUT_Pin[3] = activateOutputs;
       myF.OUT_Pin[4]=!myF.IN_Pin[4];
       robot.control.setBumperState( (byte)(myF.IN_Pin[4] == LOW) );
       robot.control.setStopButtonState( (byte)(myF.IN_Pin[3] == HIGH) );
@@ -554,6 +565,20 @@ void loop() {
       robot.control.setRainState( myF.rain() );
       robot.control.setLiftState( (byte)(myF.IN_Pin[2] == LOW) );
       robot.control.setSlowDownState( (byte)(myF.IN_Pin[1] == LOW) );
+      uint8_t controllerInputs =
+          ((myF.IN_Pin[4] == LOW) ? 0x01 : 0) |
+          ((myF.IN_Pin[3] == HIGH) ? 0x02 : 0) |
+          ((myF.IN_Pin[2] == LOW) ? 0x04 : 0) |
+          ((myF.IN_Pin[1] == LOW) ? 0x08 : 0);
+      uint8_t controllerOutputs =
+          (myF.OUT_Pin[1] ? 0x01 : 0) |
+          (myF.OUT_Pin[2] ? 0x02 : 0) |
+          (myF.OUT_Pin[3] ? 0x04 : 0) |
+          (myF.OUT_Pin[4] ? 0x08 : 0);
+      controllerManagement.updateIoStatus(
+          controllerInputs, controllerOutputs, robot.control.rainState,
+          myF.mVrain, robot.control.batteryVoltage,
+          robot.control.chargerVoltage);
       digitalWrite(blueLED,!digitalRead(blueLED));
       stateTimer[5]=millis()+1000;
 
