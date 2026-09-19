@@ -6,7 +6,7 @@
 3. [Sunray for owlPlatform](#sunray_owl)
 4. [Dabble App/Python interface demo for owlPlatform](#dabble)
 5. [ROS for owlPlatform](#ros)
-   
+6. [Husqvarna, STIHL etc. conversion](#sunray_husqvarna)
 
 ## Description <a name="description"></a>
 'SMARTMOW-DIY/owlRobotics robot platform' is an **universal hardware platform** for your robotics projects. It contains:
@@ -185,6 +185,10 @@ roslaunch owlrobot_node bringup.launch
 rostopic pub /cmd_vel geometry_msgs/Twist -r 3 -- '[0.1,0.0,0.0]' '[0.0, 0.0, 0.0]'
 ```
 The motors should rotate forward (0.1 m/s).
+
+
+# Husqvarna, STIHL etc. conversion <a name="sunray_husqvarna"></a>
+There exists an owlPlatform DIY conversion manual how to convert your Husqvarna, STIHL etc. to an DIY robot mower: https://docs.google.com/document/d/1rZi848AFimIRHJkMun1muZ-2nvr8JjXCmmPBuZ1BfJA/edit?usp=sharing
 
 
 
